@@ -1,0 +1,12 @@
+stages:
+  - build
+
+build-nogc:
+  stage: build
+  script:
+    - cargo +nightly build --manifest-path mmtk-binding/Cargo.toml --features nogc
+
+build-ss:
+  stage: build
+  script:
+    - cargo +nightly build --manifest-path mmtk-binding/Cargo.toml --features semispace
