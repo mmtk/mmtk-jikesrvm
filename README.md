@@ -1,2 +1,2 @@
-MMTk Binding for JikesRVM
+JikesRVM Binding for MMTk
 ===
