@@ -1,9 +1,20 @@
 stages:
+  - fetch
   - build
 
-build:
+jikesrvm:
+  stage: fetch
+  script:
+    - sed -i 's,ssh://git,https://'$MMTK_TOKEN_NAME':'$MMTK_TOKEN_PASS',g' mmtk/Cargo.toml
+    - JIKESRVM_REVISION=`cat jikesrvm/vm-revision`
+    - git clone https://$JIKESRVM_TOKEN_NAME:$JIKESRVM_TOKEN_PASS@gitlab.anu.edu.au/mmtk/jikesrvm.git?rev=$JIKESRVM_REVISION
+    - mkdir -f jikesrvm/rust_mmtk
+    - cp mmtk/* jikesrvm/rust_mmtk/
+  artifacts:
+    paths:
+      - jikesrvm
+
+rbasebasenogc:
   stage: build
   script:
-    - sed -i 's,ssh://git,https://'$DEPLOY_TOKEN_NAME':'$DEPLOY_TOKEN_PASS',g' mmtk/Cargo.toml
-    - cargo +nightly build --manifest-path mmtk/Cargo.toml --features nogc --target=i686-unknown-linux-gnu
-    - cargo +nightly build --manifest-path mmtk/Cargo.toml --features semispace --target=i686-unknown-linux-gnu
+    - python jikesrvm/scripts/testMMTk.py -g RBaseBaseNoGC
