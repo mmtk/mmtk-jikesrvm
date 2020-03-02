@@ -5,16 +5,27 @@ stages:
 jikesrvm:
   stage: fetch
   script:
+    # Replace MMTk dependency with token access
     - sed -i 's,ssh://git,https://'$MMTK_TOKEN_NAME':'$MMTK_TOKEN_PASS',g' mmtk/Cargo.toml
-    - JIKESRVM_REVISION=`cat jikesrvm/vm-revision`
-    - git clone https://$JIKESRVM_TOKEN_NAME:$JIKESRVM_TOKEN_PASS@gitlab.anu.edu.au/mmtk/jikesrvm.git?rev=$JIKESRVM_REVISION
-    - mkdir -f jikesrvm/rust_mmtk
-    - cp mmtk/* jikesrvm/rust_mmtk/
-  artifacts:
+    # Remove cache
+    - rm -rf jikesrvm-repo
+    - git clone https://$JIKESRVM_TOKEN_NAME:$JIKESRVM_TOKEN_PASS@gitlab.anu.edu.au/mmtk/jikesrvm.git jikesrvm-repo
+    - cd jikesrvm-repo
+    # Check out specific rev
+    - git checkout `cat ../jikesrvm/vm-revision`
+    - mkdir -p ./rust_mmtk
+    - cp -r ../mmtk/* rust_mmtk/
+  cache:
+    key: "jikesrvm-$CI_COMMIT_SHA"
     paths:
-      - jikesrvm
+      - jikesrvm-repo
 
 rbasebasenogc:
   stage: build
+  cache:
+    key: "jikesrvm-$CI_COMMIT_SHA"
+    paths:
+      - jikesrvm-repo
+    policy: pull
   script:
-    - python jikesrvm/scripts/testMMTk.py -g RBaseBaseNoGC
+    - cd jikesrvm-repo && python scripts/testMMTk.py -g RBaseBaseNoGC
