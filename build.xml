@@ -1,0 +1,57 @@
+<project default="build-rust-mmtk">
+    <property name="rvm-binding.dir" location="${config.third-party-heap}/jikesrvm"/>
+    <property name="mmtk-binding.dir" location="${config.third-party-heap}/mmtk"/>
+
+    <!-- Generate a few files that will be used by Rust mmtk -->
+    <target name="gen-jtoc">
+        <property name="rvm-binding.build" location="${rvm-binding.dir}/build"/>
+        <mkdir dir="${rvm-binding.build}"/>
+        <javac srcdir="${rvm-binding.dir}" destdir="${rvm-binding.build}"
+               source="${rvm.java.version}" target="${rvm.java.version}" includeantruntime="false">
+            <classpath>
+                <pathelement location="${build.vm.jar}"/>
+                <pathelement location="${build.rt.jar}"/>
+                <pathelement location="${build.classes}"/>
+                <pathelement location="${build.vmmagic.classes}"/>
+            </classpath>
+        </javac>
+        <!-- Similar to gen-interface in JikesRVM's build.xml -->
+        <java classname="org.jikesrvm.runtime.RustJTOC" fork="true" failonerror="true">
+            <classpath>
+                <pathelement location="${rvm-binding.build}"/>
+                <pathelement location="${build.vm.jar}"/>
+                <pathelement location="${build.rt.jar}"/>
+                <pathelement location="${build.classes}"/>
+                <pathelement path="${build.extra.rt.jars}"/>
+            </classpath>
+            <sysproperty key="mmtk.hostjvm" value="org.jikesrvm.mm.mmtk.Factory"/>
+            <sysproperty key="mmtk.properties" value="${mmtk.properties}"/>
+            <jvmarg value="-Xbootclasspath/a:${build.rt.jar}"/>
+            <arg value="${mmtk-binding.dir}/src/"/>
+        </java>
+    </target>
+
+    <target name="build-rust-mmtk" depends="gen-jtoc">
+        <condition property="mmtk-binding.build" value="${mmtk-binding.dir}/target/i686-unknown-linux-gnu/release" else="${mmtk-binding.dir}/target/i686-unknown-linux-gnu/debug">
+            <contains string="${rust.args}" substring="release"/>
+        </condition>
+        <echo message="Build Rust MMTk ${mmtk-binding.dir} to ${mmtk-binding.build}"/>
+        <exec executable="/usr/bin/as" failonerror="true">
+            <arg line="--32 -o ${build.base}/${target.obj-prefix}glue${target.obj-ext} -I ${mmtk-binding.dir}/src ${mmtk-binding.dir}/src/glue.asm"/>
+        </exec>
+        <exec executable="cargo" dir="${mmtk-binding.dir}" failonerror="true">
+            <arg value="+nightly"/>
+            <arg value="rustc"/>
+            <arg value="--manifest-path=${mmtk-binding.dir}/Cargo.toml"/>
+            <arg value="--target=i686-unknown-linux-gnu"/>
+            <arg value="--features=${rust.features}"/>
+            <arg value="--no-default-features"/>
+            <arg line="${rust.args}"/>
+            <arg value="--"/>
+            <arg value="-C"/>
+            <arg value="force-frame-pointers=yes"/>
+        </exec>
+        <copy file="${mmtk-binding.build}/libmmtk_jikesrvm.so" tofile="${build.base}/libmmtk.so">
+        </copy>
+    </target>
+</project>
