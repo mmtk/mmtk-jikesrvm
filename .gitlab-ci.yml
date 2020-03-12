@@ -22,8 +22,26 @@ build-ss:
   script:
     - cargo +nightly build --manifest-path mmtk/Cargo.toml --features semispace --target=i686-unknown-linux-gnu
 
-test-nogc:
+test-basebasenogc:
+  stage: test
+  script:
+    - cd repos/jikesrvm
+    - python scripts/testMMTk.py -g RBaseBaseSemiSpace -a "Xms1024M Xmx1024M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
+
+test-fastadaptivenogc:
+  stage: test
+  script:
+    - cd repos/jikesrvm
+    - python scripts/testMMTk.py -g RFastAdaptiveNoGC -a "Xms1024M Xmx1024M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
+
+test-basebasesemispace:
   stage: test
   script:
     - cd repos/jikesrvm
     - python scripts/testMMTk.py -g RBaseBaseSemiSpace -a "Xms75M Xmx75M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
+
+test-fastadaptivesemispace:
+  stage: test
+  script:
+    - cd repos/jikesrvm
+    - python scripts/testMMTk.py -g RFastAdaptiveSemiSpace -a "Xms75M Xmx75M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
