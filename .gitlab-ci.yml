@@ -6,7 +6,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 before_script:
-  - '! [ -e ./benchmarks/dacapo-2006-10-MR2.jar ] && mkdir -p benchmarks && wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar -O benchmarks/dacapo-2006-10-MR2.jar'
+  - '! [ -e repos/jikesrvm/benchmarks/dacapo-2006-10-MR2.jar ] && mkdir -p repos/jikesrvm/benchmarks && wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar -O repos/jikesrvm/benchmarks/dacapo-2006-10-MR2.jar'
 
 stages:
   - build
@@ -26,4 +26,4 @@ test-nogc:
   stage: test
   script:
     - cd repos/jikesrvm
-    - python scripts/testMMTk.py -g RBaseBaseSemiSpace -a "Xms75M Xmx75M" -- --use-third-part-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
+    - python scripts/testMMTk.py -g RBaseBaseSemiSpace -a "Xms75M Xmx75M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
