@@ -1,0 +1,6 @@
+[submodule "repos/mmtk-core"]
+	path = repos/mmtk-core
+	url = ../mmtk-core.git
+[submodule "repos/jikesrvm"]
+	path = repos/jikesrvm
+	url = ../jikesrvm.git
