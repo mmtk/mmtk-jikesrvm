@@ -9,18 +9,7 @@ before_script:
   - '! [ -e repos/jikesrvm/benchmarks/dacapo-2006-10-MR2.jar ] && mkdir -p repos/jikesrvm/benchmarks && wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar -O repos/jikesrvm/benchmarks/dacapo-2006-10-MR2.jar'
 
 stages:
-  - build
   - test
-
-build-nogc:
-  stage: build
-  script:
-    - cargo +nightly build --manifest-path mmtk/Cargo.toml --features nogc --target=i686-unknown-linux-gnu
-
-build-ss:
-  stage: build
-  script:
-    - cargo +nightly build --manifest-path mmtk/Cargo.toml --features semispace --target=i686-unknown-linux-gnu
 
 test-basebasenogc:
   stage: test
