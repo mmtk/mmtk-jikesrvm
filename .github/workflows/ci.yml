@@ -1,0 +1,52 @@
+name: Dacapo Tests
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Install nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-08-26
+          components: clippy
+          target: i686-unknown-linux-gnu
+          # This overwrites the default toolchain with the toolchain specified above.
+          override: true
+      - uses: actions/cache@v1
+        id: dacapo-cache
+        with:
+          path: repos/jikesrvm/benchmarks
+          key: dacapo-2006
+      - name: Download Dacapo
+        if: steps.dacapo-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p repos/jikesrvm/benchmarks
+          wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar -O repos/jikesrvm/benchmarks/dacapo-2006-10-MR2.jar
+
+      - name: RBaseBaseNoGC
+        run: |
+          cd repos/jikesrvm
+          python scripts/testMMTk.py -g RBaseBaseNoGC -a "Xms1024M Xmx1024M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
+
+      - name: RFastAdaptiveNoGC
+        run: |
+          cd repos/jikesrvm
+          python scripts/testMMTk.py -g RFastAdaptiveNoGC -a "Xms1024M Xmx1024M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
+
+      - name: RBaseBaseSemiSpace
+        run: |
+          cd repos/jikesrvm
+          python scripts/testMMTk.py -g RBaseBaseSemiSpace -a "Xms75M Xmx75M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
+
+      - name: RFastAdaptiveSemiSpace
+        run: |
+          cd repos/jikesrvm
+          python scripts/testMMTk.py -g RFastAdaptiveSemiSpace -a "Xms75M Xmx75M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
