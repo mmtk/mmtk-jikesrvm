@@ -9,8 +9,10 @@ jobs:
   test:
     runs-on: ubuntu-18.04
     steps:
+      # Checkout repos and submodules
       - uses: actions/checkout@v2
         with:
+          # CI_ACCESS_TOKEN is a secret set with the repo
           token: ${{ secrets.CI_ACCESS_TOKEN }}
           submodules: true
       - name: Install nightly
@@ -21,6 +23,7 @@ jobs:
           target: i686-unknown-linux-gnu
           # This overwrites the default toolchain with the toolchain specified above.
           override: true
+      # Check if we have cached dacapo benchmark. If not, download it.
       - uses: actions/cache@v1
         id: dacapo-cache
         with:
@@ -31,23 +34,41 @@ jobs:
         run: |
           mkdir -p repos/jikesrvm/benchmarks
           wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar -O repos/jikesrvm/benchmarks/dacapo-2006-10-MR2.jar
+      # Install dependencies for JikesRVM
+      - name: Install JikesRVM dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install build-essential gcc-multilib gettext bison -y
+      # Check Toolchain Versions
+      - name: Check Toolchain Versions
+        run: |
+          set -x
+          java -version
+          javac -version
+          echo $JAVA_HOME
+          cargo --version
+          rustup toolchain list
 
       - name: RBaseBaseNoGC
         run: |
+          export RUSTUP_TOOLCHAIN=+nightly-2019-08-26
           cd repos/jikesrvm
-          python scripts/testMMTk.py -g RBaseBaseNoGC -a "Xms1024M Xmx1024M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
+          python scripts/testMMTk.py -j $JAVA_HOME -g RBaseBaseNoGC -a "Xms1024M Xmx1024M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
 
       - name: RFastAdaptiveNoGC
         run: |
+          export RUSTUP_TOOLCHAIN=+nightly-2019-08-26
           cd repos/jikesrvm
-          python scripts/testMMTk.py -g RFastAdaptiveNoGC -a "Xms1024M Xmx1024M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
+          python scripts/testMMTk.py -j $JAVA_HOME -g RFastAdaptiveNoGC -a "Xms1024M Xmx1024M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
 
       - name: RBaseBaseSemiSpace
         run: |
+          export RUSTUP_TOOLCHAIN=+nightly-2019-08-26
           cd repos/jikesrvm
-          python scripts/testMMTk.py -g RBaseBaseSemiSpace -a "Xms75M Xmx75M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
+          python scripts/testMMTk.py -j $JAVA_HOME -g RBaseBaseSemiSpace -a "Xms75M Xmx75M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
 
       - name: RFastAdaptiveSemiSpace
         run: |
+          export RUSTUP_TOOLCHAIN=+nightly-2019-08-26
           cd repos/jikesrvm
-          python scripts/testMMTk.py -g RFastAdaptiveSemiSpace -a "Xms75M Xmx75M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
+          python scripts/testMMTk.py -j $JAVA_HOME -g RFastAdaptiveSemiSpace -a "Xms75M Xmx75M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
