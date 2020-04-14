@@ -1,5 +1,4 @@
-<project default="build-rust-mmtk"
-         xmlns:if="ant:if">
+<project default="build-rust-mmtk">
     <property name="rvm-binding.dir" location="${config.third-party-heap}/jikesrvm"/>
     <property name="rvm-binding.source" location="${config.third-party-heap}/jikesrvm/rvm"/>
     <property name="rvm-binding.tools" location="${config.third-party-heap}/jikesrvm/tools"/>
