@@ -47,12 +47,6 @@ pub extern "C" fn alloc(mutator: *mut SelectedMutator<JikesRVM>, size: usize,
 }
 
 #[no_mangle]
-pub extern "C" fn alloc_slow(mutator: *mut SelectedMutator<JikesRVM>, size: usize,
-                                align: usize, offset: isize, allocator: Allocator) -> Address {
-    memory_manager::alloc_slow::<JikesRVM>(unsafe { &mut *mutator }, size, align, offset, allocator)
-}
-
-#[no_mangle]
 pub extern "C" fn post_alloc(mutator: *mut SelectedMutator<JikesRVM>, refer: ObjectReference, type_refer: ObjectReference,
                                 bytes: usize, allocator: Allocator) {
     memory_manager::post_alloc::<JikesRVM>(unsafe { &mut *mutator }, refer, type_refer, bytes, allocator)
@@ -194,6 +188,35 @@ pub extern "C" fn starting_heap_address() -> Address {
 #[no_mangle]
 pub extern "C" fn last_heap_address() -> Address {
     memory_manager::last_heap_address()
+}
+
+// Allocation slow path
+
+use mmtk::util::alloc::{BumpAllocator, LargeObjectAllocator};
+use mmtk::util::alloc::Allocator as IAllocator;
+use mmtk::util::heap::MonotonePageResource;
+
+#[no_mangle]
+pub extern "C" fn alloc_slow_bump_monotone_immortal(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
+    use mmtk::policy::immortalspace::ImmortalSpace;
+    unsafe { &mut *(allocator as *mut BumpAllocator<JikesRVM, MonotonePageResource<JikesRVM, ImmortalSpace<JikesRVM>>>) }.alloc_slow(size, align, offset)
+}
+
+#[no_mangle]
+#[cfg(feature = "mmtk/copyspace")]
+pub extern "C" fn alloc_slow_bump_monotone_copy(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
+    use mmtk::policy::copyspace::CopySpace;
+    unsafe { &mut *(allocator as *mut BumpAllocator<JikesRVM, MonotonePageResource<JikesRVM, CopySpace<JikesRVM>>>) }.alloc_slow(size, align, offset)
+}
+#[no_mangle]
+#[cfg(not(feature = "mmtk/copyspace"))]
+pub extern "C" fn alloc_slow_bump_monotone_copy(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
+    unimplemented!()
+}
+
+#[no_mangle]
+pub extern "C" fn alloc_slow_largeobject(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
+    unsafe { &mut *(allocator as *mut LargeObjectAllocator<JikesRVM>) }.alloc_slow(size, align, offset)
 }
 
 // Test

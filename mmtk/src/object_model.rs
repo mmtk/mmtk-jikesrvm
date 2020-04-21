@@ -285,7 +285,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         }
     }
 
-    fn GC_HEADER_OFFSET() -> isize {
+    fn gc_header_offset() -> isize {
         GC_HEADER_OFFSET
     }
 

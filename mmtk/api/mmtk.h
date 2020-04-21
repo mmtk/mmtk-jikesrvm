@@ -20,7 +20,11 @@ extern void destroy_mutator(MMTk_Mutator mutator);
 extern void* alloc(MMTk_Mutator mutator, size_t size,
     size_t align, size_t offset, int allocator);
 
-extern void* alloc_slow(MMTk_Mutator mutator, size_t size,
+extern void* alloc_slow_bump_monotone_immortal(MMTk_Mutator mutator, size_t size,
+    size_t align, size_t offset, int allocator);
+extern void* alloc_slow_bump_monotone_copy(MMTk_Mutator mutator, size_t size,
+    size_t align, size_t offset, int allocator);
+extern void* alloc_slow_largeobject(MMTk_Mutator mutator, size_t size,
     size_t align, size_t offset, int allocator);
 
 extern void post_alloc(MMTk_Mutator mutator, void* refer, void* type_refer,
@@ -73,10 +77,17 @@ extern void jikesrvm_gc_init(void* jtoc, size_t heap_size);
 
 extern void enable_collection(void *tls);
 
+// For the following functions, glue.asm provides a wrapper with JikesRVM's calling convention
+// to call the internal functions.
+
 extern void* jikesrvm_alloc(MMTk_Mutator mutator, size_t size,
     size_t align, size_t offset, int allocator);
 
-extern void* jikesrvm_alloc_slow(MMTk_Mutator mutator, size_t size,
+extern void* jikesrvm_alloc_slow_bump_monotone_immortal(MMTk_Mutator mutator, size_t size,
+    size_t align, size_t offset, int allocator);
+extern void* jikesrvm_alloc_slow_bump_monotone_copy(MMTk_Mutator mutator, size_t size,
+    size_t align, size_t offset, int allocator);
+extern void* jikesrvm_alloc_slow_largeobject(MMTk_Mutator mutator, size_t size,
     size_t align, size_t offset, int allocator);
 
 extern void jikesrvm_handle_user_collection_request(void *tls);

@@ -19,5 +19,5 @@ mmtk = { path = "../repos/mmtk-core" }
 
 [features]
 default = []
-nogc = ["mmtk/nogc"]
-semispace = ["mmtk/semispace"]
+nogc = ["mmtk/nogc", "mmtk/vmspace"]
+semispace = ["mmtk/semispace", "mmtk/vmspace"]

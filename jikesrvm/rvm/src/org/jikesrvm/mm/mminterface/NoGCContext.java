@@ -56,30 +56,30 @@ public class NoGCContext extends NoGCMutator {
 
     @Override
     public Address alloc(int bytes, int align, int offset, int allocator, int site) {
-        if (allocator == Plan.ALLOC_LOS) {
+        if (allocator == Plan.ALLOC_DEFAULT) {
+            Address region;
+
+            // Align allocation
+            Word mask = Word.fromIntSignExtend(align - 1);
+            Word negOff = Word.fromIntSignExtend(-offset);
+
+            Offset delta = negOff.minus(cursor.toWord()).and(mask).toOffset();
+
+            Address result = cursor.plus(delta);
+
+            Address newCursor = result.plus(bytes);
+
+            if (newCursor.GT(limit)) {
+                Address handle = Magic.objectAsAddress(this).plus(threadIdOffset);
+                return sysCall.sysAllocSlowBumpMonotoneImmortal(handle, bytes, align, offset, allocator);
+            } else {
+                cursor = newCursor;
+                return result;
+            }
+        } else {
             Address handle = Magic.objectAsAddress(this).plus(threadIdOffset);
             return sysCall.sysAlloc(handle, bytes, align, offset, allocator);
         }
-        Address region;
-
-        // Align allocation
-        Word mask = Word.fromIntSignExtend(align - 1);
-        Word negOff = Word.fromIntSignExtend(-offset);
-
-        Offset delta = negOff.minus(cursor.toWord()).and(mask).toOffset();
-
-        Address result = cursor.plus(delta);
-
-        Address newCursor = result.plus(bytes);
-
-        if (newCursor.GT(limit)) {
-            Address handle = Magic.objectAsAddress(this).plus(threadIdOffset);
-            region = sysCall.sysAllocSlow(handle, bytes, align, offset, allocator);
-        } else {
-            cursor = newCursor;
-            region = result;
-        }
-        return region;
     }
 
     public Address setBlock(Address mmtkHandle) {
