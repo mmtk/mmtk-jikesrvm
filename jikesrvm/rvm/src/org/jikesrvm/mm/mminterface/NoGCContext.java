@@ -57,8 +57,6 @@ public class NoGCContext extends NoGCMutator {
     @Override
     public Address alloc(int bytes, int align, int offset, int allocator, int site) {
         if (allocator == Plan.ALLOC_DEFAULT) {
-            Address region;
-
             // Align allocation
             Word mask = Word.fromIntSignExtend(align - 1);
             Word negOff = Word.fromIntSignExtend(-offset);
