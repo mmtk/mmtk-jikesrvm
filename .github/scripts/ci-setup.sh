@@ -3,9 +3,9 @@ set -xe
 export RUST_VERSION=nightly-2019-08-26
 
 # Install nightly rust
-rustup toolchain install $RUST_VERSION
-rustup target add i686-unknown-linux-gnu --toolchain $RUST_VERSION
-rustup override set $RUST_VERSION
+rustup toolchain install $RUSTUP_TOOLCHAIN
+rustup target add i686-unknown-linux-gnu --toolchain $RUSTUP_TOOLCHAIN
+rustup override set $RUSTUP_TOOLCHAIN
 
 # Download dacapo
 mkdir -p repos/jikesrvm/benchmarks

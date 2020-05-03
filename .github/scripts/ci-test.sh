@@ -1,6 +1,4 @@
 set -xe
-export RUST_VERSION=nightly-2019-08-26
-export RUSTUP_TOOLCHAIN=+$RUST_VERSION
 
 # To JikesRVM folder
 cd repos/jikesrvm
