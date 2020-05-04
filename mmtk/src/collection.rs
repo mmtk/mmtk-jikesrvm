@@ -47,7 +47,7 @@ impl Collection<JikesRVM> for VMCollection {
         }
     }
 
-    fn prepare_mutator<T: MutatorContext>(tls: OpaquePointer, m: &T) {
+    fn prepare_mutator<T: MutatorContext<JikesRVM>>(tls: OpaquePointer, m: &T) {
         unsafe {
             jtoc_call!(PREPARE_MUTATOR_METHOD_OFFSET, tls, tls);
         }

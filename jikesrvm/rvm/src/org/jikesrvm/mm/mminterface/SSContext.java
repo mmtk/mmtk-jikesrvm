@@ -19,6 +19,7 @@ import org.vmmagic.unboxed.*;
 import org.jikesrvm.runtime.Magic;
 import org.mmtk.plan.Plan;
 import org.mmtk.plan.semispace.SS;
+import org.mmtk.utility.alloc.Allocator;
 
 import static org.jikesrvm.runtime.EntrypointHelper.getField;
 import static org.jikesrvm.runtime.SysCall.sysCall;
@@ -37,6 +38,10 @@ public class SSContext extends SSMutator {
     Address space;
     @Entrypoint
     Address planSS;
+    // plan ref
+    @Entrypoint
+    Address planRef;
+    // CommonMutatorContext
     // BumpAllocator (vs)
     @Entrypoint
     Address threadIdImmortal;
@@ -55,15 +60,14 @@ public class SSContext extends SSMutator {
     Address spaceLos;
     @Entrypoint
     Address planLos;
-    // plan ref
-    @Entrypoint
-    Address planRef;
 
     static final Offset threadIdOffset = getField(SSContext.class, "threadId", Address.class).getOffset();
     static final Offset cursorOffset = getField(SSContext.class, "cursor", Address.class).getOffset();
     static final Offset limitOffset = getField(SSContext.class, "limit", Address.class).getOffset();
     static final Offset spaceOffset = getField(SSContext.class, "space", Address.class).getOffset();
     static final Offset planSSOffset = getField(SSContext.class, "planSS", Address.class).getOffset();
+
+    static final Offset planRefOffset = getField(SSContext.class, "planRef", Address.class).getOffset();
 
     static final Offset threadIdImmortalOffset = getField(SSContext.class, "threadIdImmortal", Address.class).getOffset();
     static final Offset cursorImmortalOffset = getField(SSContext.class, "cursorImmortal", Address.class).getOffset();
@@ -75,47 +79,48 @@ public class SSContext extends SSMutator {
     static final Offset spaceLosOffset = getField(SSContext.class, "spaceLos", Address.class).getOffset();
     static final Offset planLosOffset = getField(SSContext.class, "planLos", Address.class).getOffset();
 
-    static final Offset planRefOffset = getField(SSContext.class, "planRef", Address.class).getOffset();
-
     public Address setBlock(Address mmtkHandle) {
-        if (VM.VerifyAssertions) {
-            VM._assert(cursorOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD));
-            VM._assert(limitOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 2));
-            VM._assert(spaceOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 3));
-            VM._assert(planSSOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 4));
-
-            VM._assert(threadIdImmortalOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 5));
-            VM._assert(cursorImmortalOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 6));
-            VM._assert(limitImmortalOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 7));
-            VM._assert(spaceImmortalOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 8));
-            VM._assert(planImmortalOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 9));
-
-            VM._assert(threadIdLosOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 10));
-            VM._assert(spaceLosOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 11));
-            VM._assert(planLosOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 12));
-        }
         threadId = mmtkHandle.loadAddress();
         cursor   = mmtkHandle.plus(BYTES_IN_WORD).loadAddress();
         limit    = mmtkHandle.plus(BYTES_IN_WORD * 2).loadAddress();
         space    = mmtkHandle.plus(BYTES_IN_WORD * 3).loadAddress();
         planSS   = mmtkHandle.plus(BYTES_IN_WORD * 4).loadAddress();
 
-        threadIdImmortal = mmtkHandle.plus(BYTES_IN_WORD * 5).loadAddress();
-        cursorImmortal   = mmtkHandle.plus(BYTES_IN_WORD * 6).loadAddress();
-        limitImmortal    = mmtkHandle.plus(BYTES_IN_WORD * 7).loadAddress();
-        spaceImmortal    = mmtkHandle.plus(BYTES_IN_WORD * 8).loadAddress();
-        planImmortal     = mmtkHandle.plus(BYTES_IN_WORD * 9).loadAddress();
+        planRef = mmtkHandle.plus(BYTES_IN_WORD * 5).loadAddress();
 
-        threadIdLos = mmtkHandle.plus(BYTES_IN_WORD * 10).loadAddress();
-        spaceLos = mmtkHandle.plus(BYTES_IN_WORD * 11).loadAddress();
-        planLos = mmtkHandle.plus(BYTES_IN_WORD * 12).loadAddress();
+        threadIdImmortal = mmtkHandle.plus(BYTES_IN_WORD * 6).loadAddress();
+        cursorImmortal   = mmtkHandle.plus(BYTES_IN_WORD * 7).loadAddress();
+        limitImmortal    = mmtkHandle.plus(BYTES_IN_WORD * 8).loadAddress();
+        spaceImmortal    = mmtkHandle.plus(BYTES_IN_WORD * 9).loadAddress();
+        planImmortal     = mmtkHandle.plus(BYTES_IN_WORD * 10).loadAddress();
 
-        planRef = mmtkHandle.plus(BYTES_IN_WORD * 13).loadAddress();
+        threadIdLos = mmtkHandle.plus(BYTES_IN_WORD * 11).loadAddress();
+        spaceLos = mmtkHandle.plus(BYTES_IN_WORD * 12).loadAddress();
+        planLos = mmtkHandle.plus(BYTES_IN_WORD * 13).loadAddress();
         return Magic.objectAsAddress(this).plus(threadIdOffset);
+    }
+
+    @Inline
+    public int mapAllocator(int bytes, int origAllocator) {
+        if (origAllocator == Plan.ALLOC_DEFAULT)
+            return MMTkAllocator.DEFAULT;
+        else if (origAllocator == Plan.ALLOC_IMMORTAL)
+            return MMTkAllocator.IMMORTAL;
+        else if (origAllocator == Plan.ALLOC_LOS)
+            return MMTkAllocator.LOS;
+        else if (origAllocator == Plan.ALLOC_CODE || origAllocator == Plan.ALLOC_LARGE_CODE)
+            // FIXME: Should use CODE. Now I am just testing with IMMORTAL to make things easier.
+            // return MMTkAllocator.CODE;
+            return MMTkAllocator.IMMORTAL;
+        else {
+            return MMTkAllocator.IMMORTAL;
+        }
     }
 
     @Override
     public Address alloc(int bytes, int align, int offset, int allocator, int site) {
+        allocator = mapAllocator(bytes, allocator);
+
         if (allocator == SS.ALLOC_SS) {
             Address cursor = this.cursor;
             Address sentinel = this.limit;
@@ -146,6 +151,8 @@ public class SSContext extends SSMutator {
     @Override
     public void postAlloc(ObjectReference ref, ObjectReference typeRef,
                           int bytes, int allocator) {
+        allocator = mapAllocator(bytes, allocator);
+
         Address handle = Magic.objectAsAddress(this).plus(threadIdOffset);
         sysCall.sysPostAlloc(handle, ref, typeRef, bytes, allocator);
     }
