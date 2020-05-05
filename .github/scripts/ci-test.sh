@@ -32,4 +32,4 @@ python scripts/testMMTk.py -j $JAVA_HOME -g RBaseBaseSemiSpace -a "Xms75M Xmx75M
 ./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar luindex
 ./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar lusearch
 ./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar pmd
-./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar xalan
+./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -Xms100M -Xmx100M -jar benchmarks/dacapo-2006-10-MR2.jar xalan
