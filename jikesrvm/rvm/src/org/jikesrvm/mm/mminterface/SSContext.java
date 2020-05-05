@@ -109,7 +109,7 @@ public class SSContext extends SSMutator {
         else if (origAllocator == Plan.ALLOC_LOS)
             return MMTkAllocator.LOS;
         else if (origAllocator == Plan.ALLOC_CODE || origAllocator == Plan.ALLOC_LARGE_CODE)
-            // FIXME: Should use CODE. Now I am just testing with IMMORTAL to make things easier.
+            // FIXME: Should use CODE. However, mmtk-core hasn't implemented the CODE allocator.
             // return MMTkAllocator.CODE;
             return MMTkAllocator.IMMORTAL;
         else {
