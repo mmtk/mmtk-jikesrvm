@@ -25,7 +25,7 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.BYTES_IN_WORD;
 
 @Uninterruptible
 public class NoGCContext extends NoGCMutator {
-    // BumpAllocator
+    // NoGC BumpAllocator
     @Entrypoint
     Address threadId;
     @Entrypoint
@@ -36,6 +36,18 @@ public class NoGCContext extends NoGCMutator {
     Address space;
     @Entrypoint
     Address planNoGC;
+    // CommonMutatorContext
+    // Immortal BumpAllocator
+    @Entrypoint
+    Address threadIdImmortal;
+    @Entrypoint
+    Address cursorImmortal;
+    @Entrypoint
+    Address limitImmortal;
+    @Entrypoint
+    Address spaceImmortal;
+    @Entrypoint
+    Address planImmortal;
     // LargeObjectAllocator
     @Entrypoint
     Address threadIdLos;
@@ -49,6 +61,12 @@ public class NoGCContext extends NoGCMutator {
     static final Offset limitOffset = getField(NoGCContext.class, "limit", Address.class).getOffset();
     static final Offset spaceOffset = getField(NoGCContext.class, "space", Address.class).getOffset();
     static final Offset planNoGCOffset = getField(NoGCContext.class, "planNoGC", Address.class).getOffset();
+
+    static final Offset threadIdImmortalOffset = getField(NoGCContext.class, "threadIdImmortal", Address.class).getOffset();
+    static final Offset cursorImmortalOffset = getField(NoGCContext.class, "cursorImmortal", Address.class).getOffset();
+    static final Offset limitImmortalOffset = getField(NoGCContext.class, "limitImmortal", Address.class).getOffset();
+    static final Offset spaceImmortalOffset = getField(NoGCContext.class, "spaceImmortal", Address.class).getOffset();
+    static final Offset planImmortalOffset = getField(NoGCContext.class, "planImmortal", Address.class).getOffset();
 
     static final Offset threadIdLosOffset = getField(NoGCContext.class, "threadIdLos", Address.class).getOffset();
     static final Offset spaceLosOffset = getField(NoGCContext.class, "spaceLos", Address.class).getOffset();
@@ -81,25 +99,21 @@ public class NoGCContext extends NoGCMutator {
     }
 
     public Address setBlock(Address mmtkHandle) {
-        if (VM.VerifyAssertions) {
-            VM._assert(cursorOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD));
-            VM._assert(limitOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 2));
-            VM._assert(spaceOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 3));
-            VM._assert(planNoGCOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 4));
-
-            VM._assert(threadIdLosOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 5));
-            VM._assert(spaceLosOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 6));
-            VM._assert(planLosOffset.minus(threadIdOffset) == Offset.fromIntSignExtend(BYTES_IN_WORD * 7));
-        }
         threadId = mmtkHandle.loadAddress();
         cursor   = mmtkHandle.plus(BYTES_IN_WORD).loadAddress();
         limit    = mmtkHandle.plus(BYTES_IN_WORD * 2).loadAddress();
         space    = mmtkHandle.plus(BYTES_IN_WORD * 3).loadAddress();
         planNoGC = mmtkHandle.plus(BYTES_IN_WORD * 4).loadAddress();
 
-        threadIdLos = mmtkHandle.plus(BYTES_IN_WORD * 5).loadAddress();
-        spaceLos = mmtkHandle.plus(BYTES_IN_WORD * 6).loadAddress();
-        planLos = mmtkHandle.plus(BYTES_IN_WORD * 7).loadAddress();
+        threadIdImmortal = mmtkHandle.plus(BYTES_IN_WORD * 5).loadAddress();
+        cursorImmortal = mmtkHandle.plus(BYTES_IN_WORD * 6).loadAddress();
+        limitImmortal = mmtkHandle.plus(BYTES_IN_WORD * 7).loadAddress();
+        spaceImmortal = mmtkHandle.plus(BYTES_IN_WORD * 8).loadAddress();
+        planImmortal = mmtkHandle.plus(BYTES_IN_WORD * 9).loadAddress();
+
+        threadIdLos = mmtkHandle.plus(BYTES_IN_WORD * 10).loadAddress();
+        spaceLos = mmtkHandle.plus(BYTES_IN_WORD * 11).loadAddress();
+        planLos = mmtkHandle.plus(BYTES_IN_WORD * 12).loadAddress();
 
         return Magic.objectAsAddress(this).plus(threadIdOffset);
     }
