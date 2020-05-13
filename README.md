@@ -30,15 +30,16 @@ Tested on Ubuntu 18.04.4 LTS (GNU/Linux 4.15.0-21-generic x86_64).
 
 ### Getting Sources (for MMTk and JikesRVM)
 
-You would need the correct revisions of MMTk and JikesRVM. Both are checked in as git submodules under `repos`. You would simply need to run the following line under the root directory of `mmtk-jikesrvm` to fetch submodules' sources for MMTk and JikesRVM:
+You would need the correct revisions of MMTk and JikesRVM. Both are checked in as git submodules under `repos`. You would simply need to run the following lines under the root directory of `mmtk-jikesrvm` to fetch submodules' sources for MMTk and JikesRVM:
 ```
+git submodule init
 git submodule update
 ```
 Alternatively, you could fetch the sources by yourself (make sure you have the right VM/MMTk revisions that match the `mmtk-jikesrvm` revision. If you clone the MMTk core in a folder other than `repos/mmtk-core`, you would need to modify `mmtk/Cargo.toml` to point the `mmtk` dependency to your MMTk core folder.
-* JikesRVM: [https://gitlab.anu.edu.au/mmtk/jikesrvm](https://gitlab.anu.edu.au/mmtk/jikesrvm)
-* MMTk Core: [https://gitlab.anu.edu.au/mmtk/mmtk-core](https://gitlab.anu.edu.au/mmtk/mmtk-core)
+* JikesRVM: [https://github.com/mmtk/jikesrvm](https://github.com/mmtk/jikesrvm)
+* MMTk Core: [https://github.com/mmtk/mmtk-core](https://github.com/mmtk/mmtk-core)
 
-The rest of this instruction assumes you have done the `git submodule update` and have both repositories under `repos`.
+The rest of this instruction assumes you have done the `git submodule init/update` and have both repositories under `repos`.
 
 ## Build
 
