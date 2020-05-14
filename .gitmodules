@@ -1,7 +1,6 @@
 [submodule "repos/mmtk-core"]
 	path = repos/mmtk-core
 	url = https://github.com/mmtk/mmtk-core
-	branch = pr-space
 [submodule "repos/jikesrvm"]
 	path = repos/jikesrvm
 	url = https://github.com/mmtk/jikesrvm
