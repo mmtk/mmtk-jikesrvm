@@ -11,7 +11,6 @@ use mmtk::util::address::Address;
 use mmtk::TraceLocal;
 use mmtk::vm::VMBinding;
 use mmtk::MMTK;
-use mmtk::{VM_MAP, MMAPPER, SFT_MAP};
 
 use entrypoint::*;
 use collection::BOOT_THREAD;
@@ -81,5 +80,5 @@ impl JikesRVM {
 }
 
 lazy_static! {
-    pub static ref SINGLETON: MMTK<JikesRVM> = MMTK::new(&VM_MAP, &MMAPPER, &SFT_MAP);
+    pub static ref SINGLETON: MMTK<JikesRVM> = MMTK::new();
 }
