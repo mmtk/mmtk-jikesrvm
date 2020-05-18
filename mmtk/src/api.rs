@@ -54,12 +54,13 @@ pub extern "C" fn post_alloc(mutator: *mut SelectedMutator<JikesRVM>, refer: Obj
 
 #[no_mangle]
 pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
-    memory_manager::will_never_move(&SINGLETON, object)
+    !object.is_movable()
 }
 
+// FIXME this function is mis-named.
 #[no_mangle]
-pub extern "C" fn is_valid_ref(val: ObjectReference) -> bool {
-    memory_manager::is_valid_ref(&SINGLETON, val)
+pub extern "C" fn is_valid_ref(object: ObjectReference) -> bool {
+    object.is_mapped()
 }
 
 #[no_mangle]
@@ -135,12 +136,12 @@ pub extern "C" fn handle_user_collection_request(tls: OpaquePointer) {
 
 #[no_mangle]
 pub extern "C" fn is_mapped_object(object: ObjectReference) -> bool {
-    memory_manager::is_mapped_object(&SINGLETON, object)
+    object.is_mapped()
 }
 
 #[no_mangle]
-pub extern "C" fn is_mapped_address(object: Address) -> bool {
-    memory_manager::is_mapped_address(&SINGLETON, object)
+pub extern "C" fn is_mapped_address(address: Address) -> bool {
+    address.is_mapped()
 }
 
 #[no_mangle]
