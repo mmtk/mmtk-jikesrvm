@@ -57,12 +57,6 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
     !object.is_movable()
 }
 
-// FIXME this function is mis-named.
-#[no_mangle]
-pub extern "C" fn is_valid_ref(object: ObjectReference) -> bool {
-    object.is_mapped()
-}
-
 #[no_mangle]
 pub extern "C" fn report_delayed_root_edge(trace_local: *mut SelectedTraceLocal<JikesRVM>, addr: Address) {
     memory_manager::report_delayed_root_edge(&SINGLETON, unsafe { &mut *trace_local }, addr)
