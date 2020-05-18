@@ -114,11 +114,6 @@ pub extern "C" fn trace_get_forwarded_reference(trace_local: *mut SelectedTraceL
 }
 
 #[no_mangle]
-pub extern "C" fn trace_is_live(trace_local: *mut SelectedTraceLocal<JikesRVM>, object: ObjectReference) -> bool{
-    memory_manager::trace_is_live::<JikesRVM>(unsafe { &mut *trace_local }, object)
-}
-
-#[no_mangle]
 pub extern "C" fn trace_retain_referent(trace_local: *mut SelectedTraceLocal<JikesRVM>, object: ObjectReference) -> ObjectReference{
     memory_manager::trace_retain_referent::<JikesRVM>(unsafe { &mut *trace_local }, object)
 }
@@ -126,6 +121,11 @@ pub extern "C" fn trace_retain_referent(trace_local: *mut SelectedTraceLocal<Jik
 #[no_mangle]
 pub extern "C" fn handle_user_collection_request(tls: OpaquePointer) {
     memory_manager::handle_user_collection_request::<JikesRVM>(&SINGLETON, tls);
+}
+
+#[no_mangle]
+pub extern "C" fn is_live_object(object: ObjectReference) -> bool{
+    object.is_live()
 }
 
 #[no_mangle]
