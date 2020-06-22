@@ -194,7 +194,7 @@ use mmtk::util::heap::MonotonePageResource;
 #[no_mangle]
 pub extern "C" fn alloc_slow_bump_monotone_immortal(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
     use mmtk::policy::immortalspace::ImmortalSpace;
-    unsafe { &mut *(allocator as *mut BumpAllocator<JikesRVM, MonotonePageResource<JikesRVM, ImmortalSpace<JikesRVM>>>) }.alloc_slow(size, align, offset)
+    unsafe { &mut *(allocator as *mut BumpAllocator<JikesRVM>) }.alloc_slow(size, align, offset)
 }
 
 // For plans that do not include copy space, use the other implementation
@@ -204,7 +204,7 @@ pub extern "C" fn alloc_slow_bump_monotone_immortal(allocator: *mut c_void, size
 #[cfg(any(feature = "semispace"))]
 pub extern "C" fn alloc_slow_bump_monotone_copy(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
     use mmtk::policy::copyspace::CopySpace;
-    unsafe { &mut *(allocator as *mut BumpAllocator<JikesRVM, MonotonePageResource<JikesRVM, CopySpace<JikesRVM>>>) }.alloc_slow(size, align, offset)
+    unsafe { &mut *(allocator as *mut BumpAllocator<JikesRVM>) }.alloc_slow(size, align, offset)
 }
 #[no_mangle]
 #[cfg(not(any(feature = "semispace")))]

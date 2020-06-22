@@ -35,6 +35,8 @@ public class NoGCContext extends NoGCMutator {
     @Entrypoint
     Address space;
     @Entrypoint
+    Address spaceFat; // space is a fat pointer
+    @Entrypoint
     Address planNoGC;
     // CommonMutatorContext
     // Immortal BumpAllocator
@@ -46,6 +48,8 @@ public class NoGCContext extends NoGCMutator {
     Address limitImmortal;
     @Entrypoint
     Address spaceImmortal;
+    @Entrypoint
+    Address spaceImmortalFat;
     @Entrypoint
     Address planImmortal;
     // LargeObjectAllocator
@@ -60,12 +64,14 @@ public class NoGCContext extends NoGCMutator {
     static final Offset cursorOffset = getField(NoGCContext.class, "cursor", Address.class).getOffset();
     static final Offset limitOffset = getField(NoGCContext.class, "limit", Address.class).getOffset();
     static final Offset spaceOffset = getField(NoGCContext.class, "space", Address.class).getOffset();
+    static final Offset spaceFatOffset = getField(NoGCContext.class, "spaceFat", Address.class).getOffset();
     static final Offset planNoGCOffset = getField(NoGCContext.class, "planNoGC", Address.class).getOffset();
 
     static final Offset threadIdImmortalOffset = getField(NoGCContext.class, "threadIdImmortal", Address.class).getOffset();
     static final Offset cursorImmortalOffset = getField(NoGCContext.class, "cursorImmortal", Address.class).getOffset();
     static final Offset limitImmortalOffset = getField(NoGCContext.class, "limitImmortal", Address.class).getOffset();
     static final Offset spaceImmortalOffset = getField(NoGCContext.class, "spaceImmortal", Address.class).getOffset();
+    static final Offset spaceImmortalFatOffset = getField(NoGCContext.class, "spaceImmortalFat", Address.class).getOffset();
     static final Offset planImmortalOffset = getField(NoGCContext.class, "planImmortal", Address.class).getOffset();
 
     static final Offset threadIdLosOffset = getField(NoGCContext.class, "threadIdLos", Address.class).getOffset();
@@ -103,17 +109,19 @@ public class NoGCContext extends NoGCMutator {
         cursor   = mmtkHandle.plus(BYTES_IN_WORD).loadAddress();
         limit    = mmtkHandle.plus(BYTES_IN_WORD * 2).loadAddress();
         space    = mmtkHandle.plus(BYTES_IN_WORD * 3).loadAddress();
-        planNoGC = mmtkHandle.plus(BYTES_IN_WORD * 4).loadAddress();
+        spaceFat = mmtkHandle.plus(BYTES_IN_WORD * 4).loadAddress();
+        planNoGC = mmtkHandle.plus(BYTES_IN_WORD * 5).loadAddress();
 
-        threadIdImmortal = mmtkHandle.plus(BYTES_IN_WORD * 5).loadAddress();
-        cursorImmortal = mmtkHandle.plus(BYTES_IN_WORD * 6).loadAddress();
-        limitImmortal = mmtkHandle.plus(BYTES_IN_WORD * 7).loadAddress();
-        spaceImmortal = mmtkHandle.plus(BYTES_IN_WORD * 8).loadAddress();
-        planImmortal = mmtkHandle.plus(BYTES_IN_WORD * 9).loadAddress();
+        threadIdImmortal = mmtkHandle.plus(BYTES_IN_WORD * 6).loadAddress();
+        cursorImmortal = mmtkHandle.plus(BYTES_IN_WORD * 7).loadAddress();
+        limitImmortal = mmtkHandle.plus(BYTES_IN_WORD * 8).loadAddress();
+        spaceImmortal = mmtkHandle.plus(BYTES_IN_WORD * 9).loadAddress();
+        spaceImmortalFat = mmtkHandle.plus(BYTES_IN_WORD * 10).loadAddress();
+        planImmortal = mmtkHandle.plus(BYTES_IN_WORD * 11).loadAddress();
 
-        threadIdLos = mmtkHandle.plus(BYTES_IN_WORD * 10).loadAddress();
-        spaceLos = mmtkHandle.plus(BYTES_IN_WORD * 11).loadAddress();
-        planLos = mmtkHandle.plus(BYTES_IN_WORD * 12).loadAddress();
+        threadIdLos = mmtkHandle.plus(BYTES_IN_WORD * 12).loadAddress();
+        spaceLos = mmtkHandle.plus(BYTES_IN_WORD * 13).loadAddress();
+        planLos = mmtkHandle.plus(BYTES_IN_WORD * 14).loadAddress();
 
         return Magic.objectAsAddress(this).plus(threadIdOffset);
     }
