@@ -163,9 +163,9 @@ pub extern "C" fn harness_begin(id: usize) {
     unsafe {
         let thread_from_id = VMCollection::thread_from_id(id);
         let tls = OpaquePointer::from_address(thread_from_id);
-        let st = JikesRVM::current_thread_switch_to(tls, 1); // 1 = IN_JAVA
+        let st = JikesRVM::enter_vm(tls);
         memory_manager::harness_begin(&SINGLETON, tls);
-        JikesRVM::current_thread_switch_to(tls, st);
+        JikesRVM::leave_vm(tls, st);
     }
 }
 
@@ -174,9 +174,9 @@ pub extern "C" fn harness_end(id: usize) {
     unsafe {
         let thread_from_id = VMCollection::thread_from_id(id);
         let tls = OpaquePointer::from_address(thread_from_id);
-        let st = JikesRVM::current_thread_switch_to(tls, 1); // 1 = IN_JAVA
+        let st = JikesRVM::enter_vm(tls);
         memory_manager::harness_end(&SINGLETON);
-        JikesRVM::current_thread_switch_to(tls, st);
+        JikesRVM::leave_vm(tls, st);
     }
 }
 

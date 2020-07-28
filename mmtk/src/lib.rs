@@ -79,9 +79,15 @@ impl JikesRVM {
         }
     }
 
-    pub fn current_thread_switch_to(tls: OpaquePointer, status: i32) -> i32 {
+    pub fn enter_vm(tls: OpaquePointer) -> i32 {
         unsafe {
-            jtoc_call!(CURRENT_THREAD_SWITCH_TO_METHOD_OFFSET, tls, status) as i32
+            jtoc_call!(ENTER_VM_METHOD_OFFSET, tls) as i32
+        }
+    }
+
+    pub fn leave_vm(tls: OpaquePointer, status: i32) {
+        unsafe {
+            jtoc_call!(LEAVE_VM_METHOD_OFFSET, tls, status);
         }
     }
 }
