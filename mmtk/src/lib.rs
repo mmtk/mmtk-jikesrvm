@@ -79,7 +79,7 @@ impl JikesRVM {
         }
     }
 
-    pub fn currentThreadSwitchTo(tls: OpaquePointer, status: i32) -> i32 {
+    pub fn current_thread_switch_to(tls: OpaquePointer, status: i32) -> i32 {
         unsafe {
             jtoc_call!(CURRENT_THREAD_SWITCH_TO_METHOD_OFFSET, tls, status) as i32
         }
