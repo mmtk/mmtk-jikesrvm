@@ -224,7 +224,7 @@ pub extern "C" fn alloc_slow_largeobject(allocator: *mut c_void, size: usize, al
 pub extern "C" fn test_stack_alignment() {
     info!("Entering stack alignment test with no args passed");
     unsafe {
-        asm!("movaps %xmm1, (%esp)" : : : "sp", "%xmm1", "memory");
+        llvm_asm!("movaps %xmm1, (%esp)" : : : "sp", "%xmm1", "memory");
     }
     info!("Exiting stack alignment test");
 }
@@ -235,7 +235,7 @@ pub extern "C" fn test_stack_alignment1(a: usize, b: usize, c: usize, d: usize, 
     info!("a:{}, b:{}, c:{}, d:{}, e:{}",
           a, b, c, d, e);
     unsafe {
-        asm!("movaps %xmm1, (%esp)" : : : "sp", "%xmm1", "memory");
+        llvm_asm!("movaps %xmm1, (%esp)" : : : "sp", "%xmm1", "memory");
     }
     let result = a + b * 2 + c * 3  + d * 4 + e * 5;
     info!("Exiting stack alignment test");
