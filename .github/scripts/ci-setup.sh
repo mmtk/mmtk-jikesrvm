@@ -1,7 +1,5 @@
 set -xe
 
-export RUST_VERSION=nightly-2019-08-26
-
 # Install nightly rust
 rustup toolchain install $RUSTUP_TOOLCHAIN
 rustup target add i686-unknown-linux-gnu --toolchain $RUSTUP_TOOLCHAIN
