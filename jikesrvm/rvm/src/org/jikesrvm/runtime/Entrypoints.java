@@ -43,6 +43,23 @@ public class Entrypoints {
   public static final RVMMethod java_lang_reflect_Method_invokeMethod =
       getMethod(java.lang.reflect.Method.class, "invoke",
           "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;");
+
+  public static final RVMMethod java_lang_reflect_Constructor_newInstance =
+      getMethod(java.lang.reflect.Constructor.class, "newInstance",
+          "([Ljava/lang/Object;)Ljava/lang/Object;");
+    
+  // This is only necessary to work around OpenJDKs work around, see sun_reflect_Reflection
+  // in the libraryInterface for details.
+  public static final RVMMethod java_lang_reflect_Method_getCallerClass;
+  // Necessary to wipe out cached fields (TODO OPENJDK/ICEDTEA consider doing this in the BootImageWriter)
+  public static final RVMField usr_paths_Field;
+  public static final RVMField sys_paths_Field;
+  // Necessary to set application classloader for OpenJDK
+  public static final RVMField scl_Field;
+  public static final RVMField sclSet_Field;
+  // Necessary for getInheritedAccessControlContext
+  public static final RVMField inheritedAccessControlContext_Field;
+      
   public static final RVMMethod getClassFromStackFrame =
     getMethod(org.jikesrvm.classloader.RVMClass.class, "getClassFromStackFrame", "(I)Lorg/jikesrvm/classloader/RVMClass;");
   public static final RVMMethod getClassLoaderFromStackFrame =
@@ -597,6 +614,23 @@ public class Entrypoints {
                                             "exitFromJNI",
                                             "(I)Ljava/lang/Object;");
     }
+    if (VM.BuildForOpenJDK) {
+        java_lang_reflect_Method_getCallerClass = getMethod(java.lang.reflect.Method.class, "getCallerClass",
+            "()Ljava/lang/Class;");
+        usr_paths_Field = getField(java.lang.ClassLoader.class, "usr_paths", String[].class);
+        sys_paths_Field = getField(java.lang.ClassLoader.class, "sys_paths", String[].class);
+        scl_Field = getField(java.lang.ClassLoader.class, "scl", ClassLoader.class);
+        sclSet_Field = getField(java.lang.ClassLoader.class, "sclSet", boolean.class);
+        inheritedAccessControlContext_Field = getField(java.lang.Thread.class, "inheritedAccessControlContext", java.security.AccessControlContext.class);
+    } else {
+        java_lang_reflect_Method_getCallerClass = null;
+        usr_paths_Field = null;
+        sys_paths_Field = null;
+        scl_Field = null;
+        sclSet_Field = null;
+        inheritedAccessControlContext_Field = null;
+    }
+
   }
 
   public static final RVMField the_boot_recordField =
@@ -719,7 +753,7 @@ public class Entrypoints {
 
   // Initialize Harmony classlibrary specific fields
   static {
-    if (VM.BuildForHarmony) {
+    if (VM.BuildForOpenJDK) {
       luni1 = getField("Lorg/apache/harmony/luni/util/Msg;", "bundle", java.util.ResourceBundle.class);
       luni2 = getField("Lorg/apache/harmony/archive/internal/nls/Messages;", "bundle", java.util.ResourceBundle.class);
       luni3 = getField("Lorg/apache/harmony/luni/internal/nls/Messages;", "bundle", java.util.ResourceBundle.class);
