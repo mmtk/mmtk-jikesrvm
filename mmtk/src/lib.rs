@@ -47,6 +47,8 @@ impl VMBinding for JikesRVM {
     type VMCollection = collection::VMCollection;
     type VMActivePlan = active_plan::VMActivePlan;
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
+
+    const ALLOC_END_ALIGNMENT: usize = 4;
 }
 
 impl JikesRVM {

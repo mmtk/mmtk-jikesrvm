@@ -99,7 +99,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         }
 
         let start = Self::object_start_ref(to);
-        fill_alignment_gap(region, start);
+        fill_alignment_gap::<JikesRVM>(region, start);
 
         start + bytes
     }
