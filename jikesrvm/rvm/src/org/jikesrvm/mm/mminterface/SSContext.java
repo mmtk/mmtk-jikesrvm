@@ -26,7 +26,7 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
 import static org.jikesrvm.runtime.UnboxedSizeConstants.BYTES_IN_WORD;
 
 @Uninterruptible
-public class SSContext extends SSMutator {
+public class SSContext extends MMTkMutatorContext {
     // BumpAllocator (ss)
     @Entrypoint
     Address threadId;
