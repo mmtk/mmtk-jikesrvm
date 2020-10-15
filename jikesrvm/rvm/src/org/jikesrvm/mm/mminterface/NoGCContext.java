@@ -26,12 +26,12 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.BYTES_IN_WORD;
 @Uninterruptible
 public class NoGCContext extends MMTkMutatorContext {
     @Inline
-    protected int getAllocatorTag(int allocator) {
+    protected final int getAllocatorTag(int allocator) {
         return MMTkMutatorContext.TAG_BUMP_POINTER;
     }
 
     @Inline
-    protected int getAllocatorIndex(int allocator) {
+    protected final int getAllocatorIndex(int allocator) {
         return 0;
     }
 }

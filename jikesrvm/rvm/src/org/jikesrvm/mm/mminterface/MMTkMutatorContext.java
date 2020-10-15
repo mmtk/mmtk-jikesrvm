@@ -153,7 +153,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Inline
     protected abstract int getAllocatorIndex(int allocator);
     @Inline
-    public int mapAllocator(int bytes, int origAllocator) {
+    public final int mapAllocator(int bytes, int origAllocator) {
         if (origAllocator == Plan.ALLOC_DEFAULT)
             return MMTkAllocator.DEFAULT;
         else if (origAllocator == Plan.ALLOC_IMMORTAL)
@@ -170,7 +170,8 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     }
 
     @Override
-    public Address alloc(int bytes, int align, int offset, int allocator, int site) {
+    @Inline
+    public final Address alloc(int bytes, int align, int offset, int allocator, int site) {
         allocator = mapAllocator(bytes, allocator);
 
         int ty = getAllocatorTag(allocator);
@@ -197,7 +198,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     }
 
     @Inline
-    protected Address bumpAllocatorFastPath(int bytes, int align, int offset, int allocator, int allocatorIndex) {
+    protected final Address bumpAllocatorFastPath(int bytes, int align, int offset, int allocator, int allocatorIndex) {
         // Align allocation
         Word mask = Word.fromIntSignExtend(align - 1);
         Word negOff = Word.fromIntSignExtend(-offset);
@@ -231,7 +232,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     }
 
     @NoInline
-    protected Address slowPath(int bytes, int align, int offset, int allocator) {
+    protected final Address slowPath(int bytes, int align, int offset, int allocator) {
         // VM.sysWriteln("======go to slow alloc");
         // sysCall.sysConsoleFlushErrorAndTrace();
         Address handle = Magic.objectAsAddress(this).plus(MUTATOR_BASE_OFFSET);
@@ -239,7 +240,8 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     }
 
     @Override
-    public void postAlloc(ObjectReference ref, ObjectReference typeRef,
+    @Inline
+    public final void postAlloc(ObjectReference ref, ObjectReference typeRef,
                           int bytes, int allocator) {
         allocator = mapAllocator(bytes, allocator);                              
         // VM.sysWriteln("JikesRVM postAlloc()");

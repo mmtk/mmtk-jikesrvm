@@ -28,7 +28,7 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.BYTES_IN_WORD;
 @Uninterruptible
 public class SSContext extends MMTkMutatorContext {
     @Inline
-    protected int getAllocatorTag(int allocator) {
+    protected final int getAllocatorTag(int allocator) {
         if (allocator == MMTkAllocator.LOS) {
             return MMTkMutatorContext.TAG_LARGE_OBJECT;
         } else {
@@ -38,7 +38,7 @@ public class SSContext extends MMTkMutatorContext {
     }
 
     @Inline
-    protected int getAllocatorIndex(int allocator) {
+    protected final int getAllocatorIndex(int allocator) {
         if (allocator == MMTkAllocator.DEFAULT) {
             return 0;
         } else if (allocator == MMTkAllocator.IMMORTAL || allocator == MMTkAllocator.CODE || allocator == MMTkAllocator.READONLY) {
