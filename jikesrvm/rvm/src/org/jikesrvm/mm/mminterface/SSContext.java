@@ -27,141 +27,24 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.BYTES_IN_WORD;
 
 @Uninterruptible
 public class SSContext extends MMTkMutatorContext {
-    // BumpAllocator (ss)
-    @Entrypoint
-    Address threadId;
-    @Entrypoint
-    Address cursor;
-    @Entrypoint
-    Address limit;
-    @Entrypoint
-    Address space;
-    @Entrypoint
-    Address spaceFat; // space is a fat pointer
-    @Entrypoint
-    Address planSS;
-    // plan ref
-    @Entrypoint
-    Address planRef;
-    // CommonMutatorContext
-    // BumpAllocator (vs)
-    @Entrypoint
-    Address threadIdImmortal;
-    @Entrypoint
-    Address cursorImmortal;
-    @Entrypoint
-    Address limitImmortal;
-    @Entrypoint
-    Address spaceImmortal;
-    @Entrypoint
-    Address spaceImmortalFat;
-    @Entrypoint
-    Address planImmortal;
-    // LargeObjectAllocator
-    @Entrypoint
-    Address threadIdLos;
-    @Entrypoint
-    Address spaceLos;
-    @Entrypoint
-    Address planLos;
-
-    static final Offset threadIdOffset = getField(SSContext.class, "threadId", Address.class).getOffset();
-    static final Offset cursorOffset = getField(SSContext.class, "cursor", Address.class).getOffset();
-    static final Offset limitOffset = getField(SSContext.class, "limit", Address.class).getOffset();
-    static final Offset spaceOffset = getField(SSContext.class, "space", Address.class).getOffset();
-    static final Offset spaceFatOffset = getField(SSContext.class, "spaceFat", Address.class).getOffset();
-    static final Offset planSSOffset = getField(SSContext.class, "planSS", Address.class).getOffset();
-
-    static final Offset planRefOffset = getField(SSContext.class, "planRef", Address.class).getOffset();
-
-    static final Offset threadIdImmortalOffset = getField(SSContext.class, "threadIdImmortal", Address.class).getOffset();
-    static final Offset cursorImmortalOffset = getField(SSContext.class, "cursorImmortal", Address.class).getOffset();
-    static final Offset limitImmortalOffset = getField(SSContext.class, "limitImmortal", Address.class).getOffset();
-    static final Offset spaceImmortalOffset = getField(SSContext.class, "spaceImmortal", Address.class).getOffset();
-    static final Offset spaceImmortalFatOffset = getField(SSContext.class, "spaceImmortalFat", Address.class).getOffset();
-    static final Offset planImmortalOffset = getField(SSContext.class, "planImmortal", Address.class).getOffset();
-
-    static final Offset threadIdLosOffset = getField(SSContext.class, "threadIdLos", Address.class).getOffset();
-    static final Offset spaceLosOffset = getField(SSContext.class, "spaceLos", Address.class).getOffset();
-    static final Offset planLosOffset = getField(SSContext.class, "planLos", Address.class).getOffset();
-
-    public Address setBlock(Address mmtkHandle) {
-        threadId = mmtkHandle.loadAddress();
-        cursor   = mmtkHandle.plus(BYTES_IN_WORD).loadAddress();
-        limit    = mmtkHandle.plus(BYTES_IN_WORD * 2).loadAddress();
-        space    = mmtkHandle.plus(BYTES_IN_WORD * 3).loadAddress();
-        spaceFat = mmtkHandle.plus(BYTES_IN_WORD * 4).loadAddress();
-        planSS   = mmtkHandle.plus(BYTES_IN_WORD * 5).loadAddress();
-
-        planRef = mmtkHandle.plus(BYTES_IN_WORD * 6).loadAddress();
-
-        threadIdImmortal = mmtkHandle.plus(BYTES_IN_WORD * 7).loadAddress();
-        cursorImmortal   = mmtkHandle.plus(BYTES_IN_WORD * 8).loadAddress();
-        limitImmortal    = mmtkHandle.plus(BYTES_IN_WORD * 9).loadAddress();
-        spaceImmortal    = mmtkHandle.plus(BYTES_IN_WORD * 10).loadAddress();
-        spaceImmortalFat = mmtkHandle.plus(BYTES_IN_WORD * 11).loadAddress();
-        planImmortal     = mmtkHandle.plus(BYTES_IN_WORD * 12).loadAddress();
-
-        threadIdLos = mmtkHandle.plus(BYTES_IN_WORD * 13).loadAddress();
-        spaceLos = mmtkHandle.plus(BYTES_IN_WORD * 14).loadAddress();
-        planLos = mmtkHandle.plus(BYTES_IN_WORD * 15).loadAddress();
-        return Magic.objectAsAddress(this).plus(threadIdOffset);
+    @Inline
+    protected int getAllocatorTag(int allocator) {
+        if (allocator == MMTkAllocator.LOS) {
+            return MMTkMutatorContext.TAG_LARGE_OBJECT;
+        } else {
+            return MMTkMutatorContext.TAG_BUMP_POINTER;
+        }
+        
     }
 
     @Inline
-    public int mapAllocator(int bytes, int origAllocator) {
-        if (origAllocator == Plan.ALLOC_DEFAULT)
-            return MMTkAllocator.DEFAULT;
-        else if (origAllocator == Plan.ALLOC_IMMORTAL)
-            return MMTkAllocator.IMMORTAL;
-        else if (origAllocator == Plan.ALLOC_LOS)
-            return MMTkAllocator.LOS;
-        else if (origAllocator == Plan.ALLOC_CODE || origAllocator == Plan.ALLOC_LARGE_CODE)
-            // FIXME: Should use CODE. However, mmtk-core hasn't implemented the CODE allocator.
-            // return MMTkAllocator.CODE;
-            return MMTkAllocator.IMMORTAL;
-        else {
-            return MMTkAllocator.IMMORTAL;
-        }
-    }
-
-    @Override
-    public Address alloc(int bytes, int align, int offset, int allocator, int site) {
-        allocator = mapAllocator(bytes, allocator);
-
-        if (allocator == SS.ALLOC_SS) {
-            Address cursor = this.cursor;
-            Address sentinel = this.limit;
-
-            // Align allocation
-            Word mask = Word.fromIntSignExtend(align - 1);
-            Word negOff = Word.fromIntSignExtend(-offset);
-
-            Offset delta = negOff.minus(cursor.toWord()).and(mask).toOffset();
-
-            Address result = cursor.plus(delta);
-
-            Address newCursor = result.plus(bytes);
-
-            if (newCursor.GT(sentinel)) {
-                Address handle = Magic.objectAsAddress(this).plus(threadIdOffset);
-                return sysCall.sysAllocSlowBumpMonotoneCopy(handle, bytes, align, offset, allocator);
-            } else {
-                this.cursor = newCursor;
-                return result;
-            }
+    protected int getAllocatorIndex(int allocator) {
+        if (allocator == MMTkAllocator.DEFAULT) {
+            return 0;
+        } else if (allocator == MMTkAllocator.IMMORTAL || allocator == MMTkAllocator.CODE || allocator == MMTkAllocator.READONLY) {
+            return 1;
         } else {
-            Address handle = Magic.objectAsAddress(this).plus(threadIdOffset);
-            return sysCall.sysAlloc(handle, bytes, align, offset, allocator);
+            return 0;
         }
-    }
-
-    @Override
-    public void postAlloc(ObjectReference ref, ObjectReference typeRef,
-                          int bytes, int allocator) {
-        allocator = mapAllocator(bytes, allocator);
-
-        Address handle = Magic.objectAsAddress(this).plus(threadIdOffset);
-        sysCall.sysPostAlloc(handle, ref, typeRef, bytes, allocator);
     }
 }

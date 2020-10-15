@@ -6,4 +6,5 @@ public class MMTkAllocator {
     public static final int IMMORTAL = 1;
     public static final int LOS = 2;
     public static final int CODE = 3;
+    public static final int READONLY = 4;
 }
