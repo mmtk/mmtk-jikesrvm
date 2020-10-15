@@ -35,8 +35,8 @@ pub extern "C" fn start_control_collector(tls: OpaquePointer) {
 pub extern "C" fn bind_mutator(tls: OpaquePointer) -> *mut Mutator<JikesRVM, SelectedPlan<JikesRVM>> {
     let box_mutator = memory_manager::bind_mutator(&SINGLETON, tls);
     let ptr = Box::into_raw(box_mutator);
-    println!("In mmtk-jikesrvm bind_mutator()");
-    println!("Mutator into_raw() = {:?}", ptr);
+    // println!("In mmtk-jikesrvm bind_mutator()");
+    // println!("Mutator into_raw() = {:?}", ptr);
     ptr
 }
 

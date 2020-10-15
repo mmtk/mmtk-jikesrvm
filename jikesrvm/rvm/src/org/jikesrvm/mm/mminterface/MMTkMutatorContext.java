@@ -3,6 +3,7 @@ package org.jikesrvm.mm.mminterface;
 import org.vmmagic.pragma.*;
 import org.vmmagic.unboxed.*;
 import org.mmtk.plan.MutatorContext;
+import org.mmtk.plan.Plan;
 import org.jikesrvm.VM;
 import org.jikesrvm.runtime.EntrypointHelper;
 import org.jikesrvm.runtime.Magic;
@@ -151,16 +152,40 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     protected abstract int getAllocatorTag(int allocator);
     @Inline
     protected abstract int getAllocatorIndex(int allocator);
+    @Inline
+    public int mapAllocator(int bytes, int origAllocator) {
+        if (origAllocator == Plan.ALLOC_DEFAULT)
+            return MMTkAllocator.DEFAULT;
+        else if (origAllocator == Plan.ALLOC_IMMORTAL)
+            return MMTkAllocator.IMMORTAL;
+        else if (origAllocator == Plan.ALLOC_LOS)
+            return MMTkAllocator.LOS;
+        else if (origAllocator == Plan.ALLOC_CODE || origAllocator == Plan.ALLOC_LARGE_CODE)
+            // FIXME: Should use CODE. However, mmtk-core hasn't implemented the CODE allocator.
+            // return MMTkAllocator.CODE;
+            return MMTkAllocator.CODE;
+        else {
+            return MMTkAllocator.IMMORTAL;
+        }
+    }
 
     @Override
     public Address alloc(int bytes, int align, int offset, int allocator, int site) {
+        allocator = mapAllocator(bytes, allocator);
+
         int ty = getAllocatorTag(allocator);
         int index = getAllocatorIndex(allocator);
 
-        VM.sysWrite("-------alloc() with allocator ty", ty); VM.sysWriteln("index", index);
-        VM.sysWriteln("assumed size (bytes) = ", MUTATOR_SIZE);
-        VM.sysWriteln("actual size (bytes) = ", MUTATOR_END.minus(MUTATOR_BASE_OFFSET).toInt());
+        // VM.sysWrite("-------alloc() with allocator ty", ty); VM.sysWriteln("index", index);
+        // sysCall.sysConsoleFlushErrorAndTrace();
+        // VM.sysWriteln("assumed size (bytes) = ", MUTATOR_SIZE);
+        // VM.sysWriteln("actual size (bytes) = ", MUTATOR_END.minus(MUTATOR_BASE_OFFSET).toInt());
+        // VM.sysWriteln("JikesRVM mutator size = ", MUTATOR_SIZE);
+        // VM._assert(MUTATOR_SIZE == MUTATOR_END.minus(MUTATOR_BASE_OFFSET).toInt(), "Mutator size does not match");
 
+        // VM._assert(ty == 0);
+        // VM._assert(index == 0);
+        
         if (ty == TAG_BUMP_POINTER) {
             return bumpAllocatorFastPath(bytes, align, offset, allocator, index);
         } else if (ty == TAG_LARGE_OBJECT) {
@@ -178,9 +203,9 @@ public abstract class MMTkMutatorContext extends MutatorContext {
         Word negOff = Word.fromIntSignExtend(-offset);
 
         Address allocatorBase = Magic.objectAsAddress(this).plus(BUMP_ALLOCATOR_OFFSET).plus(allocatorIndex * BUMP_ALLOCATOR_SIZE);
-        VM.sysWriteln("this = ", Magic.objectAsAddress(this));
-        VM.sysWriteln("mutator = ", Magic.objectAsAddress(this).plus(BUMP_ALLOCATOR_OFFSET));
-        VM.sysWriteln("allocator = ", Magic.objectAsAddress(this).plus(BUMP_ALLOCATOR_OFFSET).plus(allocatorIndex * BUMP_ALLOCATOR_SIZE));
+        // VM.sysWriteln("this = ", Magic.objectAsAddress(this));
+        // VM.sysWriteln("mutator = ", Magic.objectAsAddress(this).plus(BUMP_ALLOCATOR_OFFSET));
+        // VM.sysWriteln("allocator = ", Magic.objectAsAddress(this).plus(BUMP_ALLOCATOR_OFFSET).plus(allocatorIndex * BUMP_ALLOCATOR_SIZE));
         
         Address cursor = allocatorBase.plus(BUMP_ALLOCATOR_CURSOR).loadAddress();
         Address limit = allocatorBase.plus(BUMP_ALLOCATOR_LIMIT).loadAddress();
@@ -188,7 +213,8 @@ public abstract class MMTkMutatorContext extends MutatorContext {
         Address result = cursor.plus(delta);
         Address newCursor = result.plus(bytes);
 
-        VM.sysWrite("fast alloc: cursor = ", cursor); VM.sysWrite(", aligned to ", result); VM.sysWriteln(", limit = ", limit);
+        // VM.sysWrite("fast alloc: cursor = ", cursor); VM.sysWrite(", aligned to ", result); VM.sysWriteln(", limit = ", limit);
+        // sysCall.sysConsoleFlushErrorAndTrace();
 
         if (newCursor.GT(limit)) {
             return slowPath(bytes, align, offset, allocator);
@@ -196,8 +222,9 @@ public abstract class MMTkMutatorContext extends MutatorContext {
             // return sysCall.sysAllocSlowBumpMonotoneImmortal(allocatorBase, bytes, align, offset, allocator);
             // return sysCall.sysAlloc(Magic.objectAsAddress(this).plus(MUTATOR_BASE_OFFSET), bytes, align, offset, allocator);
         } else {
-            VM.sysWriteln("return ", result);
-            VM.sysWriteln("save new cursor ", newCursor);
+            // VM.sysWriteln("return ", result);
+            // VM.sysWriteln("save new cursor ", newCursor);
+            // sysCall.sysConsoleFlushErrorAndTrace();
             allocatorBase.plus(BUMP_ALLOCATOR_CURSOR).store(newCursor);
             return result;
         }        
@@ -205,7 +232,8 @@ public abstract class MMTkMutatorContext extends MutatorContext {
 
     @NoInline
     protected Address slowPath(int bytes, int align, int offset, int allocator) {
-        VM.sysWriteln("======go to slow alloc");
+        // VM.sysWriteln("======go to slow alloc");
+        // sysCall.sysConsoleFlushErrorAndTrace();
         Address handle = Magic.objectAsAddress(this).plus(MUTATOR_BASE_OFFSET);
         return sysCall.sysAlloc(handle, bytes, align, offset, allocator);
     }
@@ -213,6 +241,9 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Override
     public void postAlloc(ObjectReference ref, ObjectReference typeRef,
                           int bytes, int allocator) {
+        allocator = mapAllocator(bytes, allocator);                              
+        // VM.sysWriteln("JikesRVM postAlloc()");
+        // sysCall.sysConsoleFlushErrorAndTrace();
         Address handle = Magic.objectAsAddress(this).plus(MUTATOR_BASE_OFFSET);
         sysCall.sysPostAlloc(handle, ref, typeRef, bytes, allocator);
     }
@@ -222,7 +253,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
         Address src = mmtkHandle;
         Address dst = Magic.objectAsAddress(this).plus(MUTATOR_BASE_OFFSET);
 
-        VM.sysWrite("setBlock() copy from "); VM.sysWrite(src); VM.sysWrite(" to "); VM.sysWriteln(dst);
+        // VM.sysWrite("setBlock() copy from "); VM.sysWrite(src); VM.sysWrite(" to "); VM.sysWriteln(dst);
 
         // copy word by word
         for (int offset = 0; offset < MUTATOR_SIZE; offset += 4) {
@@ -230,11 +261,12 @@ public abstract class MMTkMutatorContext extends MutatorContext {
             Address dstAddr = dst.plus(offset);
             Word val = srcAddr.loadWord();
             
-            VM.sysWrite("Copying "); VM.sysWrite(val); VM.sysWrite(" from 0x"); VM.sysWrite(srcAddr);
-            VM.sysWrite(" to "); VM.sysWriteln(dstAddr);
+            // VM.sysWrite("Copying "); VM.sysWrite(val); VM.sysWrite(" from 0x"); VM.sysWrite(srcAddr);
+            // VM.sysWrite(" to "); VM.sysWriteln(dstAddr);
             
             dstAddr.store(val);
-        }        
+        }
+        // sysCall.sysConsoleFlushErrorAndTrace();
 
         return dst;
     }    
