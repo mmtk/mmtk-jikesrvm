@@ -35,6 +35,11 @@ public class NoGCContext extends MMTkMutatorContext {
         return 0;
     }
 
+    @Inline
+    protected final int getSpaceTag(int allocator) {
+        return IMMORTAL_SPACE;
+    }
+
     @Override
     @Inline
     public final void postAlloc(ObjectReference ref, ObjectReference typeRef,

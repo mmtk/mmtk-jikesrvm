@@ -147,11 +147,18 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     public static final int TAG_BUMP_POINTER = 0;
     public static final int TAG_LARGE_OBJECT = 1;
 
+    // for space selector
+    public static final int IMMORTAL_SPACE = 0;
+    public static final int COPY_SPACE = 1;
+    public static final int LARGE_OBJECT_SPACE = 2;
+
     // The implementation of these two method should allow the compiler to do partial evaluation.
     @Inline
     protected abstract int getAllocatorTag(int allocator);
     @Inline
     protected abstract int getAllocatorIndex(int allocator);
+    @Inline
+    protected abstract int getSpaceTag(int allocator);
     @Inline
     public final int mapAllocator(int bytes, int origAllocator) {
         if (origAllocator == Plan.ALLOC_DEFAULT)
@@ -243,11 +250,15 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Inline
     public void postAlloc(ObjectReference ref, ObjectReference typeRef,
                           int bytes, int allocator) {
-        allocator = mapAllocator(bytes, allocator);                              
-        // VM.sysWriteln("JikesRVM postAlloc()");
-        // sysCall.sysConsoleFlushErrorAndTrace();
-        Address handle = Magic.objectAsAddress(this).plus(MUTATOR_BASE_OFFSET);
-        sysCall.sysPostAlloc(handle, ref, typeRef, bytes, allocator);
+        allocator = mapAllocator(bytes, allocator);
+        int space = getSpaceTag(allocator);
+
+        if (space == COPY_SPACE) {
+            // nothing to do for post_alloc
+        } else if (space == IMMORTAL_SPACE || space == LARGE_OBJECT_SPACE) {
+            Address handle = Magic.objectAsAddress(this).plus(MUTATOR_BASE_OFFSET);
+            sysCall.sysPostAlloc(handle, ref, typeRef, bytes, allocator);
+        }
     }
 
     public Address setBlock(Address mmtkHandle) {

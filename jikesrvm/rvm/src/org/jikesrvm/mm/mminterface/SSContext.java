@@ -35,7 +35,6 @@ public class SSContext extends MMTkMutatorContext {
         } else {
             return MMTkMutatorContext.TAG_BUMP_POINTER;
         }
-        
     }
 
     @Inline
@@ -49,29 +48,14 @@ public class SSContext extends MMTkMutatorContext {
         }
     }
 
-    static final byte GC_MARK_BIT_MASK = 1;
-
-    @Override
     @Inline
-    public final void postAlloc(ObjectReference ref, ObjectReference typeRef,
-                          int bytes, int allocator) {
-        allocator = mapAllocator(bytes, allocator);
-
-        int ty = getAllocatorTag(allocator);
-        int index = getAllocatorIndex(allocator);        
-
-        if (ty == TAG_LARGE_OBJECT) {
-            Address handle = Magic.objectAsAddress(this).plus(MUTATOR_BASE_OFFSET);
-            sysCall.sysPostAlloc(handle, ref, typeRef, bytes, allocator);
-        } else if (ty == TAG_BUMP_POINTER && index == 1) {
-            // Address allocatorBase = Magic.objectAsAddress(this).plus(BUMP_ALLOCATOR_OFFSET).plus(index * BUMP_ALLOCATOR_SIZE);
-            // Address space = allocatorBase.plus(BUMP_ALLOCATOR_SPACE).loadAddress();
-
-            // byte oldValue = JavaHeader.readAvailableByte(ref.toObject());
-            // byte newValue = (byte) ((oldValue & GC_MARK_BIT_MASK) | space.loadByte()); // space.loadbyte() gets back mark_state
-            // JavaHeader.writeAvailableByte(ref.toObject(), newValue);
-            Address handle = Magic.objectAsAddress(this).plus(MUTATOR_BASE_OFFSET);
-            sysCall.sysPostAlloc(handle, ref, typeRef, bytes, allocator);
+    protected final int getSpaceTag(int allocator) {
+        if (allocator == MMTkAllocator.DEFAULT) {
+            return COPY_SPACE;
+        } else if (allocator == MMTkAllocator.LOS) {
+            return LARGE_OBJECT_SPACE;
+        } else {
+            return IMMORTAL_SPACE;
         }
     }
 }
