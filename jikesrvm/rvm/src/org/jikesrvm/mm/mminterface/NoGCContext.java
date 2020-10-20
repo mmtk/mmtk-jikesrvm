@@ -12,29 +12,21 @@
  */
 package org.jikesrvm.mm.mminterface;
 
-import org.jikesrvm.VM;
-import org.mmtk.plan.Plan;
-import org.mmtk.plan.nogc.NoGCMutator;
 import org.vmmagic.pragma.*;
 import org.vmmagic.unboxed.*;
-import org.jikesrvm.runtime.Magic;
-
-import static org.jikesrvm.runtime.EntrypointHelper.getField;
-import static org.jikesrvm.runtime.SysCall.sysCall;
-import static org.jikesrvm.runtime.UnboxedSizeConstants.BYTES_IN_WORD;
 
 @Uninterruptible
 public class NoGCContext extends MMTkMutatorContext {
+    // Everything is allocated into BumpAllocator #0 (ImmortalSpace)
+
     @Inline
     protected final int getAllocatorTag(int allocator) {
         return MMTkMutatorContext.TAG_BUMP_POINTER;
     }
-
     @Inline
     protected final int getAllocatorIndex(int allocator) {
         return 0;
     }
-
     @Inline
     protected final int getSpaceTag(int allocator) {
         return IMMORTAL_SPACE;
@@ -44,6 +36,6 @@ public class NoGCContext extends MMTkMutatorContext {
     @Inline
     public final void postAlloc(ObjectReference ref, ObjectReference typeRef,
                           int bytes, int allocator) {
-        // We dont need to invoke post alloc for NoGC
+        // We dont need to do anything for post alloc for NoGC
     }
 }

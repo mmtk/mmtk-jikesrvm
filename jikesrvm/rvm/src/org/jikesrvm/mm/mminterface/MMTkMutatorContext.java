@@ -13,7 +13,7 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.BYTES_IN_WORD;
 @Uninterruptible
 public abstract class MMTkMutatorContext extends MutatorContext {
     // The layout of this mutator section should be the same as struct Mutator in MMTk core. 
-    // Due to the facdt that RJava does not support unboxed struct or nested struct, we have to layout all the fields here.
+    // Due to the fact that RJava does not support unboxed struct or nested struct, we have to layout all the fields here.
 
     // Mutator section starts
 
@@ -90,16 +90,6 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address bumpAllocator4Plan;
 
-    // word size
-    static final int MAX_BUMP_ALLOCATORS = 5;
-    static final int BUMP_ALLOCATOR_SIZE = 6 * BYTES_IN_WORD;
-    // word offset from base
-    static final int BUMP_ALLOCATOR_TLS = 0;
-    static final int BUMP_ALLOCATOR_CURSOR = BYTES_IN_WORD;
-    static final int BUMP_ALLOCATOR_LIMIT = BYTES_IN_WORD * 2;
-    static final int BUMP_ALLOCATOR_SPACE = BYTES_IN_WORD * 3;
-    static final int BUMP_ALLOCATOR_SPACE_FAT = BYTES_IN_WORD * 4;
-    static final int BUMP_ALLOCATOR_PLAN = BYTES_IN_WORD * 5;
     // 1 x LargeObjectAllocator (1 x 3 words)
     @Entrypoint
     Address largeObjectAllocator0Tls;
@@ -107,9 +97,6 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     Address largeObjectAllocator0Space;
     @Entrypoint
     Address largeObjectAllocator0Plan;
-    // word size
-    static final int MAX_LARGE_OBJECT_ALLOCATORS = 1;
-    static final int LARGE_OBJECT_ALLOCATOR_SIZE = 3 * BYTES_IN_WORD;
 
     // mutator_tls
     @Entrypoint
@@ -130,35 +117,50 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     Address collection_phase_func;
     Address collection_phase_func_fat;
 
-    @Entrypoint
-    Address mutatorEnd;
-
     // Mutator section ends
 
-    // the size of this mutator section
+    // Number of allocators - these constants need to match the layout of the fields, also the constants in MMTk core.
+    static final int MAX_BUMP_ALLOCATORS = 5;
+    static final int MAX_LARGE_OBJECT_ALLOCATORS = 1;
+    // Bump allocator size
+    static final int BUMP_ALLOCATOR_SIZE = 6 * BYTES_IN_WORD;
+    // Bump allocator field offsets
+    static final int BUMP_ALLOCATOR_TLS = 0;
+    static final int BUMP_ALLOCATOR_CURSOR = BYTES_IN_WORD;
+    static final int BUMP_ALLOCATOR_LIMIT = BYTES_IN_WORD * 2;
+    static final int BUMP_ALLOCATOR_SPACE = BYTES_IN_WORD * 3;
+    static final int BUMP_ALLOCATOR_SPACE_FAT = BYTES_IN_WORD * 4;
+    static final int BUMP_ALLOCATOR_PLAN = BYTES_IN_WORD * 5;
+    // Large object allocator size. We do not need offsets for each field, as we don't need to implement fastpath for large object allocator.
+    static final int LARGE_OBJECT_ALLOCATOR_SIZE = 3 * BYTES_IN_WORD;
+
+    // The size of this mutator section
     static final int MUTATOR_SIZE = MAX_BUMP_ALLOCATORS * BUMP_ALLOCATOR_SIZE + MAX_LARGE_OBJECT_ALLOCATORS * LARGE_OBJECT_ALLOCATOR_SIZE + 6 * BYTES_IN_WORD;    
-    // the base offset of this mutator section
+    // The base offset of this mutator section
     static final Offset MUTATOR_BASE_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "bumpAllocator0Tls", Address.class).getOffset();
     static final Offset BUMP_ALLOCATOR_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "bumpAllocator0Tls", Address.class).getOffset();
     static final Offset LARGE_OBJECT_ALLOCATOR_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "largeObjectAllocator0Tls", Address.class).getOffset();
-    static final Offset MUTATOR_END = EntrypointHelper.getField(MMTkMutatorContext.class, "mutatorEnd", Address.class).getOffset();
 
-    // tag to use for allocator selector
+    // tag for allocator type
     public static final int TAG_BUMP_POINTER = 0;
     public static final int TAG_LARGE_OBJECT = 1;
 
-    // for space selector
+    // tag for space type
     public static final int IMMORTAL_SPACE = 0;
     public static final int COPY_SPACE = 1;
     public static final int LARGE_OBJECT_SPACE = 2;
 
-    // The implementation of these two method should allow the compiler to do partial evaluation.
+    // The implementation of these methods are per plan, and they should match the allocatorMapping and spaceMapping in MMTk core for a plan.
+    // The reason we need to reimplement them in the fastpath is that we need the compiler to see the code and be able to do constant propagation
+    // and optimize the branches away. The implementation of these method should be simple to help constant propagation.
     @Inline
     protected abstract int getAllocatorTag(int allocator);
     @Inline
     protected abstract int getAllocatorIndex(int allocator);
     @Inline
     protected abstract int getSpaceTag(int allocator);
+
+    // Mapping JikesRVM's allocator to MMTk's allocation semantic. This should get optimized away by the opt compiler.
     @Inline
     public final int mapAllocator(int bytes, int origAllocator) {
         if (origAllocator == Plan.ALLOC_DEFAULT)
@@ -168,35 +170,26 @@ public abstract class MMTkMutatorContext extends MutatorContext {
         else if (origAllocator == Plan.ALLOC_LOS)
             return MMTkAllocator.LOS;
         else if (origAllocator == Plan.ALLOC_CODE || origAllocator == Plan.ALLOC_LARGE_CODE)
-            // FIXME: Should use CODE. However, mmtk-core hasn't implemented the CODE allocator.
-            // return MMTkAllocator.CODE;
             return MMTkAllocator.CODE;
         else {
             return MMTkAllocator.IMMORTAL;
         }
     }
 
+    // Allocation fastpath. Most of the branches should be optimized away by the opt compiler.
     @Override
     @Inline
     public final Address alloc(int bytes, int align, int offset, int allocator, int site) {
         allocator = mapAllocator(bytes, allocator);
 
+        // Each plan will return which allocator to use
         int ty = getAllocatorTag(allocator);
         int index = getAllocatorIndex(allocator);
-
-        // VM.sysWrite("-------alloc() with allocator ty", ty); VM.sysWriteln("index", index);
-        // sysCall.sysConsoleFlushErrorAndTrace();
-        // VM.sysWriteln("assumed size (bytes) = ", MUTATOR_SIZE);
-        // VM.sysWriteln("actual size (bytes) = ", MUTATOR_END.minus(MUTATOR_BASE_OFFSET).toInt());
-        // VM.sysWriteln("JikesRVM mutator size = ", MUTATOR_SIZE);
-        // VM._assert(MUTATOR_SIZE == MUTATOR_END.minus(MUTATOR_BASE_OFFSET).toInt(), "Mutator size does not match");
-
-        // VM._assert(ty == 0);
-        // VM._assert(index == 0);
         
         if (ty == TAG_BUMP_POINTER) {
             return bumpAllocatorFastPath(bytes, align, offset, allocator, index);
         } else if (ty == TAG_LARGE_OBJECT) {
+            // No fastpath for large object allocator. We just use the general slowpath.
             return slowPath(bytes, align, offset, allocator);
         } else {
             VM.sysFail("unimplemented");
@@ -204,16 +197,23 @@ public abstract class MMTkMutatorContext extends MutatorContext {
         }
     }
 
+    // Allocation fastpath for bump pointer allocator.
+    // This fastpath works for any of the bump allocators in the mutator, specified by the allocatorIndex.
+    // As a result, we cannot directly refer to the fields of each bump allocator by field names.
+    // Instead, we refer to the fields by calculated offsets from BUMP_ALLOCATOR_OFFSET.
+    // A consequence is that the opt compiler does not generate optimal machine code for accessing those fields by offsets, and this fastpath
+    // is slightly slower than the original one (roughtly 2 more LEAs on x86). If this is a concern, we can duplicate this fastpath implementation for
+    // each bump allocator, and each duplication maps to one bump allocator. In this case, we can refer to the fields directly in each dupilcation,
+    // and the performance should be the same as before. But the code is less maintainable.
     @Inline
     protected final Address bumpAllocatorFastPath(int bytes, int align, int offset, int allocator, int allocatorIndex) {
         // Align allocation
         Word mask = Word.fromIntSignExtend(align - 1);
         Word negOff = Word.fromIntSignExtend(-offset);
 
+        // allocatorIndex should be compile-time constant. We do not need to worry about the multiplication.
+        // The offset will be optimized to a constant.
         Address allocatorBase = Magic.objectAsAddress(this).plus(BUMP_ALLOCATOR_OFFSET).plus(allocatorIndex * BUMP_ALLOCATOR_SIZE);
-        // VM.sysWriteln("this = ", Magic.objectAsAddress(this));
-        // VM.sysWriteln("mutator = ", Magic.objectAsAddress(this).plus(BUMP_ALLOCATOR_OFFSET));
-        // VM.sysWriteln("allocator = ", Magic.objectAsAddress(this).plus(BUMP_ALLOCATOR_OFFSET).plus(allocatorIndex * BUMP_ALLOCATOR_SIZE));
         
         Address cursor = allocatorBase.plus(BUMP_ALLOCATOR_CURSOR).loadAddress();
         Address limit = allocatorBase.plus(BUMP_ALLOCATOR_LIMIT).loadAddress();
@@ -221,65 +221,52 @@ public abstract class MMTkMutatorContext extends MutatorContext {
         Address result = cursor.plus(delta);
         Address newCursor = result.plus(bytes);
 
-        // VM.sysWrite("fast alloc: cursor = ", cursor); VM.sysWrite(", aligned to ", result); VM.sysWriteln(", limit = ", limit);
-        // sysCall.sysConsoleFlushErrorAndTrace();
-
         if (newCursor.GT(limit)) {
+            // Out of local buffer, use the general slowpath
             return slowPath(bytes, align, offset, allocator);
-            
-            // return sysCall.sysAllocSlowBumpMonotoneImmortal(allocatorBase, bytes, align, offset, allocator);
-            // return sysCall.sysAlloc(Magic.objectAsAddress(this).plus(MUTATOR_BASE_OFFSET), bytes, align, offset, allocator);
         } else {
-            // VM.sysWriteln("return ", result);
-            // VM.sysWriteln("save new cursor ", newCursor);
-            // sysCall.sysConsoleFlushErrorAndTrace();
+            // Save the new cursor
             allocatorBase.plus(BUMP_ALLOCATOR_CURSOR).store(newCursor);
             return result;
         }        
     }
 
+    // General allocation slowpath.
     @NoInline
     protected final Address slowPath(int bytes, int align, int offset, int allocator) {
-        // VM.sysWriteln("======go to slow alloc");
-        // sysCall.sysConsoleFlushErrorAndTrace();
         Address handle = Magic.objectAsAddress(this).plus(MUTATOR_BASE_OFFSET);
         return sysCall.sysAlloc(handle, bytes, align, offset, allocator);
     }
 
+    // Post allocation fastpath. Note this is not completely implemented.
     @Override
     @Inline
-    public void postAlloc(ObjectReference ref, ObjectReference typeRef,
-                          int bytes, int allocator) {
+    public void postAlloc(ObjectReference ref, ObjectReference typeRef, int bytes, int allocator) {
         allocator = mapAllocator(bytes, allocator);
+        // It depends on the space to decide which fastpath we should use
         int space = getSpaceTag(allocator);
 
         if (space == COPY_SPACE) {
-            // nothing to do for post_alloc
-        } else if (space == IMMORTAL_SPACE || space == LARGE_OBJECT_SPACE) {
+            // Nothing to do for post_alloc for CopySpace
+        } else {
+            // slowpath to call into MMTk core's post_alloc()
+            // TODO: We should further implement fastpaths for certain spaces, such as ImmortalSpace.
             Address handle = Magic.objectAsAddress(this).plus(MUTATOR_BASE_OFFSET);
             sysCall.sysPostAlloc(handle, ref, typeRef, bytes, allocator);
         }
     }
 
     public Address setBlock(Address mmtkHandle) {
-        // copy MUTATOR_SIZE's words from mmtkHandle to (this+MUTATOR_BASE_OFFSET)
+        // Copy MUTATOR_SIZE's bytes from mmtkHandle to (this + MUTATOR_BASE_OFFSET)
         Address src = mmtkHandle;
         Address dst = Magic.objectAsAddress(this).plus(MUTATOR_BASE_OFFSET);
-
-        // VM.sysWrite("setBlock() copy from "); VM.sysWrite(src); VM.sysWrite(" to "); VM.sysWriteln(dst);
 
         // copy word by word
         for (int offset = 0; offset < MUTATOR_SIZE; offset += 4) {
             Address srcAddr = src.plus(offset);
             Address dstAddr = dst.plus(offset);
-            Word val = srcAddr.loadWord();
-            
-            // VM.sysWrite("Copying "); VM.sysWrite(val); VM.sysWrite(" from 0x"); VM.sysWrite(srcAddr);
-            // VM.sysWrite(" to "); VM.sysWriteln(dstAddr);
-            
-            dstAddr.store(val);
+            dstAddr.store(srcAddr.loadWord());
         }
-        // sysCall.sysConsoleFlushErrorAndTrace();
 
         return dst;
     }    

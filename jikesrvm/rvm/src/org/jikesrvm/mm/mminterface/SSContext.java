@@ -12,22 +12,15 @@
  */
 package org.jikesrvm.mm.mminterface;
 
-import org.jikesrvm.VM;
-import org.mmtk.plan.semispace.SSMutator;
 import org.vmmagic.pragma.*;
 import org.vmmagic.unboxed.*;
-import org.jikesrvm.runtime.Magic;
-import org.mmtk.plan.Plan;
-import org.mmtk.plan.semispace.SS;
-import org.mmtk.utility.alloc.Allocator;
-import org.jikesrvm.objectmodel.JavaHeader;
-
-import static org.jikesrvm.runtime.EntrypointHelper.getField;
-import static org.jikesrvm.runtime.SysCall.sysCall;
-import static org.jikesrvm.runtime.UnboxedSizeConstants.BYTES_IN_WORD;
 
 @Uninterruptible
 public class SSContext extends MMTkMutatorContext {
+    // DEFAULT: BumpAllocator #0 (CopySpace)
+    // CODE/READONLY: BumpAllocator #1 (ImmortalSpace)
+    // LOS: LargeObjectAllocator #0 (LargeObjectSpace)
+
     @Inline
     protected final int getAllocatorTag(int allocator) {
         if (allocator == MMTkAllocator.LOS) {
@@ -36,7 +29,6 @@ public class SSContext extends MMTkMutatorContext {
             return MMTkMutatorContext.TAG_BUMP_POINTER;
         }
     }
-
     @Inline
     protected final int getAllocatorIndex(int allocator) {
         if (allocator == MMTkAllocator.DEFAULT) {
@@ -47,7 +39,6 @@ public class SSContext extends MMTkMutatorContext {
             return 0;
         }
     }
-
     @Inline
     protected final int getSpaceTag(int allocator) {
         if (allocator == MMTkAllocator.DEFAULT) {
