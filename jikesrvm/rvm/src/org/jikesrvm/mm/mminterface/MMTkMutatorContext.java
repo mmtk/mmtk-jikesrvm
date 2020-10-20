@@ -241,7 +241,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
 
     @Override
     @Inline
-    public final void postAlloc(ObjectReference ref, ObjectReference typeRef,
+    public void postAlloc(ObjectReference ref, ObjectReference typeRef,
                           int bytes, int allocator) {
         allocator = mapAllocator(bytes, allocator);                              
         // VM.sysWriteln("JikesRVM postAlloc()");

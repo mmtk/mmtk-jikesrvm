@@ -47,4 +47,18 @@ public class SSContext extends MMTkMutatorContext {
             return 0;
         }
     }
+
+    @Override
+    @Inline
+    public final void postAlloc(ObjectReference ref, ObjectReference typeRef,
+                          int bytes, int allocator) {
+        allocator = mapAllocator(bytes, allocator);
+
+        int ty = getAllocatorTag(allocator);
+
+        if (ty == TAG_LARGE_OBJECT) {
+            Address handle = Magic.objectAsAddress(this).plus(MUTATOR_BASE_OFFSET);
+            sysCall.sysPostAlloc(handle, ref, typeRef, bytes, allocator);
+        }
+    }
 }

@@ -34,4 +34,11 @@ public class NoGCContext extends MMTkMutatorContext {
     protected final int getAllocatorIndex(int allocator) {
         return 0;
     }
+
+    @Override
+    @Inline
+    public final void postAlloc(ObjectReference ref, ObjectReference typeRef,
+                          int bytes, int allocator) {
+        // We dont need to invoke post alloc for NoGC
+    }
 }
