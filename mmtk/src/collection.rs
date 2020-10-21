@@ -10,6 +10,7 @@ use JikesRVM;
 
 pub static mut BOOT_THREAD: OpaquePointer = OpaquePointer::UNINITIALIZED;
 
+#[derive(Default)]
 pub struct VMCollection {}
 
 // FIXME: Shouldn't these all be unsafe because of tls?

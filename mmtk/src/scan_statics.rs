@@ -4,10 +4,12 @@ use mmtk::util::Address;
 use mmtk::util::OpaquePointer;
 use mmtk::vm::ActivePlan;
 use mmtk::{TraceLocal, SelectedPlan, Plan, ParallelCollector};
+use mmtk::scheduler::gc_works::ProcessEdgesWork;
 use entrypoint::*;
 use JTOC_BASE;
 use collection::VMCollection;
 use active_plan::VMActivePlan;
+use crate::SINGLETON;
 
 #[cfg(target_pointer_width = "32")]
 const REF_SLOT_SIZE: usize = 1;
@@ -16,8 +18,9 @@ const REF_SLOT_SIZE: usize = 2;
 
 const CHUNK_SIZE_MASK: usize = 0xFFFFFFFF - (REF_SLOT_SIZE - 1);
 
-pub fn scan_statics<T: TraceLocal>(trace: &mut T, tls: OpaquePointer) {
+pub fn scan_statics<W: ProcessEdgesWork<VM=JikesRVM>>() {
     unsafe {
+        let tls = OpaquePointer::UNINITIALIZED;
         let slots = JTOC_BASE;
         let cc = VMActivePlan::collector(tls);
 
@@ -27,24 +30,23 @@ pub fn scan_statics<T: TraceLocal>(trace: &mut T, tls: OpaquePointer) {
         let chunk_size: usize = (number_of_references / number_of_collectors) & CHUNK_SIZE_MASK;
         let thread_ordinal = cc.parallel_worker_ordinal();
 
-        let start: usize = if thread_ordinal == 0 {
-            REF_SLOT_SIZE
-        } else {
-            thread_ordinal * chunk_size
-        };
+        let start: usize = REF_SLOT_SIZE;
+        let end: usize = number_of_references;
 
-        let end: usize = if thread_ordinal + 1 == number_of_collectors {
-            number_of_references
-        } else {
-            (thread_ordinal + 1) * chunk_size
-        };
+        let mut edges = Vec::with_capacity(W::CAPACITY);
 
         let mut slot = start;
         while slot < end {
             let slot_offset = slot * 4;
             // TODO: check_reference?
+            edges.push(slots + slot_offset);
+            if edges.len() >= W::CAPACITY {
+                SINGLETON.scheduler.closure_stage.add(W::new(edges, true));
+                edges = Vec::with_capacity(W::CAPACITY);
+            }
             trace.process_root_edge(slots + slot_offset, true);
             slot += REF_SLOT_SIZE;
         }
+        SINGLETON.scheduler.closure_stage.add(W::new(edges, true));
     }
 }

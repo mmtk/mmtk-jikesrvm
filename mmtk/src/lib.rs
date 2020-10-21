@@ -39,6 +39,7 @@ pub mod api;
 
 pub static mut JTOC_BASE: Address = Address::ZERO;
 
+#[derive(Default)]
 pub struct JikesRVM;
 
 impl VMBinding for JikesRVM {

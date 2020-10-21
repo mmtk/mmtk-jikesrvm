@@ -76,7 +76,7 @@ pub extern "C" fn process_interior_edge(trace_local: *mut SelectedTraceLocal<Jik
 
 #[no_mangle]
 pub extern "C" fn start_worker(tls: OpaquePointer, worker: *mut SelectedCollector<JikesRVM>) {
-    memory_manager::start_worker::<JikesRVM>(tls, unsafe { worker.as_mut().unwrap() })
+    memory_manager::start_worker::<JikesRVM>(tls, unsafe { worker.as_mut().unwrap() }, &SINGLETON)
 }
 
 #[no_mangle]

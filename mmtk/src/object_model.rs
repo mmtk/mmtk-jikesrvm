@@ -10,6 +10,7 @@ use mmtk::util::alloc::allocator::fill_alignment_gap;
 use mmtk::util::constants::{};
 use mmtk::{Allocator, CollectorContext};
 use mmtk::util::conversions;
+use mmtk::CopyContext;
 
 use java_header_constants::{ADDRESS_BASED_HASHING, GC_HEADER_OFFSET, DYNAMIC_HASH_OFFSET,
                             HASH_STATE_MASK, HASH_STATE_HASHED_AND_MOVED, ARRAY_BASE_OFFSET, ARRAY_LENGTH_OFFSET,
@@ -43,6 +44,7 @@ const PACKED: bool = true;
 // emitted code.
 // This is perhaps more serious with Rust release build or on machines with weaker memory models.
 
+#[derive(Default)]
 pub struct VMObjectModel {}
 
 impl VMObjectModel {
@@ -67,7 +69,8 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         }
     }
     #[inline(always)]
-    fn copy(from: ObjectReference, allocator: Allocator, tls: OpaquePointer) -> ObjectReference {
+    fn copy(from: ObjectReference, allocator: Allocator, copy_context: &mut impl CopyContext) -> ObjectReference {
+    // fn copy(from: ObjectReference, allocator: Allocator, tls: OpaquePointer) -> ObjectReference {
         trace!("ObjectModel.copy");
         let tib = Self::load_tib(from);
         let rvm_type = Self::load_rvm_type(from);
@@ -75,10 +78,10 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         trace!("Is it a class?");
         if unsafe { (rvm_type + IS_CLASS_TYPE_FIELD_OFFSET).load::<bool>() } {
             trace!("... yes");
-            Self::copy_scalar(from, tib, rvm_type, allocator, tls)
+            Self::copy_scalar(from, tib, rvm_type, allocator, copy_context)
         } else {
             trace!("... no");
-            Self::copy_array(from, tib, rvm_type, allocator, tls)
+            Self::copy_array(from, tib, rvm_type, allocator, copy_context)
         }
     }
 
@@ -349,14 +352,13 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 impl VMObjectModel {
     #[inline(always)]
     fn copy_scalar(from: ObjectReference, tib: Address, rvm_type: Address,
-                   immut_allocator: Allocator, tls: OpaquePointer) -> ObjectReference {
+                   immut_allocator: Allocator, copy_context: &mut impl CopyContext) -> ObjectReference {
         trace!("VMObjectModel.copy_scalar");
         let bytes = Self::bytes_required_when_copied_class(from, rvm_type);
         let align = Self::get_alignment_class(rvm_type);
         let offset = Self::get_offset_for_alignment_class(from, rvm_type);
-        let context = unsafe { VMActivePlan::collector(tls) };
-        let allocator = context.copy_check_allocator(from, bytes, align, immut_allocator);
-        let region = context.alloc_copy(from, bytes, align, offset, allocator);
+        let allocator = copy_context.copy_check_allocator(from, bytes, align, immut_allocator);
+        let region = copy_context.alloc_copy(from, bytes, align, offset, allocator);
 
         let to_obj = Self::move_object(region, from, unsafe {Address::zero().to_object_reference()},
                                        bytes, rvm_type);
@@ -366,14 +368,13 @@ impl VMObjectModel {
 
     #[inline(always)]
     fn copy_array(from: ObjectReference, tib: Address, rvm_type: Address,
-                  immut_allocator: Allocator, tls: OpaquePointer) -> ObjectReference {
+                  immut_allocator: Allocator, copy_context: &mut impl CopyContext) -> ObjectReference {
         trace!("VMObjectModel.copy_array");
         let bytes = Self::bytes_required_when_copied_array(from, rvm_type);
         let align = Self::get_alignment_array(rvm_type);
         let offset = Self::get_offset_for_alignment_array(from, rvm_type);
-        let context = unsafe { VMActivePlan::collector(tls) };
-        let allocator = context.copy_check_allocator(from, bytes, align, immut_allocator);
-        let region = context.alloc_copy(from, bytes, align, offset, allocator);
+        let allocator = copy_context.copy_check_allocator(from, bytes, align, immut_allocator);
+        let region = copy_context.alloc_copy(from, bytes, align, offset, allocator);
 
         let to_obj = Self::move_object(region, from, unsafe {Address::zero().to_object_reference()},
                                        bytes, rvm_type);
