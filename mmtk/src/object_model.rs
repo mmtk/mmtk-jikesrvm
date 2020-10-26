@@ -8,7 +8,7 @@ use mmtk::vm::ObjectModel;
 use mmtk::util::{Address, ObjectReference, OpaquePointer};
 use mmtk::util::alloc::allocator::fill_alignment_gap;
 use mmtk::util::constants::{};
-use mmtk::{Allocator, CollectorContext};
+use mmtk::{Allocator};
 use mmtk::util::conversions;
 use mmtk::CopyContext;
 
@@ -362,7 +362,7 @@ impl VMObjectModel {
 
         let to_obj = Self::move_object(region, from, unsafe {Address::zero().to_object_reference()},
                                        bytes, rvm_type);
-        context.post_copy(to_obj, tib, bytes, allocator);
+        copy_context.post_copy(to_obj, tib, bytes, allocator);
         to_obj
     }
 
@@ -378,7 +378,7 @@ impl VMObjectModel {
 
         let to_obj = Self::move_object(region, from, unsafe {Address::zero().to_object_reference()},
                                        bytes, rvm_type);
-        context.post_copy(to_obj, tib, bytes, allocator);
+        copy_context.post_copy(to_obj, tib, bytes, allocator);
         // XXX: Do not sync icache/dcache because we do not support PowerPC
         to_obj
     }

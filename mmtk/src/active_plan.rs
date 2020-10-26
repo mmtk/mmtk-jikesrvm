@@ -9,6 +9,7 @@ use collection::VMCollection;
 use JTOC_BASE;
 use JikesRVM;
 use SINGLETON;
+use mmtk::scheduler::*;
 
 static MUTATOR_COUNTER: SynchronizedCounter = SynchronizedCounter::new(0);
 
@@ -16,6 +17,20 @@ static MUTATOR_COUNTER: SynchronizedCounter = SynchronizedCounter::new(0);
 pub struct VMActivePlan<> {}
 
 impl ActivePlan<JikesRVM> for VMActivePlan {
+    fn worker(tls: OpaquePointer) -> &'static mut GCWorker<JikesRVM> {
+        let thread: Address = unsafe { mem::transmute(tls) };
+        let system_thread = unsafe { (thread + SYSTEM_THREAD_FIELD_OFFSET).load::<Address>() };
+        let cc = unsafe {
+            &mut *((system_thread + WORKER_INSTANCE_FIELD_OFFSET)
+                .load::<*mut GCWorker<JikesRVM>>())
+        };
+        cc
+    }
+
+    fn number_of_mutators() -> usize {
+        unimplemented!()
+    }
+
     fn global() -> &'static SelectedPlan<JikesRVM> {
         &SINGLETON.plan
     }

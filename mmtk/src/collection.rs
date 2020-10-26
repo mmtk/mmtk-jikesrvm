@@ -2,8 +2,10 @@ use libc::c_void;
 
 use mmtk::vm::Collection;
 use mmtk::util::Address;
-use mmtk::{MutatorContext, ParallelCollector};
+use mmtk::MutatorContext;
 use mmtk::util::opaque_pointer::OpaquePointer;
+use mmtk::scheduler::*;
+use mmtk::scheduler::gc_works::*;
 use entrypoint::*;
 use JTOC_BASE;
 use JikesRVM;
@@ -16,7 +18,7 @@ pub struct VMCollection {}
 // FIXME: Shouldn't these all be unsafe because of tls?
 impl Collection<JikesRVM> for VMCollection {
     #[inline(always)]
-    fn stop_all_mutators(tls: OpaquePointer) {
+    fn stop_all_mutators<E: ProcessEdgesWork<VM = JikesRVM>>(tls: OpaquePointer) {
         unsafe {
             jtoc_call!(BLOCK_ALL_MUTATORS_FOR_GC_METHOD_OFFSET, tls);
         }
@@ -36,10 +38,9 @@ impl Collection<JikesRVM> for VMCollection {
         }
     }
 
-    #[inline(always)]
-    fn spawn_worker_thread<T: ParallelCollector<JikesRVM>>(tls: OpaquePointer, ctx: Option<&mut T>) {
+    fn spawn_worker_thread(tls: OpaquePointer, ctx: Option<&GCWorker<JikesRVM>>) {
         let ctx_ptr = if let Some(r) = ctx {
-            r as *mut T
+            r as *const GCWorker<JikesRVM> as *mut GCWorker<JikesRVM>
         } else {
             std::ptr::null_mut()
         };

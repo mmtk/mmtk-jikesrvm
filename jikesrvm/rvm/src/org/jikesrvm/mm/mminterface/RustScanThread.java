@@ -149,19 +149,6 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
   }
 
   /**
-   * Wrapper for {@link RustTraceLocal#reportDelayedRootEdge(Address)} that allows
-   * sanity checking of the address.
-   *
-   * @param trace the trace on which {@link RustTraceLocal#reportDelayedRootEdge(Address)}
-   *  will be called
-   * @param addr see JavaDoc of {@link RustTraceLocal#reportDelayedRootEdge(Address)}
-   */
-  private static void reportDelayedRootEdge(Address trace, Address addr) {
-    if (VALIDATE_REFS) checkReference(addr);
-    sysCall.sysReportDelayedRootEdge(trace, addr);
-  }
-
-  /**
    * A more general interface to thread scanning, which permits the
    * scanning of stack segments which are dislocated from the thread
    * structure.
@@ -360,7 +347,8 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
         if (!failed) failed = true;
       }
     }
-    sysCall.sysProcessInteriorEdge(trace, code, ipLoc, true);
+    VM._assert(false);
+    // sysCall.sysProcessInteriorEdge(trace, code, ipLoc, true);
   }
 
   /***********************************************************************
@@ -467,7 +455,8 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
          refaddr = iterator.getNextReferenceAddress()) {
       if (VALIDATE_REFS) checkReference(refaddr, verbosity);
       if (verbosity >= 4) dumpRef(refaddr, verbosity);
-      reportDelayedRootEdge(trace, refaddr);
+      // reportDelayedRootEdge(trace, refaddr);
+      VM._assert(false);
     }
   }
 
@@ -576,15 +565,15 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
     // switch off Checkstyle for this method.
 
     //CHECKSTYLE:OFF
-    VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread.getStack())));
-    VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread)));
-    VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread.getStack())));
-    VM._assert(thread.getJNIEnv() == null || sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread.getJNIEnv())));
-    VM._assert(thread.getJNIEnv() == null || thread.getJNIEnv().refsArray() == null || sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread.getJNIEnv().refsArray())));
-    VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace,ObjectReference.fromObject(thread.getContextRegisters())));
-    VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace,ObjectReference.fromObject(thread.getContextRegisters().getGPRs())));
-    VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace,ObjectReference.fromObject(thread.getExceptionRegisters())));
-    VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace,ObjectReference.fromObject(thread.getExceptionRegisters().getGPRs())));
+    // VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread.getStack())));
+    // VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread)));
+    // VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread.getStack())));
+    // VM._assert(thread.getJNIEnv() == null || sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread.getJNIEnv())));
+    // VM._assert(thread.getJNIEnv() == null || thread.getJNIEnv().refsArray() == null || sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread.getJNIEnv().refsArray())));
+    // VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace,ObjectReference.fromObject(thread.getContextRegisters())));
+    // VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace,ObjectReference.fromObject(thread.getContextRegisters().getGPRs())));
+    // VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace,ObjectReference.fromObject(thread.getExceptionRegisters())));
+    // VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace,ObjectReference.fromObject(thread.getExceptionRegisters().getGPRs())));
     //CHECKSTYLE:ON
   }
 
