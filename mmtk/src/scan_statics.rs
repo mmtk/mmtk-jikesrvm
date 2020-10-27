@@ -20,9 +20,8 @@ const REF_SLOT_SIZE: usize = 2;
 
 const CHUNK_SIZE_MASK: usize = 0xFFFFFFFF - (REF_SLOT_SIZE - 1);
 
-pub fn scan_statics<W: ProcessEdgesWork<VM=JikesRVM>>() {
+pub fn scan_statics<W: ProcessEdgesWork<VM=JikesRVM>>(tls: OpaquePointer) {
     unsafe {
-        let tls = OpaquePointer::UNINITIALIZED;
         let slots = JTOC_BASE;
         // let cc = VMActivePlan::collector(tls);
 
@@ -62,6 +61,6 @@ impl <E: ProcessEdgesWork<VM=JikesRVM>> ScanStaticRoots<E> {
 
 impl <E: ProcessEdgesWork<VM=JikesRVM>> GCWork<JikesRVM> for ScanStaticRoots<E> {
     fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, mmtk: &'static MMTK<JikesRVM>) {
-        scan_statics::<E>();
+        scan_statics::<E>(worker.tls);
     }
 }

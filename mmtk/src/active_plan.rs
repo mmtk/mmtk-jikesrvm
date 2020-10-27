@@ -28,7 +28,9 @@ impl ActivePlan<JikesRVM> for VMActivePlan {
     }
 
     fn number_of_mutators() -> usize {
-        unimplemented!()
+        unsafe {
+            (JTOC_BASE + NUM_THREADS_FIELD_OFFSET).load::<usize>()
+        }
     }
 
     fn global() -> &'static SelectedPlan<JikesRVM> {

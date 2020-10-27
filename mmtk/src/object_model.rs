@@ -70,7 +70,6 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
     }
     #[inline(always)]
     fn copy(from: ObjectReference, allocator: Allocator, copy_context: &mut impl CopyContext) -> ObjectReference {
-    // fn copy(from: ObjectReference, allocator: Allocator, tls: OpaquePointer) -> ObjectReference {
         trace!("ObjectModel.copy");
         let tib = Self::load_tib(from);
         let rvm_type = Self::load_rvm_type(from);

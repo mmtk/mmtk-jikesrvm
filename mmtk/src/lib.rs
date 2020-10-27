@@ -1,4 +1,5 @@
 #![feature(llvm_asm)]
+#![feature(vec_into_raw_parts)]
 #[macro_use]
 extern crate mmtk;
 extern crate libc;

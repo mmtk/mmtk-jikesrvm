@@ -37,6 +37,17 @@ pub struct VMScanning {}
 
 const DUMP_REF: bool = false;
 
+pub extern fn create_process_edges_work<W: ProcessEdgesWork<VM=JikesRVM>>(ptr: *mut Address, length: usize) -> *mut Address {
+    debug_assert_eq!(W::CAPACITY, 4096);
+    if !ptr.is_null() {
+        let mut buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, W::CAPACITY) };
+        SINGLETON.scheduler.closure_stage.add(W::new(buf, false));
+    }
+    let (ptr, length, capacity) =  Vec::with_capacity(W::CAPACITY).into_raw_parts();
+    debug_assert_eq!(capacity, W::CAPACITY);
+    ptr
+}
+
 impl Scanning<JikesRVM> for VMScanning {
     const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
     fn scan_objects<W: ProcessEdgesWork<VM=JikesRVM>>(objects: &[ObjectReference]) {
@@ -56,10 +67,9 @@ impl Scanning<JikesRVM> for VMScanning {
     fn scan_thread_roots<W: ProcessEdgesWork<VM=JikesRVM>>() {
         unreachable!()
     }
-    fn scan_thread_root<W: ProcessEdgesWork<VM=JikesRVM>>(mutator: &'static mut Mutator<SelectedPlan<JikesRVM>>) {
+    fn scan_thread_root<W: ProcessEdgesWork<VM=JikesRVM>>(mutator: &'static mut Mutator<SelectedPlan<JikesRVM>>, tls: OpaquePointer) {
         let process_edges = create_process_edges_work::<W>;
-        // Self::compute_thread_roots(mutator.get_tls().to_address(), false, tls, process_edges as _);
-        unimplemented!()
+        Self::compute_thread_roots(process_edges as _, false, mutator.get_tls(), tls);
     }
     fn scan_vm_specific_roots<W: ProcessEdgesWork<VM=JikesRVM>>() {
         SINGLETON.scheduler.prepare_stage.add(ScanStaticRoots::<W>::new());
@@ -141,14 +151,6 @@ impl Scanning<JikesRVM> for VMScanning {
     }
 }
 
-pub extern fn create_process_edges_work<W: ProcessEdgesWork<VM=JikesRVM>>(ptr: *const Address, len: usize) {
-    let mut buf = Vec::with_capacity(len);
-    for i in 0..len {
-        buf.push(unsafe { *ptr.add(i) });
-    }
-    SINGLETON.scheduler.closure_stage.add(W::new(buf, false));
-}
-
 impl VMScanning {
     fn scan_object_fields(object: ObjectReference, mut callback: impl FnMut(Address)) {
         trace!("Getting reference array");
@@ -176,47 +178,20 @@ impl VMScanning {
             }
         }
     }
-    fn compute_thread_roots(thread: Address, new_roots_sufficient: bool, tls: OpaquePointer, process_edges: *const extern "C" fn(buf: *const Address, size: usize)) {
-        if unsafe { (thread + IS_COLLECTOR_FIELD_OFFSET).load::<bool>() } {
-            return;
+    fn compute_thread_roots(process_edges: *mut extern fn (ptr: *mut Address, length: usize) -> *mut Address, new_roots_sufficient: bool, mutator: OpaquePointer, tls: OpaquePointer) {
+        unsafe {
+            let process_code_locations = MOVES_CODE;
+            let thread = mutator.to_address();
+            debug_assert!(!thread.is_zero());
+            if (thread + IS_COLLECTOR_FIELD_OFFSET).load::<bool>() {
+                return;
+            }
+            let thread_usize = thread.as_usize();
+            debug!("Calling JikesRVM to compute thread roots, thread_usize={:x}", thread_usize);
+            jtoc_call!(SCAN_THREAD_METHOD_OFFSET, tls, thread_usize, process_edges,
+                process_code_locations, new_roots_sufficient);
+            debug!("Returned from JikesRVM thread roots");
         }
-        // let trace_ptr = trace as *mut T;
-        // let thread_usize = thread.as_usize();
-        // debug!("Calling JikesRVM to compute thread roots, thread_usize={:x}", thread_usize);
-        // jtoc_call!(SCAN_THREAD_METHOD_OFFSET, tls, thread_usize, trace_ptr,
-        //     process_code_locations, new_roots_sufficient, process_edges);
-        debug!("Returned from JikesRVM thread roots");
-        unimplemented!()
-        // unsafe {
-        //     let process_code_locations = MOVES_CODE;
-
-        //     let num_threads =
-        //         (JTOC_BASE + NUM_THREADS_FIELD_OFFSET).load::<usize>();
-
-        //     loop {
-        //         let thread_index = COUNTER.increment();
-        //         if thread_index > num_threads {
-        //             break;
-        //         }
-
-        //         let thread = VMCollection::thread_from_index(thread_index);
-
-        //         if thread.is_zero() {
-        //             continue;
-        //         }
-
-        //         if (thread + IS_COLLECTOR_FIELD_OFFSET).load::<bool>() {
-        //             continue;
-        //         }
-
-        //         let trace_ptr = trace as *mut T;
-        //         let thread_usize = thread.as_usize();
-        //         debug!("Calling JikesRVM to compute thread roots, thread_usize={:x}", thread_usize);
-        //         jtoc_call!(SCAN_THREAD_METHOD_OFFSET, tls, thread_usize, trace_ptr,
-        //             process_code_locations, new_roots_sufficient, process_edges);
-        //         debug!("Returned from JikesRVM thread roots");
-        //     }
-        // }
     }
     fn scan_global_roots(tls: OpaquePointer, mut callback: impl FnMut(Address)) {
         unsafe {
@@ -281,7 +256,7 @@ impl <E: ProcessEdgesWork<VM=JikesRVM>> ScanGlobalRoots<E> {
 impl <E: ProcessEdgesWork<VM=JikesRVM>> GCWork<JikesRVM> for ScanGlobalRoots<E> {
     fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, mmtk: &'static MMTK<JikesRVM>) {
         let mut edges = Vec::with_capacity(E::CAPACITY);
-        VMScanning::scan_global_roots(OpaquePointer::UNINITIALIZED, |edge| {
+        VMScanning::scan_global_roots(worker.tls, |edge| {
             edges.push(edge);
             if edges.len() >= E::CAPACITY {
                 let mut new_edges = Vec::with_capacity(E::CAPACITY);
