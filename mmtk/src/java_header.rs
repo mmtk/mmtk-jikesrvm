@@ -8,7 +8,7 @@ pub const ARRAY_HEADER_SIZE: usize = SCALAR_HEADER_SIZE + ARRAY_LENGTH_BYTES;
 /** offset of object reference from the lowest memory word */
 pub const OBJECT_REF_OFFSET: isize = ARRAY_HEADER_SIZE as isize;  // from start to ref
 pub const TIB_OFFSET: isize = JAVA_HEADER_OFFSET;
-pub const STATUS_OFFSET: isize = TIB_OFFSET + STATUS_BYTES as isize;
+pub const STATUS_OFFSET: isize = TIB_OFFSET + TIB_BYTES as isize;
 #[cfg(target_endian = "little")]
 pub const AVAILABLE_BITS_OFFSET: isize = STATUS_OFFSET;
 #[cfg(target_endian = "big")]
