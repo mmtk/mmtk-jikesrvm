@@ -47,6 +47,8 @@ extern void handle_user_collection_request(void *tls);
 extern void start_control_collector(void *tls);
 extern void start_worker(void *tls, void* worker);
 
+extern void release_buffer(void* buffer);
+
 /**
  * JikesRVM-specific
  */

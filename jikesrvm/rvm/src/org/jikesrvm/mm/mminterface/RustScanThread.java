@@ -274,6 +274,9 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
       VM.sysFail("Error encountered while scanning stack");
     }
     flush();
+    if (!edges.isZero()) {
+      sysCall.release_buffer(edges);
+    }
   }
 
   /**

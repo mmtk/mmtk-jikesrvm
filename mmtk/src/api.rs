@@ -16,6 +16,11 @@ use collection::BOOT_THREAD;
 use collection::VMCollection;
 
 #[no_mangle]
+pub extern "C" fn release_buffer(ptr: *mut Address) {
+    let _vec = unsafe { Vec::<Address>::from_raw_parts(ptr, 0, 4096) };
+}
+
+#[no_mangle]
 pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
     unsafe {
         JTOC_BASE = Address::from_mut_ptr(jtoc);
