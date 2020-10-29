@@ -72,9 +72,12 @@ impl Scanning<JikesRVM> for VMScanning {
         Self::compute_thread_roots(process_edges as _, false, mutator.get_tls(), tls);
     }
     fn scan_vm_specific_roots<W: ProcessEdgesWork<VM=JikesRVM>>() {
-        SINGLETON.scheduler.prepare_stage.add(ScanStaticRoots::<W>::new());
-        SINGLETON.scheduler.prepare_stage.add(ScanGlobalRoots::<W>::new());
-        SINGLETON.scheduler.prepare_stage.add(ScanBootImageRoots::<W>::new());
+        let workers = SINGLETON.scheduler.num_workers();
+        for i in 0..workers {
+            SINGLETON.scheduler.prepare_stage.add(ScanStaticRoots::<W>::new(i, workers));
+            SINGLETON.scheduler.prepare_stage.add(ScanBootImageRoots::<W>::new(i, workers));
+            SINGLETON.scheduler.prepare_stage.add(ScanGlobalRoots::<W>::new(i, workers));
+        }
     }
     fn scan_object<T: TransitiveClosure>(trace: &mut T, object: ObjectReference, tls: OpaquePointer) {
         if DUMP_REF {
@@ -193,22 +196,26 @@ impl VMScanning {
             debug!("Returned from JikesRVM thread roots");
         }
     }
-    fn scan_global_roots(tls: OpaquePointer, mut callback: impl FnMut(Address)) {
+    fn scan_global_roots(tls: OpaquePointer, subwork_id: usize, total_subworks: usize, mut callback: impl FnMut(Address)) {
         unsafe {
             // let cc = VMActivePlan::collector(tls);
 
             let jni_functions = (JTOC_BASE + JNI_FUNCTIONS_FIELD_OFFSET).load::<Address>();
             trace!("jni_functions: {:?}", jni_functions);
 
-            let threads = 1usize;//cc.parallel_worker_count();
+            let threads = total_subworks;
             // @Intrinsic JNIFunctions.length()
             let mut size = (jni_functions + ARRAY_LENGTH_OFFSET).load::<usize>();
             trace!("size: {:?}", size);
             let mut chunk_size = size / threads;
             trace!("chunk_size: {:?}", chunk_size);
-            let mut start = 0usize;
+            let mut start = subwork_id * chunk_size;
             trace!("start: {:?}", start);
-            let mut end = size;
+            let mut end = if subwork_id + 1 == threads {
+                size
+            } else {
+                threads * chunk_size
+            };
             trace!("end: {:?}", end);
 
             for i in start..end {
@@ -247,16 +254,18 @@ impl VMScanning {
     }
 }
 
-pub struct ScanGlobalRoots<E: ProcessEdgesWork<VM=JikesRVM>>(PhantomData<E>);
+pub struct ScanGlobalRoots<E: ProcessEdgesWork<VM=JikesRVM>>(usize, usize, PhantomData<E>);
 
 impl <E: ProcessEdgesWork<VM=JikesRVM>> ScanGlobalRoots<E> {
-    pub fn new() -> Self { Self(PhantomData) }
+    pub fn new(subwork_id: usize, total_subworks: usize) -> Self {
+        Self(subwork_id, total_subworks, PhantomData)
+    }
 }
 
 impl <E: ProcessEdgesWork<VM=JikesRVM>> GCWork<JikesRVM> for ScanGlobalRoots<E> {
     fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, mmtk: &'static MMTK<JikesRVM>) {
         let mut edges = Vec::with_capacity(E::CAPACITY);
-        VMScanning::scan_global_roots(worker.tls, |edge| {
+        VMScanning::scan_global_roots(worker.tls, self.0, self.1, |edge| {
             edges.push(edge);
             if edges.len() >= E::CAPACITY {
                 let mut new_edges = Vec::with_capacity(E::CAPACITY);

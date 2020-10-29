@@ -20,19 +20,27 @@ const REF_SLOT_SIZE: usize = 2;
 
 const CHUNK_SIZE_MASK: usize = 0xFFFFFFFF - (REF_SLOT_SIZE - 1);
 
-pub fn scan_statics<W: ProcessEdgesWork<VM=JikesRVM>>(tls: OpaquePointer) {
+pub fn scan_statics<W: ProcessEdgesWork<VM=JikesRVM>>(tls: OpaquePointer, subwork_id: usize, total_subworks: usize) {
     unsafe {
         let slots = JTOC_BASE;
         // let cc = VMActivePlan::collector(tls);
 
-        let number_of_collectors: usize = 1;//cc.parallel_worker_count();
+        let number_of_collectors: usize = total_subworks;
         let number_of_references: usize = jtoc_call!(GET_NUMBER_OF_REFERENCE_SLOTS_METHOD_OFFSET,
             tls);
         let chunk_size: usize = (number_of_references / number_of_collectors) & CHUNK_SIZE_MASK;
-        let thread_ordinal = 0;//cc.parallel_worker_ordinal();
+        let thread_ordinal = subwork_id;
 
-        let start: usize = REF_SLOT_SIZE;
-        let end: usize = number_of_references;
+        let start: usize = if thread_ordinal == 0 {
+            REF_SLOT_SIZE
+        } else {
+            thread_ordinal * chunk_size
+        };
+        let end: usize = if thread_ordinal + 1 == number_of_collectors {
+            number_of_references
+        } else {
+            (thread_ordinal + 1) * chunk_size
+        };
 
         let mut edges = Vec::with_capacity(W::CAPACITY);
 
@@ -53,14 +61,16 @@ pub fn scan_statics<W: ProcessEdgesWork<VM=JikesRVM>>(tls: OpaquePointer) {
 }
 
 
-pub struct ScanStaticRoots<E: ProcessEdgesWork<VM=JikesRVM>>(PhantomData<E>);
+pub struct ScanStaticRoots<E: ProcessEdgesWork<VM=JikesRVM>>(usize, usize, PhantomData<E>);
 
 impl <E: ProcessEdgesWork<VM=JikesRVM>> ScanStaticRoots<E> {
-    pub fn new() -> Self { Self(PhantomData) }
+    pub fn new(subwork_id: usize, total_subworks: usize) -> Self {
+        Self(subwork_id, total_subworks, PhantomData)
+    }
 }
 
 impl <E: ProcessEdgesWork<VM=JikesRVM>> GCWork<JikesRVM> for ScanStaticRoots<E> {
     fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, mmtk: &'static MMTK<JikesRVM>) {
-        scan_statics::<E>(worker.tls);
+        scan_statics::<E>(worker.tls, self.0, self.1);
     }
 }
