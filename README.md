@@ -10,10 +10,10 @@ This repository provides the JikesRVM binding for MMTk.
   
 ## Requirements
   
-We maintain an up to date list of the prerequisite for building MMTk and its bindings in the [mmtk-dev](https://github.com/mmtk/mmtk-dev) repository.
+We maintain an up to date list of the prerequisites for building MMTk and its bindings in the [mmtk-dev](https://github.com/mmtk/mmtk-dev) repository.
 Please make sure your dev machine satisfies those prerequisites.
 
-MMTk/JikesRVM supports `linux-i686` and `linux-x86_64` (as 32bits program).
+MMTk/JikesRVM supports `linux-i686` and `linux-x86_64` (as a 32-bit program).
   
 ### Before you continue
 
@@ -22,11 +22,11 @@ If you use the set-up explained in [mmtk-dev](https://github.com/mmtk/mmtk-dev),
 1. Set the default Rust toolchain to the one specified in [mmtk-dev](https://github.com/mmtk/mmtk-dev), e.g. by running:
 
 ```console
-$ # replace nightly-YYYY-MM-DD with the correct toolchain version
+$ # replace nightly-YYYY-MM-DD with the toolchain specified in mmtk-dev
 $ Export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
 ```
 
-2. Set `openjdk-8-jdk` as the default JDK, e.g. by running:
+2. Set `openjdk-8-jdk` as the default JDK (openjdk-8-jdk is a build requirement of JikesRVM), e.g. by running:
 
 ```console
 $ update-java-alternatives --set java-1.8.0-openjdk-amd64
@@ -41,7 +41,7 @@ $ ssh-add
 
 ### Getting Sources (for MMTk and JikesRVM)
 
-You would need the correct revisions of MMTk and JikesRVM.
+You will need the correct revisions of MMTk and JikesRVM.
 Both are checked in as git submodules under `repos`.
 You would simply need to run the following lines under the root directory of `mmtk-jikesrvm` to fetch submodules' sources for MMTk and JikesRVM:
 
@@ -60,7 +60,7 @@ The rest of this instruction assumes you have done the `git submodule init/updat
 
 ## Build
 
-MMTk building is integrated as one step during JikesRVM build.
+MMTk building is integrated as as a step of the JikesRVM build.
 We recommend using the `buildit` script for the JikesRVM build.
 
 ```console
@@ -70,7 +70,7 @@ $ ./bin/buildit localhost RBaseBaseSemiSpace --use-third-party-heap=../../ --use
 
 The JikesRVM binary is under `repos/jikesrvm/dist/RBaseBaseSemiSpace_x86_64-linux/rvm` and the MMTk shared library is `repos/jikesrvm/dist/RBaseBaseSemiSpace_x86_64-linux/libmmtk.so`.
 
-You could build with other build configs, check `jikesrvm/build/configs`.
+You can build with other build configs, check `jikesrvm/build/configs`.
 
 ## Test
 
