@@ -184,7 +184,8 @@ impl VMScanning {
     fn compute_thread_roots(process_edges: *mut extern fn (ptr: *mut Address, length: usize) -> *mut Address, new_roots_sufficient: bool, mutator: OpaquePointer, tls: OpaquePointer) {
         unsafe {
             let process_code_locations = MOVES_CODE;
-            let thread = mutator.to_address();
+            // `mutator` is a jikesrvm tls pointer. Transmute it to addess to read its internal information
+            let thread = unsafe { mem::transmute::<OpaquePointer, Address>(mutator) };
             debug_assert!(!thread.is_zero());
             if (thread + IS_COLLECTOR_FIELD_OFFSET).load::<bool>() {
                 return;
