@@ -8,6 +8,7 @@ extern crate lazy_static;
 extern crate log;
 
 use mmtk::util::address::Address;
+use mmtk::util::OpaquePointer;
 use mmtk::TraceLocal;
 use mmtk::vm::VMBinding;
 use mmtk::MMTK;
@@ -77,6 +78,18 @@ impl JikesRVM {
     pub fn test3(input1: usize, input2: usize, input3: usize, input4: usize) -> usize {
         unsafe {
             jtoc_call!(TEST3_METHOD_OFFSET, BOOT_THREAD, input1, input2, input3, input4)
+        }
+    }
+
+    pub fn enter_vm(tls: OpaquePointer) -> i32 {
+        unsafe {
+            jtoc_call!(ENTER_VM_METHOD_OFFSET, tls) as i32
+        }
+    }
+
+    pub fn leave_vm(tls: OpaquePointer, status: i32) {
+        unsafe {
+            jtoc_call!(LEAVE_VM_METHOD_OFFSET, tls, status);
         }
     }
 }

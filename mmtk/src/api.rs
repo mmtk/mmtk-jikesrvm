@@ -161,13 +161,25 @@ pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectR
 }
 
 #[no_mangle]
-pub extern "C" fn harness_begin(tls: OpaquePointer) {
-    memory_manager::harness_begin(&SINGLETON, tls)
+pub extern "C" fn harness_begin(id: usize) {
+    unsafe {
+        let thread_from_id = VMCollection::thread_from_id(id);
+        let tls = OpaquePointer::from_address(thread_from_id);
+        let st = JikesRVM::enter_vm(tls);
+        memory_manager::harness_begin(&SINGLETON, tls);
+        JikesRVM::leave_vm(tls, st);
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn harness_end(tls: OpaquePointer) {
-    memory_manager::harness_end(&SINGLETON)
+pub extern "C" fn harness_end(id: usize) {
+    unsafe {
+        let thread_from_id = VMCollection::thread_from_id(id);
+        let tls = OpaquePointer::from_address(thread_from_id);
+        let st = JikesRVM::enter_vm(tls);
+        memory_manager::harness_end(&SINGLETON);
+        JikesRVM::leave_vm(tls, st);
+    }
 }
 
 #[no_mangle]
