@@ -14,10 +14,11 @@ use JTOC_BASE;
 use SINGLETON;
 use collection::BOOT_THREAD;
 use collection::VMCollection;
+use crate::scanning::PROCESS_EDGES_WORK_SIZE;
 
 #[no_mangle]
 pub extern "C" fn release_buffer(ptr: *mut Address) {
-    let _vec = unsafe { Vec::<Address>::from_raw_parts(ptr, 0, 4096) };
+    let _vec = unsafe { Vec::<Address>::from_raw_parts(ptr, 0, PROCESS_EDGES_WORK_SIZE) };
 }
 
 #[no_mangle]

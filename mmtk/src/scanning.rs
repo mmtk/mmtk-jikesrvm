@@ -37,8 +37,11 @@ pub struct VMScanning {}
 
 const DUMP_REF: bool = false;
 
+// Fix the size of any `ProcessEdgesWork` to 4096. THe constant is also hard-coded in Java code.
+pub const PROCESS_EDGES_WORK_SIZE: usize = 4096;
+
 pub extern fn create_process_edges_work<W: ProcessEdgesWork<VM=JikesRVM>>(ptr: *mut Address, length: usize) -> *mut Address {
-    debug_assert_eq!(W::CAPACITY, 4096);
+    debug_assert_eq!(W::CAPACITY, PROCESS_EDGES_WORK_SIZE);
     if !ptr.is_null() {
         let mut buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, W::CAPACITY) };
         SINGLETON.scheduler.closure_stage.add(W::new(buf, false));

@@ -121,6 +121,7 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
 
   private Address edges;
   private Word size = Word.zero();
+  // The buffer size of mmtk-core's `ProcessEdgesWork` work packet.
   public static final Word EDGES_BUFFER_CAPACITY = Word.fromIntZeroExtend(4096);
 
   /***********************************************************************
