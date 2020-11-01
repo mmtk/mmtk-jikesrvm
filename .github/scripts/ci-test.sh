@@ -23,13 +23,13 @@ cd repos/jikesrvm
 
 # RFastAdaptiveSemiSpace
 ./bin/buildit localhost RFastAdaptiveSemiSpace -j $JAVA_HOME --answer-yes --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
-./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -X:gc:threads=16 -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar antlr
-./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -X:gc:threads=16 -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar bloat
-./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -X:gc:threads=16 -Xms150M -Xmx150M -jar benchmarks/dacapo-2006-10-MR2.jar eclipse
-./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -X:gc:threads=16 -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar fop
-./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -X:gc:threads=16 -Xms200M -Xmx200M -jar benchmarks/dacapo-2006-10-MR2.jar hsqldb
-./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -X:gc:threads=16 -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar jython
-./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -X:gc:threads=16 -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar luindex
-./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -X:gc:threads=16 -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar lusearch
-./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -X:gc:threads=16 -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar pmd
-./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -X:gc:threads=16 -Xms100M -Xmx100M -jar benchmarks/dacapo-2006-10-MR2.jar xalan
+./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar antlr
+./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar bloat
+./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -Xms150M -Xmx150M -jar benchmarks/dacapo-2006-10-MR2.jar eclipse
+./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar fop
+./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -Xms200M -Xmx200M -jar benchmarks/dacapo-2006-10-MR2.jar hsqldb
+./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar jython
+./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar luindex
+./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar lusearch
+./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar pmd
+./dist/RFastAdaptiveSemiSpace_x86_64-linux/rvm -Xms100M -Xmx100M -jar benchmarks/dacapo-2006-10-MR2.jar xalan
