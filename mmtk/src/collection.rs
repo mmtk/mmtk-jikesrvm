@@ -19,20 +19,20 @@ pub struct VMCollection {}
 impl Collection<JikesRVM> for VMCollection {
     #[inline(always)]
     fn stop_all_mutators<E: ProcessEdgesWork<VM = JikesRVM>>(tls: OpaquePointer) {
-        info!("stop_all_mutators");
+        trace!("stop_all_mutators");
         unsafe {
             jtoc_call!(BLOCK_ALL_MUTATORS_FOR_GC_METHOD_OFFSET, tls);
         }
-        info!("stop_all_mutators finish");
+        trace!("stop_all_mutators finish");
     }
 
     #[inline(always)]
     fn resume_mutators(tls: OpaquePointer) {
-        info!("resume_mutators");
+        trace!("stop_all_mutators");
         unsafe {
             jtoc_call!(UNBLOCK_ALL_MUTATORS_FOR_GC_METHOD_OFFSET, tls);
         }
-        info!("resume_mutators finish");
+        trace!("stop_all_mutators finish");
     }
 
     #[inline(always)]
