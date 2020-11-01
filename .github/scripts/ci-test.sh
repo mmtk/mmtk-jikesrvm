@@ -3,9 +3,6 @@ set -xe
 # To JikesRVM folder
 cd repos/jikesrvm
 
-export RUST_BACKTRACE=1
-export RUST_LOG=TRACE
-
 # Test BaseBase builds
 # Only run one test
 
