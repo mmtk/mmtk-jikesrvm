@@ -10,19 +10,19 @@ This repository provides the JikesRVM binding for MMTk.
   
 ## Requirements
   
-We maintain an up to date list of the prerequisites for building MMTk and its bindings in the [mmtk-dev](https://github.com/mmtk/mmtk-dev) repository.
+We maintain an up to date list of the prerequisites for building MMTk and its bindings in the [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env) repository.
 Please make sure your dev machine satisfies those prerequisites.
 
 MMTk/JikesRVM supports `linux-i686` and `linux-x86_64` (as a 32-bit program).
   
 ### Before you continue
 
-If you use the set-up explained in [mmtk-dev](https://github.com/mmtk/mmtk-dev), make sure to do the following steps before continuing to the [Build](#build) section:
+If you use the set-up explained in [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env), make sure to do the following steps before continuing to the [Build](#build) section:
 
-1. Set the default Rust toolchain to the one specified in [mmtk-dev](https://github.com/mmtk/mmtk-dev), e.g. by running:
+1. Set the default Rust toolchain to the one specified in [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env), e.g. by running:
 
 ```console
-$ # replace nightly-YYYY-MM-DD with the toolchain specified in mmtk-dev
+$ # replace nightly-YYYY-MM-DD with the toolchain specified in mmtk-dev-env
 $ Export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
 ```
 
