@@ -1,5 +1,5 @@
 use memory_manager_constants::*;
-use mmtk::vm::unboxed_size_constants::*;
+use crate::unboxed_size_constants::*;
 use java_size_constants::*;
 use misc_header_constants::*;
 use memory_manager_constants;
@@ -55,7 +55,7 @@ pub const ARRAY_BASE_OFFSET: isize = 0;
 pub const ADDRESS_BASED_HASHING: bool = !GENERATE_GC_TRACE;
 
 /** How many bits in the header are available for the GC and MISC headers? */
-pub const NUM_AVAILABLE_BITS: usize = if_then_else_usize!(ADDRESS_BASED_HASHING, 8, 2);
+pub const NUM_AVAILABLE_BITS: usize = if ADDRESS_BASED_HASHING { 8 } else { 2 };
 
 /**
  * Does this object model use the same header word to contain

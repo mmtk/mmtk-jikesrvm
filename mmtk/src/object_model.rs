@@ -2,7 +2,7 @@ use libc::*;
 use std::mem::size_of;
 use std::sync::atomic::{AtomicUsize, AtomicU8, Ordering};
 
-use mmtk::vm::unboxed_size_constants::*;
+use crate::unboxed_size_constants::*;
 use mmtk::vm::ActivePlan;
 use mmtk::vm::ObjectModel;
 use mmtk::util::{Address, ObjectReference, OpaquePointer};

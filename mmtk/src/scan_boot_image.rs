@@ -3,7 +3,7 @@ use libc::c_void;
 use mmtk::util::Address;
 use mmtk::util::OpaquePointer;
 use mmtk::{TraceLocal, Plan, SelectedPlan};
-use mmtk::vm::unboxed_size_constants::*;
+use crate::unboxed_size_constants::*;
 use mmtk::vm::ActivePlan;
 use mmtk::util::conversions;
 use collection::VMCollection;

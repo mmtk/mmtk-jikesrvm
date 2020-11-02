@@ -15,7 +15,7 @@ lto = true
 libc = "0.2"
 lazy_static = "1.1"
 log = {version = "0.4", features = ["max_level_trace", "release_max_level_off"] }
-mmtk = { path = "../repos/mmtk-core" }
+mmtk = { path = "../../mmtk-core" }
 
 [features]
 default = []
