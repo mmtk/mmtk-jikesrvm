@@ -1,4 +1,5 @@
 #![feature(llvm_asm)]
+#![feature(vec_into_raw_parts)]
 #[macro_use]
 extern crate mmtk;
 extern crate libc;
@@ -39,6 +40,7 @@ pub mod api;
 
 pub static mut JTOC_BASE: Address = Address::ZERO;
 
+#[derive(Default)]
 pub struct JikesRVM;
 
 impl VMBinding for JikesRVM {

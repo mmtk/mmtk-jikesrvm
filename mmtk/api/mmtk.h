@@ -36,28 +36,6 @@ extern bool is_mapped_address(void* addr);
 extern void modify_check(void* ref);
 
 /**
- * Tracing
- */
-extern void report_delayed_root_edge(MMTk_TraceLocal trace_local,
-                                     void* addr);
-
-extern bool will_not_move_in_current_collection(MMTk_TraceLocal trace_local,
-                                                void* obj);
-
-extern void process_interior_edge(MMTk_TraceLocal trace_local, void* target,
-                                  void* slot, bool root);
-
-extern void* trace_get_forwarded_referent(MMTk_TraceLocal trace_local, void* obj);
-
-extern void* trace_get_forwarded_reference(MMTk_TraceLocal trace_local, void* obj);
-
-extern void* trace_retain_referent(MMTk_TraceLocal trace_local, void* obj);
-
-extern void* trace_root_object(MMTk_TraceLocal trace_local, void* obj);
-
-extern void process_edge(MMTk_TraceLocal trace, void* obj);
-
-/**
  * Misc
  */
 extern void gc_init(size_t heap_size);
@@ -68,6 +46,8 @@ extern void handle_user_collection_request(void *tls);
 
 extern void start_control_collector(void *tls);
 extern void start_worker(void *tls, void* worker);
+
+extern void release_buffer(void* buffer);
 
 /**
  * JikesRVM-specific

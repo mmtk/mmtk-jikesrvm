@@ -12,7 +12,7 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.BYTES_IN_WORD;
 
 @Uninterruptible
 public abstract class MMTkMutatorContext extends MutatorContext {
-    // The layout of this mutator section should be the same as struct Mutator in MMTk core. 
+    // The layout of this mutator section should be the same as struct Mutator in MMTk core.
     // Due to the fact that RJava does not support unboxed struct or nested struct, we have to layout all the fields here.
 
     // Mutator section starts
@@ -98,6 +98,11 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address largeObjectAllocator0Plan;
 
+    // barrier
+    @Entrypoint
+    Address barrier;
+    Address barrier_fat;
+
     // mutator_tls
     @Entrypoint
     Address mutatorTls;
@@ -114,8 +119,11 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     Address spaceMapping;
     // collection_phase_func (fat pointer)
     @Entrypoint
-    Address collection_phase_func;
-    Address collection_phase_func_fat;
+    Address prepare_func;
+    Address prepare_func_fat;
+    @Entrypoint
+    Address release_func;
+    Address release_func_fat;
 
     // Mutator section ends
 
@@ -135,7 +143,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     static final int LARGE_OBJECT_ALLOCATOR_SIZE = 3 * BYTES_IN_WORD;
 
     // The size of this mutator section
-    static final int MUTATOR_SIZE = MAX_BUMP_ALLOCATORS * BUMP_ALLOCATOR_SIZE + MAX_LARGE_OBJECT_ALLOCATORS * LARGE_OBJECT_ALLOCATOR_SIZE + 6 * BYTES_IN_WORD;    
+    static final int MUTATOR_SIZE = MAX_BUMP_ALLOCATORS * BUMP_ALLOCATOR_SIZE + MAX_LARGE_OBJECT_ALLOCATORS * LARGE_OBJECT_ALLOCATOR_SIZE + 10 * BYTES_IN_WORD;
     // The base offset of this mutator section
     static final Offset MUTATOR_BASE_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "bumpAllocator0Tls", Address.class).getOffset();
     static final Offset BUMP_ALLOCATOR_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "bumpAllocator0Tls", Address.class).getOffset();
@@ -185,7 +193,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
         // Each plan will return which allocator to use
         int ty = getAllocatorTag(allocator);
         int index = getAllocatorIndex(allocator);
-        
+
         if (ty == TAG_BUMP_POINTER) {
             return bumpAllocatorFastPath(bytes, align, offset, allocator, index);
         } else if (ty == TAG_LARGE_OBJECT) {
@@ -214,7 +222,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
         // allocatorIndex should be compile-time constant. We do not need to worry about the multiplication.
         // The offset will be optimized to a constant.
         Address allocatorBase = Magic.objectAsAddress(this).plus(BUMP_ALLOCATOR_OFFSET).plus(allocatorIndex * BUMP_ALLOCATOR_SIZE);
-        
+
         Address cursor = allocatorBase.plus(BUMP_ALLOCATOR_CURSOR).loadAddress();
         Address limit = allocatorBase.plus(BUMP_ALLOCATOR_LIMIT).loadAddress();
         Offset delta = negOff.minus(cursor.toWord()).and(mask).toOffset();
@@ -228,7 +236,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
             // Save the new cursor
             allocatorBase.plus(BUMP_ALLOCATOR_CURSOR).store(newCursor);
             return result;
-        }        
+        }
     }
 
     // General allocation slowpath.
@@ -269,7 +277,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
         }
 
         return dst;
-    }    
+    }
 
     public void collectionPhase(short phaseId, boolean primary) {
         VM.sysFail("unreachable");

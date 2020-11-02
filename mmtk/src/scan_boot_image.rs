@@ -1,18 +1,22 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
-
 use libc::c_void;
 use mmtk::util::Address;
 use mmtk::util::OpaquePointer;
-use mmtk::{TraceLocal, Plan, SelectedPlan, ParallelCollector};
+use mmtk::{TraceLocal, Plan, SelectedPlan};
 use mmtk::vm::unboxed_size_constants::*;
 use mmtk::vm::ActivePlan;
 use mmtk::util::conversions;
-
 use collection::VMCollection;
 use active_plan::VMActivePlan;
 use java_size_constants::*;
 use entrypoint::*;
 use JTOC_BASE;
+use crate::{SINGLETON, JikesRVM};
+use mmtk::scheduler::gc_works::*;
+use mmtk::scheduler::*;
+use mmtk::MMTK;
+use std::marker::PhantomData;
+use std::mem;
 
 const DEBUG: bool = false;
 const FILTER: bool = true;
@@ -28,18 +32,18 @@ const GUARD_REGION: usize = LONGENCODING_OFFSET_BYTES + 1; /* long offset + run 
 static ROOTS: AtomicUsize = AtomicUsize::new(0);
 static REFS: AtomicUsize = AtomicUsize::new(0);
 
-pub fn scan_boot_image<T: TraceLocal>(trace: &mut T, tls: OpaquePointer) {
+pub fn scan_boot_image<W: ProcessEdgesWork<VM=JikesRVM>>(tls: OpaquePointer, subwork_id: usize, total_subworks: usize) {
     unsafe {
         let boot_record = (JTOC_BASE + THE_BOOT_RECORD_FIELD_OFFSET).load::<Address>();
         let map_start = (boot_record + BOOT_IMAGE_R_MAP_START_OFFSET).load::<Address>();
         let map_end = ((boot_record + BOOT_IMAGE_R_MAP_END_OFFSET).load::<Address>());
         let image_start = (boot_record + BOOT_IMAGE_DATA_START_FIELD_OFFSET).load::<Address>();
 
-        let collector = VMActivePlan::collector(tls);
+        // let collector = VMActivePlan::collector(tls);
 
-        let stride = collector.parallel_worker_count() << LOG_CHUNK_BYTES;
+        let stride = total_subworks << LOG_CHUNK_BYTES;
         trace!("stride={}", stride);
-        let start = collector.parallel_worker_ordinal() << LOG_CHUNK_BYTES;
+        let start = subwork_id << LOG_CHUNK_BYTES;
         trace!("start={}", start);
         let mut cursor = map_start + start;
         trace!("cursor={:x}", cursor);
@@ -47,17 +51,26 @@ pub fn scan_boot_image<T: TraceLocal>(trace: &mut T, tls: OpaquePointer) {
         ROOTS.store(0, Ordering::Relaxed);
         ROOTS.store(0, Ordering::Relaxed);
 
+        let mut edges = vec![];
         while cursor < map_end {
             trace!("Processing chunk at {:x}", cursor);
-            process_chunk(cursor, image_start, map_start, map_end, trace);
+            process_chunk(cursor, image_start, map_start, map_end, |edge| {
+                edges.push(edge);
+                if edges.len() >= W::CAPACITY {
+                    let mut new_edges = Vec::with_capacity(W::CAPACITY);
+                    mem::swap(&mut new_edges, &mut edges);
+                    SINGLETON.scheduler.closure_stage.add(W::new(new_edges, true));
+                }
+            });
             trace!("Chunk processed successfully");
             cursor += stride;
         }
+        SINGLETON.scheduler.closure_stage.add(W::new(edges, true));
     }
 }
 
-fn process_chunk<T: TraceLocal>(chunk_start: Address, image_start: Address,
-                                map_start: Address, map_end: Address, trace: &mut T) {
+fn process_chunk(chunk_start: Address, image_start: Address,
+                                map_start: Address, map_end: Address, mut report_edge: impl FnMut(Address)) {
     let mut value: usize;
     let mut offset: usize = 0;
     let mut cursor: Address = chunk_start;
@@ -88,7 +101,7 @@ fn process_chunk<T: TraceLocal>(chunk_start: Address, image_start: Address,
                 if cfg!(feature = "debug") {
                     ROOTS.fetch_add(1, Ordering::Relaxed);
                 }
-                trace.process_root_edge(slot, false);
+                report_edge(slot);
             }
             if runlength != 0 {
                 for i in 0..runlength {
@@ -103,7 +116,7 @@ fn process_chunk<T: TraceLocal>(chunk_start: Address, image_start: Address,
                             ROOTS.fetch_add(1, Ordering::Relaxed);
                         }
                         // TODO: check_reference(slot) ?
-                        trace.process_root_edge(slot, false);
+                        report_edge(slot);
                     }
                 }
             }
@@ -119,5 +132,20 @@ fn decode_long_encoding(cursor: Address) -> usize {
         value |= (((cursor + 2isize).load::<u8>() as usize) << (2 * BITS_IN_BYTE)) & 0x00ff0000;
         value |= (((cursor + 3isize).load::<u8>() as usize) << (3 * BITS_IN_BYTE)) & 0xff000000;
         value
+    }
+}
+
+
+pub struct ScanBootImageRoots<E: ProcessEdgesWork<VM=JikesRVM>>(usize, usize, PhantomData<E>);
+
+impl <E: ProcessEdgesWork<VM=JikesRVM>> ScanBootImageRoots<E> {
+    pub fn new(subwork_id: usize, total_subworks: usize) -> Self {
+        Self(subwork_id, total_subworks, PhantomData)
+    }
+}
+
+impl <E: ProcessEdgesWork<VM=JikesRVM>> GCWork<JikesRVM> for ScanBootImageRoots<E> {
+    fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, mmtk: &'static MMTK<JikesRVM>) {
+        scan_boot_image::<E>(OpaquePointer::UNINITIALIZED, self.0, self.1);
     }
 }

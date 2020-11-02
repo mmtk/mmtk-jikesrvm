@@ -4,14 +4,22 @@ use std::ffi::CStr;
 use mmtk::memory_manager;
 use mmtk::util::{Address, OpaquePointer, ObjectReference};
 use mmtk::Allocator;
-use mmtk::{SelectedTraceLocal, SelectedCollector, SelectedPlan};
+use mmtk::SelectedPlan;
 use mmtk::Mutator;
 use mmtk::Plan;
+use mmtk::MMTK;
+use mmtk::scheduler::*;
 use JikesRVM;
 use JTOC_BASE;
 use SINGLETON;
 use collection::BOOT_THREAD;
 use collection::VMCollection;
+use crate::scanning::PROCESS_EDGES_WORK_SIZE;
+
+#[no_mangle]
+pub extern "C" fn release_buffer(ptr: *mut Address) {
+    let _vec = unsafe { Vec::<Address>::from_raw_parts(ptr, 0, PROCESS_EDGES_WORK_SIZE) };
+}
 
 #[no_mangle]
 pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
@@ -20,7 +28,8 @@ pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
         BOOT_THREAD
             = OpaquePointer::from_address(VMCollection::thread_from_id(1));
     }
-    memory_manager::gc_init(&SINGLETON, heap_size);
+    let singleton_mut = unsafe { &mut *(&*SINGLETON as *const MMTK<JikesRVM> as *mut MMTK<JikesRVM>) };
+    memory_manager::gc_init(singleton_mut, heap_size);
     debug_assert!(54 == JikesRVM::test(44));
     debug_assert!(112 == JikesRVM::test2(45, 67));
     debug_assert!(731 == JikesRVM::test3(21, 34, 9, 8));
@@ -32,24 +41,24 @@ pub extern "C" fn start_control_collector(tls: OpaquePointer) {
 }
 
 #[no_mangle]
-pub extern "C" fn bind_mutator(tls: OpaquePointer) -> *mut Mutator<JikesRVM, SelectedPlan<JikesRVM>> {
+pub extern "C" fn bind_mutator(tls: OpaquePointer) -> *mut Mutator<SelectedPlan<JikesRVM>> {
     let box_mutator = memory_manager::bind_mutator(&SINGLETON, tls);
     Box::into_raw(box_mutator)
 }
 
 #[no_mangle]
-pub extern "C" fn destroy_mutator(mutator: *mut Mutator<JikesRVM, SelectedPlan<JikesRVM>>) {
+pub extern "C" fn destroy_mutator(mutator: *mut Mutator<SelectedPlan<JikesRVM>>) {
     memory_manager::destroy_mutator(unsafe { Box::from_raw(mutator) })
 }
 
 #[no_mangle]
-pub extern "C" fn alloc(mutator: *mut Mutator<JikesRVM, SelectedPlan<JikesRVM>>, size: usize,
+pub extern "C" fn alloc(mutator: *mut Mutator<SelectedPlan<JikesRVM>>, size: usize,
                            align: usize, offset: isize, allocator: Allocator) -> Address {
     memory_manager::alloc::<JikesRVM>(unsafe { &mut *mutator }, size, align, offset, allocator)
 }
 
 #[no_mangle]
-pub extern "C" fn post_alloc(mutator: *mut Mutator<JikesRVM, SelectedPlan<JikesRVM>>, refer: ObjectReference, type_refer: ObjectReference,
+pub extern "C" fn post_alloc(mutator: *mut Mutator<SelectedPlan<JikesRVM>>, refer: ObjectReference, type_refer: ObjectReference,
                                 bytes: usize, allocator: Allocator) {
     memory_manager::post_alloc::<JikesRVM>(unsafe { &mut *mutator }, refer, type_refer, bytes, allocator)
 }
@@ -60,23 +69,8 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn report_delayed_root_edge(trace_local: *mut SelectedTraceLocal<JikesRVM>, addr: Address) {
-    memory_manager::report_delayed_root_edge(&SINGLETON, unsafe { &mut *trace_local }, addr)
-}
-
-#[no_mangle]
-pub extern "C" fn will_not_move_in_current_collection(trace_local: *mut SelectedTraceLocal<JikesRVM>, obj: ObjectReference) -> bool {
-    memory_manager::will_not_move_in_current_collection(&SINGLETON, unsafe { &mut *trace_local }, obj)
-}
-
-#[no_mangle]
-pub extern "C" fn process_interior_edge(trace_local: *mut SelectedTraceLocal<JikesRVM>, target: ObjectReference, slot: Address, root: bool) {
-    memory_manager::process_interior_edge(&SINGLETON, unsafe { &mut *trace_local }, target, slot, root)
-}
-
-#[no_mangle]
-pub extern "C" fn start_worker(tls: OpaquePointer, worker: *mut SelectedCollector<JikesRVM>) {
-    memory_manager::start_worker::<JikesRVM>(tls, unsafe { worker.as_mut().unwrap() })
+pub extern "C" fn start_worker(tls: OpaquePointer, worker: *mut GCWorker<JikesRVM>) {
+    memory_manager::start_worker::<JikesRVM>(tls, unsafe { worker.as_mut().unwrap() }, &SINGLETON)
 }
 
 #[no_mangle]
@@ -103,21 +97,6 @@ pub extern "C" fn total_bytes() -> usize {
 #[cfg(feature = "sanity")]
 pub extern "C" fn scan_region() {
     memory_manager::scan_region(&SINGLETON)
-}
-
-#[no_mangle]
-pub extern "C" fn trace_get_forwarded_referent(trace_local: *mut SelectedTraceLocal<JikesRVM>, object: ObjectReference) -> ObjectReference{
-    memory_manager::trace_get_forwarded_referent::<JikesRVM>(unsafe { &mut *trace_local }, object)
-}
-
-#[no_mangle]
-pub extern "C" fn trace_get_forwarded_reference(trace_local: *mut SelectedTraceLocal<JikesRVM>, object: ObjectReference) -> ObjectReference{
-    memory_manager::trace_get_forwarded_reference::<JikesRVM>(unsafe { &mut *trace_local }, object)
-}
-
-#[no_mangle]
-pub extern "C" fn trace_retain_referent(trace_local: *mut SelectedTraceLocal<JikesRVM>, object: ObjectReference) -> ObjectReference{
-    memory_manager::trace_retain_referent::<JikesRVM>(unsafe { &mut *trace_local }, object)
 }
 
 #[no_mangle]

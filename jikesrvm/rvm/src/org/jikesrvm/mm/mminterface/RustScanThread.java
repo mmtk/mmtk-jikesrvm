@@ -26,9 +26,11 @@ import org.vmmagic.pragma.Inline;
 import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.pragma.Untraced;
 import org.vmmagic.unboxed.Address;
+import org.vmmagic.unboxed.Word;
 import org.vmmagic.unboxed.ObjectReference;
 import org.vmmagic.unboxed.Offset;
 import static org.jikesrvm.runtime.SysCall.sysCall;
+import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
 
 /**
  * Class that supports scanning thread stacks for references during
@@ -107,7 +109,7 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
   private GCMapIterator iterator;
   @Untraced
   private boolean processCodeLocations;
-  private Address trace;
+  private Address process_edges;
   @Untraced
   private RVMThread thread;
   private Address ip, fp, prevFp, initialIPLoc, topFrame;
@@ -116,6 +118,11 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
   private int compiledMethodType;
   private boolean failed;
   private boolean reinstallReturnBarrier;
+
+  private Address edges;
+  private Word size = Word.zero();
+  // The buffer size of mmtk-core's `ProcessEdgesWork` work packet.
+  public static final Word EDGES_BUFFER_CAPACITY = Word.fromIntZeroExtend(4096);
 
   /***********************************************************************
    *
@@ -131,7 +138,7 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
    * @param newRootsSufficient Is a partial stack scan sufficient, or must we do a full scan?
    */
   @Entrypoint
-  public static void scanThread(RVMThread thread, Address trace,
+  public static void scanThread(RVMThread thread, Address process_edges,
                                 boolean processCodeLocations, boolean newRootsSufficient) {
     if (DEFAULT_VERBOSITY >= 1) {
       VM.sysWriteln("scanning ",thread.getThreadSlot());
@@ -145,20 +152,7 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
     Address fp = regs.getInnermostFramePointer();
     regs.clear();
     regs.setInnermost(ip,fp);
-    scanThread(thread, trace, processCodeLocations, gprs, Address.zero(), newRootsSufficient);
-  }
-
-  /**
-   * Wrapper for {@link RustTraceLocal#reportDelayedRootEdge(Address)} that allows
-   * sanity checking of the address.
-   *
-   * @param trace the trace on which {@link RustTraceLocal#reportDelayedRootEdge(Address)}
-   *  will be called
-   * @param addr see JavaDoc of {@link RustTraceLocal#reportDelayedRootEdge(Address)}
-   */
-  private static void reportDelayedRootEdge(Address trace, Address addr) {
-    if (VALIDATE_REFS) checkReference(addr);
-    sysCall.sysReportDelayedRootEdge(trace, addr);
+    scanThread(thread, process_edges, processCodeLocations, gprs, Address.zero(), newRootsSufficient);
   }
 
   /**
@@ -175,7 +169,7 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
    * if this is to be inferred from the thread (normally the case).
    * @param newRootsSufficent Is a partial stack scan sufficient, or must we do a full scan?
    */
-  private static void scanThread(RVMThread thread, Address trace,
+  private static void scanThread(RVMThread thread, Address process_edges,
                                  boolean processCodeLocations,
                                  Address gprs, Address topFrame, boolean newRootsSufficent) {
     // figure out if the thread should be scanned at all; if not, exit
@@ -206,7 +200,27 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
     }
 
     /* scan the stack */
-    scanner.startScan(trace, processCodeLocations, thread, gprs, ip, fp, initialIPLoc, topFrame, sentinelFp);
+    scanner.startScan(process_edges, processCodeLocations, thread, gprs, ip, fp, initialIPLoc, topFrame, sentinelFp);
+  }
+
+  @Inline
+  private void reportEdge(Address edge) {
+    // Push value
+    Word cursor = this.size;
+    this.size = cursor.plus(Word.one());
+    if (VM.VerifyAssertions) VM._assert(!this.edges.isZero());
+    this.edges.plus(cursor.toInt() << LOG_BYTES_IN_WORD).store(edge);
+    // Flush if full
+    if (cursor.GE(EDGES_BUFFER_CAPACITY)) {
+      flush();
+    }
+  }
+
+  private void flush() {
+    if (!edges.isZero() && !size.isZero()) {
+      edges = sysCall.sysDynamicCall2(process_edges, edges.toWord(), size);
+      size = Word.zero();
+    }
   }
 
   /**
@@ -235,12 +249,15 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
    * if this is to be inferred from the thread (normally the case).
    * @param sentinelFp The frame pointer at which the stack scan should stop.
    */
-  private void startScan(Address trace,
+  private void startScan(Address process_edges,
                          boolean processCodeLocations,
                          RVMThread thread, Address gprs, Address ip,
                          Address fp, Address initialIPLoc, Address topFrame,
                          Address sentinelFp) {
-    this.trace = trace;
+    this.process_edges = process_edges;
+    this.size = Word.zero();
+    this.edges = sysCall.sysDynamicCall2(process_edges, Word.zero(), Word.zero());
+
     this.processCodeLocations = processCodeLocations;
     this.thread = thread;
     this.failed = false;
@@ -256,6 +273,10 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
       this.topFrame = topFrame;
       scanThreadInternal(gprs, FAILURE_VERBOSITY, sentinelFp);
       VM.sysFail("Error encountered while scanning stack");
+    }
+    flush();
+    if (!edges.isZero()) {
+      sysCall.release_buffer(edges);
     }
   }
 
@@ -360,7 +381,8 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
         if (!failed) failed = true;
       }
     }
-    sysCall.sysProcessInteriorEdge(trace, code, ipLoc, true);
+    reportEdge(ipLoc);
+    // sysCall.sysProcessInteriorEdge(trace, code, ipLoc, true);
   }
 
   /***********************************************************************
@@ -467,7 +489,8 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
          refaddr = iterator.getNextReferenceAddress()) {
       if (VALIDATE_REFS) checkReference(refaddr, verbosity);
       if (verbosity >= 4) dumpRef(refaddr, verbosity);
-      reportDelayedRootEdge(trace, refaddr);
+      reportEdge(refaddr);
+      // reportDelayedRootEdge(trace, refaddr);
     }
   }
 
@@ -576,15 +599,15 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
     // switch off Checkstyle for this method.
 
     //CHECKSTYLE:OFF
-    VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread.getStack())));
-    VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread)));
-    VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread.getStack())));
-    VM._assert(thread.getJNIEnv() == null || sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread.getJNIEnv())));
-    VM._assert(thread.getJNIEnv() == null || thread.getJNIEnv().refsArray() == null || sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread.getJNIEnv().refsArray())));
-    VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace,ObjectReference.fromObject(thread.getContextRegisters())));
-    VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace,ObjectReference.fromObject(thread.getContextRegisters().getGPRs())));
-    VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace,ObjectReference.fromObject(thread.getExceptionRegisters())));
-    VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace,ObjectReference.fromObject(thread.getExceptionRegisters().getGPRs())));
+    // VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread.getStack())));
+    // VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread)));
+    // VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread.getStack())));
+    // VM._assert(thread.getJNIEnv() == null || sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread.getJNIEnv())));
+    // VM._assert(thread.getJNIEnv() == null || thread.getJNIEnv().refsArray() == null || sysCall.sysWillNotMoveInCurrentCollection(trace, ObjectReference.fromObject(thread.getJNIEnv().refsArray())));
+    // VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace,ObjectReference.fromObject(thread.getContextRegisters())));
+    // VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace,ObjectReference.fromObject(thread.getContextRegisters().getGPRs())));
+    // VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace,ObjectReference.fromObject(thread.getExceptionRegisters())));
+    // VM._assert(sysCall.sysWillNotMoveInCurrentCollection(trace,ObjectReference.fromObject(thread.getExceptionRegisters().getGPRs())));
     //CHECKSTYLE:ON
   }
 
