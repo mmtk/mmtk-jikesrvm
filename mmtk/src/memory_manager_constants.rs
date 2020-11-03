@@ -1,4 +1,4 @@
-use mmtk::vm::unboxed_size_constants::*;
+use crate::unboxed_size_constants::*;
 use mmtk::SelectedConstraints;
 
 /** {@code true} if the selected plan needs support for linearly scanning the heap */
