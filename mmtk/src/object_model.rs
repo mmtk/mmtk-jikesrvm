@@ -8,7 +8,7 @@ use mmtk::vm::ObjectModel;
 use mmtk::util::{Address, ObjectReference, OpaquePointer};
 use mmtk::util::alloc::allocator::fill_alignment_gap;
 use mmtk::util::constants::{};
-use mmtk::{Allocator};
+use mmtk::AllocationSemantic;
 use mmtk::util::conversions;
 use mmtk::CopyContext;
 
@@ -69,7 +69,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         }
     }
     #[inline(always)]
-    fn copy(from: ObjectReference, allocator: Allocator, copy_context: &mut impl CopyContext) -> ObjectReference {
+    fn copy(from: ObjectReference, allocator: AllocationSemantic, copy_context: &mut impl CopyContext) -> ObjectReference {
         trace!("ObjectModel.copy");
         let tib = Self::load_tib(from);
         let rvm_type = Self::load_rvm_type(from);
@@ -351,7 +351,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 impl VMObjectModel {
     #[inline(always)]
     fn copy_scalar(from: ObjectReference, tib: Address, rvm_type: Address,
-                   immut_allocator: Allocator, copy_context: &mut impl CopyContext) -> ObjectReference {
+                   immut_allocator: AllocationSemantic, copy_context: &mut impl CopyContext) -> ObjectReference {
         trace!("VMObjectModel.copy_scalar");
         let bytes = Self::bytes_required_when_copied_class(from, rvm_type);
         let align = Self::get_alignment_class(rvm_type);
@@ -367,7 +367,7 @@ impl VMObjectModel {
 
     #[inline(always)]
     fn copy_array(from: ObjectReference, tib: Address, rvm_type: Address,
-                  immut_allocator: Allocator, copy_context: &mut impl CopyContext) -> ObjectReference {
+                  immut_allocator: AllocationSemantic, copy_context: &mut impl CopyContext) -> ObjectReference {
         trace!("VMObjectModel.copy_array");
         let bytes = Self::bytes_required_when_copied_array(from, rvm_type);
         let align = Self::get_alignment_array(rvm_type);
