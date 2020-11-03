@@ -1,6 +1,3 @@
-[submodule "repos/mmtk-core"]
-	path = repos/mmtk-core
-	url = https://github.com/mmtk/mmtk-core
 [submodule "repos/jikesrvm"]
 	path = repos/jikesrvm
 	url = https://github.com/mmtk/jikesrvm
