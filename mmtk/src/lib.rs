@@ -17,6 +17,7 @@ use entrypoint::*;
 use collection::BOOT_THREAD;
 
 mod entrypoint;
+mod unboxed_size_constants;
 #[macro_use]
 mod jtoc_call;
 pub mod scanning;

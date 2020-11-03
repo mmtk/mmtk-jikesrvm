@@ -22,9 +22,9 @@ pub const HASH_CODE_MASK: usize = ((1 << 10) - 1) << HASH_CODE_SHIFT;
 pub static HASH_CODE_GENERATOR: AtomicUsize = AtomicUsize::new(0); // seed for generating hash codes with copying collectors.
 
 /** How many bits are allocated to a thin lock? */
-pub const NUM_THIN_LOCK_BITS: usize = if_then_else_usize!(ADDRESS_BASED_HASHING, 22, 20);
+pub const NUM_THIN_LOCK_BITS: usize = if ADDRESS_BASED_HASHING { 22 } else { 20 };
 /** How many bits to shift to get the thin lock? */
-pub const THIN_LOCK_SHIFT: usize = if_then_else_usize!(ADDRESS_BASED_HASHING, 10, 12);
+pub const THIN_LOCK_SHIFT: usize = if ADDRESS_BASED_HASHING { 10 } else { 12 };
 /** How many bytes do we have to offset to get to the high locking bits */
 #[cfg(target_endian = "little")]
 pub const THIN_LOCK_DEDICATED_U16_OFFSET: usize = 2;
