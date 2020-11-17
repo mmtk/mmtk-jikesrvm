@@ -62,12 +62,9 @@ impl VMObjectModel {
 }
 
 impl ObjectModel<JikesRVM> for VMObjectModel {
-    const GC_BYTE_OFFSET: usize = 0;
-    fn get_gc_byte(o: ObjectReference) -> &'static AtomicU8 {
-        unsafe {
-            &*(o.to_address() + AVAILABLE_BITS_OFFSET).to_ptr::<AtomicU8>()
-        }
-    }
+    const HAS_GC_BYTE: bool = true;
+    const GC_BYTE_OFFSET: isize = AVAILABLE_BITS_OFFSET * 8;
+    
     #[inline(always)]
     fn copy(from: ObjectReference, allocator: AllocationSemantics, copy_context: &mut impl CopyContext) -> ObjectReference {
         trace!("ObjectModel.copy");
