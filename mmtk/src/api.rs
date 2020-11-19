@@ -64,8 +64,9 @@ pub extern "C" fn post_alloc(mutator: *mut Mutator<SelectedPlan<JikesRVM>>, refe
 }
 
 #[no_mangle]
-pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
-    !object.is_movable()
+// For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
+pub extern "C" fn will_never_move(object: ObjectReference) -> i32 {
+    !object.is_movable() as i32
 }
 
 #[no_mangle]
@@ -105,18 +106,21 @@ pub extern "C" fn handle_user_collection_request(tls: OpaquePointer) {
 }
 
 #[no_mangle]
-pub extern "C" fn is_live_object(object: ObjectReference) -> bool{
-    object.is_live()
+// For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
+pub extern "C" fn is_live_object(object: ObjectReference) -> i32 {
+    object.is_live() as i32
 }
 
 #[no_mangle]
-pub extern "C" fn is_mapped_object(object: ObjectReference) -> bool {
-    object.is_mapped()
+// For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
+pub extern "C" fn is_mapped_object(object: ObjectReference) -> i32 {
+    object.is_mapped() as i32
 }
 
 #[no_mangle]
-pub extern "C" fn is_mapped_address(address: Address) -> bool {
-    address.is_mapped()
+// For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
+pub extern "C" fn is_mapped_address(address: Address) -> i32 {
+    address.is_mapped() as i32
 }
 
 #[no_mangle]
@@ -150,10 +154,11 @@ pub extern "C" fn harness_end(tls: OpaquePointer) {
 }
 
 #[no_mangle]
-pub extern "C" fn process(name: *const c_char, value: *const c_char) -> bool {
+// For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
+pub extern "C" fn process(name: *const c_char, value: *const c_char) -> i32 {
     let name_str: &CStr = unsafe { CStr::from_ptr(name) };
     let value_str: &CStr = unsafe { CStr::from_ptr(value) };
-    memory_manager::process(&SINGLETON, name_str.to_str().unwrap(), value_str.to_str().unwrap())
+    memory_manager::process(&SINGLETON, name_str.to_str().unwrap(), value_str.to_str().unwrap()) as i32
 }
 
 #[no_mangle]
