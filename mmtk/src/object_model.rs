@@ -63,7 +63,7 @@ impl VMObjectModel {
 
 impl ObjectModel<JikesRVM> for VMObjectModel {
     const HAS_GC_BYTE: bool = true;
-    const GC_BYTE_OFFSET: isize = AVAILABLE_BITS_OFFSET * 8;
+    const GC_BYTE_OFFSET: isize = AVAILABLE_BITS_OFFSET;
     
     #[inline(always)]
     fn copy(from: ObjectReference, allocator: AllocationSemantics, copy_context: &mut impl CopyContext) -> ObjectReference {
@@ -418,7 +418,7 @@ impl VMObjectModel {
             unsafe {
                 let log_element_size = (rvm_type + LOG_ELEMENT_SIZE_FIELD_OFFSET)
                     .load::<usize>();
-                trace!("log_element_size={}", log_element_size);
+                // println!("log_element_size(0x{:x}, 0x{:x}) -> 0x{:x} << 0x{:x}", object, rvm_type, num_elements, log_element_size);
                 ARRAY_HEADER_SIZE + (num_elements << log_element_size)
             }
         };
