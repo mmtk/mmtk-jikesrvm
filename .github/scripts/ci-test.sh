@@ -14,15 +14,15 @@ python scripts/testMMTk.py -j $JAVA_HOME -g RBaseBaseSemiSpace -a "Xms75M Xmx75M
 # Test FastAdaptive builds
 # Run all possible dacapo benchmarks
 
-# Running the tests with recompilation disabled. See https://github.com/mmtk/mmtk-jikesrvm/issues/36
-RVM_OPTIONS=-X:aos:initial_compiler=opt -X:aos:enable_recompilation=false
-
 # RFastAdaptiveNoGC (use largest heap possible)
 ./bin/buildit localhost RFastAdaptiveNoGC -j $JAVA_HOME --answer-yes --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
-./dist/RFastAdaptiveNoGC_x86_64-linux/rvm $RVM_OPTIONS -Xms3G -Xmx3G -jar benchmarks/dacapo-2006-10-MR2.jar antlr
-./dist/RFastAdaptiveNoGC_x86_64-linux/rvm $RVM_OPTIONS -Xms3G -Xmx3G -jar benchmarks/dacapo-2006-10-MR2.jar fop
-./dist/RFastAdaptiveNoGC_x86_64-linux/rvm $RVM_OPTIONS -Xms3G -Xmx3G -jar benchmarks/dacapo-2006-10-MR2.jar luindex
-./dist/RFastAdaptiveNoGC_x86_64-linux/rvm $RVM_OPTIONS -Xms3G -Xmx3G -jar benchmarks/dacapo-2006-10-MR2.jar pmd
+./dist/RFastAdaptiveNoGC_x86_64-linux/rvm -Xms3G -Xmx3G -jar benchmarks/dacapo-2006-10-MR2.jar antlr
+./dist/RFastAdaptiveNoGC_x86_64-linux/rvm -Xms3G -Xmx3G -jar benchmarks/dacapo-2006-10-MR2.jar fop
+./dist/RFastAdaptiveNoGC_x86_64-linux/rvm -Xms3G -Xmx3G -jar benchmarks/dacapo-2006-10-MR2.jar luindex
+./dist/RFastAdaptiveNoGC_x86_64-linux/rvm -Xms3G -Xmx3G -jar benchmarks/dacapo-2006-10-MR2.jar pmd
+
+# Running the GC tests with recompilation disabled. See https://github.com/mmtk/mmtk-jikesrvm/issues/36
+RVM_OPTIONS='-X:aos:initial_compiler=opt -X:aos:enable_recompilation=false'
 
 # RFastAdaptiveSemiSpace
 ./bin/buildit localhost RFastAdaptiveSemiSpace -j $JAVA_HOME --answer-yes --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
