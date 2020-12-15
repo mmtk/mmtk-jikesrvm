@@ -17,7 +17,7 @@ static MUTATOR_COUNTER: SynchronizedCounter = SynchronizedCounter::new(0);
 pub struct VMActivePlan<> {}
 
 impl ActivePlan<JikesRVM> for VMActivePlan {
-    fn worker(tls: OpaquePointer) -> &'static mut GCWorker<JikesRVM> {
+    unsafe fn worker(tls: OpaquePointer) -> &'static mut GCWorker<JikesRVM> {
         let thread: Address = unsafe { mem::transmute(tls) };
         let system_thread = unsafe { (thread + SYSTEM_THREAD_FIELD_OFFSET).load::<Address>() };
         let cc = unsafe {
@@ -47,10 +47,6 @@ impl ActivePlan<JikesRVM> for VMActivePlan {
         let thread: Address = unsafe { mem::transmute(tls) };
         let mutator = (thread + MMTK_HANDLE_FIELD_OFFSET).load::<usize>();
         &mut *(mutator as *mut <SelectedPlan<JikesRVM> as Plan>::Mutator)
-    }
-
-    fn collector_count() -> usize {
-        unimplemented!()
     }
 
     fn reset_mutator_iterator() {
