@@ -53,7 +53,6 @@
             <arg value="--manifest-path=${mmtk-binding.dir}/Cargo.toml"/>
             <arg value="--target=i686-unknown-linux-gnu"/>
             <arg value="--features=${rust.features}"/>
-            <arg value="--no-default-features"/>
             <arg line="${rust.args}"/>
             <arg value="--"/>
             <arg value="-C"/>

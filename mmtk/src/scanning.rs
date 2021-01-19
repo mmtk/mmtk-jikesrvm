@@ -42,7 +42,7 @@ pub extern fn create_process_edges_work<W: ProcessEdgesWork<VM=JikesRVM>>(ptr: *
     debug_assert_eq!(W::CAPACITY, PROCESS_EDGES_WORK_SIZE);
     if !ptr.is_null() {
         let mut buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, W::CAPACITY) };
-        SINGLETON.scheduler.closure_stage.add(W::new(buf, false));
+        SINGLETON.scheduler.closure_stage.add(W::new(buf, false, &SINGLETON));
     }
     let (ptr, length, capacity) =  Vec::with_capacity(W::CAPACITY).into_raw_parts();
     debug_assert_eq!(capacity, W::CAPACITY);
@@ -59,16 +59,16 @@ impl Scanning<JikesRVM> for VMScanning {
                 if edges.len() >= W::CAPACITY {
                     let mut new_edges = Vec::with_capacity(W::CAPACITY);
                     mem::swap(&mut new_edges, &mut edges);
-                    SINGLETON.scheduler.closure_stage.add(W::new(new_edges, false));
+                    SINGLETON.scheduler.closure_stage.add(W::new(new_edges, false, &SINGLETON));
                 }
             });
         }
-        SINGLETON.scheduler.closure_stage.add(W::new(edges, false));
+        SINGLETON.scheduler.closure_stage.add(W::new(edges, false, &SINGLETON));
     }
     fn scan_thread_roots<W: ProcessEdgesWork<VM=JikesRVM>>() {
         unreachable!()
     }
-    fn scan_thread_root<W: ProcessEdgesWork<VM=JikesRVM>>(mutator: &'static mut Mutator<SelectedPlan<JikesRVM>>, tls: OpaquePointer) {
+    fn scan_thread_root<W: ProcessEdgesWork<VM=JikesRVM>>(mutator: &'static mut Mutator<JikesRVM>, tls: OpaquePointer) {
         let process_edges = create_process_edges_work::<W>;
         Self::compute_thread_roots(process_edges as _, false, mutator.get_tls(), tls);
     }
@@ -268,9 +268,9 @@ impl <E: ProcessEdgesWork<VM=JikesRVM>> GCWork<JikesRVM> for ScanGlobalRoots<E> 
             if edges.len() >= E::CAPACITY {
                 let mut new_edges = Vec::with_capacity(E::CAPACITY);
                 mem::swap(&mut new_edges, &mut edges);
-                SINGLETON.scheduler.closure_stage.add(E::new(new_edges, true));
+                SINGLETON.scheduler.closure_stage.add(E::new(new_edges, true, &SINGLETON));
             }
         });
-        SINGLETON.scheduler.closure_stage.add(E::new(edges, true));
+        SINGLETON.scheduler.closure_stage.add(E::new(edges, true, &SINGLETON));
     }
 }

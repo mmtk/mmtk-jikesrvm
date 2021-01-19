@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use mmtk::util::Address;
 use mmtk::util::OpaquePointer;
 use mmtk::vm::ActivePlan;
-use mmtk::{TraceLocal, SelectedPlan, Plan};
+use mmtk::{TraceLocal, Plan};
 use mmtk::scheduler::gc_works::*;
 use mmtk::scheduler::*;
 use mmtk::MMTK;
@@ -50,13 +50,13 @@ pub fn scan_statics<W: ProcessEdgesWork<VM=JikesRVM>>(tls: OpaquePointer, subwor
             // TODO: check_reference?
             edges.push(slots + slot_offset);
             if edges.len() >= W::CAPACITY {
-                SINGLETON.scheduler.closure_stage.add(W::new(edges, true));
+                SINGLETON.scheduler.closure_stage.add(W::new(edges, true, &SINGLETON));
                 edges = Vec::with_capacity(W::CAPACITY);
             }
             // trace.process_root_edge(slots + slot_offset, true);
             slot += REF_SLOT_SIZE;
         }
-        SINGLETON.scheduler.closure_stage.add(W::new(edges, true));
+        SINGLETON.scheduler.closure_stage.add(W::new(edges, true, &SINGLETON));
     }
 }
 
