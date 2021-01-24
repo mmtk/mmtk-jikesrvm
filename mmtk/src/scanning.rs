@@ -31,8 +31,6 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ops::Drop;
 
-static COUNTER: SynchronizedCounter = SynchronizedCounter::new(0);
-
 #[derive(Default)]
 pub struct VMScanning {}
 
@@ -104,10 +102,6 @@ impl Scanning<JikesRVM> for VMScanning {
                 trace.process_edge(object.to_address() + *offset);
             }
         }
-    }
-
-    fn reset_thread_counter() {
-        COUNTER.reset();
     }
 
     fn notify_initial_thread_scan_complete(partial_scan: bool, tls: OpaquePointer) {

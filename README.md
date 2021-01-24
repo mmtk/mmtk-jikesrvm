@@ -23,7 +23,7 @@ If you use the set-up explained in [mmtk-dev-env](https://github.com/mmtk/mmtk-d
 
 ```console
 $ # replace nightly-YYYY-MM-DD with the toolchain specified in mmtk-dev-env
-$ Export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
+$ export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
 ```
 
 2. Set `openjdk-8-jdk` as the default JDK (openjdk-8-jdk is a build requirement of JikesRVM), e.g. by running:

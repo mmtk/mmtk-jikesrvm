@@ -58,9 +58,9 @@ pub extern "C" fn alloc(mutator: *mut Mutator<SelectedPlan<JikesRVM>>, size: usi
 }
 
 #[no_mangle]
-pub extern "C" fn post_alloc(mutator: *mut Mutator<SelectedPlan<JikesRVM>>, refer: ObjectReference, type_refer: ObjectReference,
+pub extern "C" fn post_alloc(mutator: *mut Mutator<SelectedPlan<JikesRVM>>, refer: ObjectReference, _type_refer: ObjectReference,
                                 bytes: usize, allocator: AllocationSemantics) {
-    memory_manager::post_alloc::<JikesRVM>(unsafe { &mut *mutator }, refer, type_refer, bytes, allocator)
+    memory_manager::post_alloc::<JikesRVM>(unsafe { &mut *mutator }, refer, bytes, allocator)
 }
 
 #[no_mangle]
