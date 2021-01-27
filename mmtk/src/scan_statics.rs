@@ -50,13 +50,13 @@ pub fn scan_statics<W: ProcessEdgesWork<VM=JikesRVM>>(tls: OpaquePointer, subwor
             // TODO: check_reference?
             edges.push(slots + slot_offset);
             if edges.len() >= W::CAPACITY {
-                SINGLETON.scheduler.work_buckets[WorkBucketId::Closure].add(W::new(edges, true));
+                SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(edges, true));
                 edges = Vec::with_capacity(W::CAPACITY);
             }
             // trace.process_root_edge(slots + slot_offset, true);
             slot += REF_SLOT_SIZE;
         }
-        SINGLETON.scheduler.work_buckets[WorkBucketId::Closure].add(W::new(edges, true));
+        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(edges, true));
     }
 }
 
