@@ -29,6 +29,7 @@ use crate::scan_statics::ScanStaticRoots;
 use crate::scan_boot_image::ScanBootImageRoots;
 use std::marker::PhantomData;
 use std::mem;
+use std::ops::Drop;
 
 #[derive(Default)]
 pub struct VMScanning {}
@@ -42,7 +43,7 @@ pub extern fn create_process_edges_work<W: ProcessEdgesWork<VM=JikesRVM>>(ptr: *
     debug_assert_eq!(W::CAPACITY, PROCESS_EDGES_WORK_SIZE);
     if !ptr.is_null() {
         let mut buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, W::CAPACITY) };
-        SINGLETON.scheduler.closure_stage.add(W::new(buf, false));
+        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(buf, false));
     }
     let (ptr, length, capacity) =  Vec::with_capacity(W::CAPACITY).into_raw_parts();
     debug_assert_eq!(capacity, W::CAPACITY);
@@ -51,19 +52,11 @@ pub extern fn create_process_edges_work<W: ProcessEdgesWork<VM=JikesRVM>>(ptr: *
 
 impl Scanning<JikesRVM> for VMScanning {
     const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
-    fn scan_objects<W: ProcessEdgesWork<VM=JikesRVM>>(objects: &[ObjectReference]) {
-        let mut edges = Vec::with_capacity(W::CAPACITY);
+    fn scan_objects<W: ProcessEdgesWork<VM=JikesRVM>>(objects: &[ObjectReference], worker: &mut GCWorker<JikesRVM>) {
+        let mut closure = ObjectsClosure::<W>(Vec::with_capacity(W::CAPACITY), worker, PhantomData);
         for o in objects {
-            Self::scan_object_fields(*o, |edge| {
-                edges.push(edge);
-                if edges.len() >= W::CAPACITY {
-                    let mut new_edges = Vec::with_capacity(W::CAPACITY);
-                    mem::swap(&mut new_edges, &mut edges);
-                    SINGLETON.scheduler.closure_stage.add(W::new(new_edges, false));
-                }
-            });
+            Self::scan_object_fields(*o, &mut closure);
         }
-        SINGLETON.scheduler.closure_stage.add(W::new(edges, false));
     }
     fn scan_thread_roots<W: ProcessEdgesWork<VM=JikesRVM>>() {
         unreachable!()
@@ -75,9 +68,9 @@ impl Scanning<JikesRVM> for VMScanning {
     fn scan_vm_specific_roots<W: ProcessEdgesWork<VM=JikesRVM>>() {
         let workers = SINGLETON.scheduler.num_workers();
         for i in 0..workers {
-            SINGLETON.scheduler.prepare_stage.add(ScanStaticRoots::<W>::new(i, workers));
-            SINGLETON.scheduler.prepare_stage.add(ScanBootImageRoots::<W>::new(i, workers));
-            SINGLETON.scheduler.prepare_stage.add(ScanGlobalRoots::<W>::new(i, workers));
+            SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare].add(ScanStaticRoots::<W>::new(i, workers));
+            SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare].add(ScanBootImageRoots::<W>::new(i, workers));
+            SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare].add(ScanGlobalRoots::<W>::new(i, workers));
         }
     }
     fn scan_object<T: TransitiveClosure>(trace: &mut T, object: ObjectReference, tls: OpaquePointer) {
@@ -151,8 +144,36 @@ impl Scanning<JikesRVM> for VMScanning {
     }
 }
 
+struct ObjectsClosure<'a, E: ProcessEdgesWork<VM = JikesRVM>>(Vec<Address>, &'a mut GCWorker<JikesRVM>, PhantomData<E>);
+
+impl<'a, E: ProcessEdgesWork<VM = JikesRVM>> ObjectsClosure<'a, E> {
+    #[inline]
+    fn process_edge(&mut self, slot: Address) {
+        if self.0.len() == 0 {
+            self.0.reserve(E::CAPACITY);
+        }
+        self.0.push(slot);
+        if self.0.len() >= E::CAPACITY {
+            let mut new_edges = Vec::new();
+            mem::swap(&mut new_edges, &mut self.0);
+            self.1
+                .add_work(WorkBucketStage::Closure, E::new(new_edges, false));
+        }
+    }
+}
+
+impl<'a, E: ProcessEdgesWork<VM = JikesRVM>> Drop for ObjectsClosure<'a, E> {
+    #[inline]
+    fn drop(&mut self) {
+        let mut new_edges = Vec::new();
+        mem::swap(&mut new_edges, &mut self.0);
+        self.1
+            .add_work(WorkBucketStage::Closure, E::new(new_edges, false));
+    }
+}
+
 impl VMScanning {
-    fn scan_object_fields(object: ObjectReference, mut callback: impl FnMut(Address)) {
+    fn scan_object_fields<'a, E: ProcessEdgesWork<VM=JikesRVM>>(object: ObjectReference, closure: &mut ObjectsClosure<'a, E>) {
         trace!("Getting reference array");
         let elt0_ptr: usize = unsafe {
             let rvm_type = VMObjectModel::load_rvm_type(object);
@@ -166,7 +187,7 @@ impl VMScanning {
             // object is a REFARRAY
             let length = VMObjectModel::get_array_length(object);
             for i in 0..length {
-                callback(object.to_address() + (i << LOG_BYTES_IN_ADDRESS));
+                closure.process_edge(object.to_address() + (i << LOG_BYTES_IN_ADDRESS));
             }
         } else {
             let len_ptr: usize = elt0_ptr - size_of::<isize>();
@@ -174,7 +195,7 @@ impl VMScanning {
             let offsets = unsafe { slice::from_raw_parts(elt0_ptr as *const isize, len as usize) };
 
             for offset in offsets.iter() {
-                callback(object.to_address() + *offset);
+                closure.process_edge(object.to_address() + *offset);
             }
         }
     }
@@ -268,9 +289,9 @@ impl <E: ProcessEdgesWork<VM=JikesRVM>> GCWork<JikesRVM> for ScanGlobalRoots<E> 
             if edges.len() >= E::CAPACITY {
                 let mut new_edges = Vec::with_capacity(E::CAPACITY);
                 mem::swap(&mut new_edges, &mut edges);
-                SINGLETON.scheduler.closure_stage.add(E::new(new_edges, true));
+                SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(E::new(new_edges, true));
             }
         });
-        SINGLETON.scheduler.closure_stage.add(E::new(edges, true));
+        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(E::new(edges, true));
     }
 }

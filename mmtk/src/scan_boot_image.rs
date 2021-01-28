@@ -59,13 +59,13 @@ pub fn scan_boot_image<W: ProcessEdgesWork<VM=JikesRVM>>(tls: OpaquePointer, sub
                 if edges.len() >= W::CAPACITY {
                     let mut new_edges = Vec::with_capacity(W::CAPACITY);
                     mem::swap(&mut new_edges, &mut edges);
-                    SINGLETON.scheduler.closure_stage.add(W::new(new_edges, true));
+                    SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(new_edges, true));
                 }
             });
             trace!("Chunk processed successfully");
             cursor += stride;
         }
-        SINGLETON.scheduler.closure_stage.add(W::new(edges, true));
+        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(edges, true));
     }
 }
 
