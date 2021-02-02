@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use libc::c_void;
 use mmtk::util::Address;
 use mmtk::util::OpaquePointer;
-use mmtk::{TraceLocal, Plan, SelectedPlan};
+use mmtk::{TraceLocal, Plan};
 use crate::unboxed_size_constants::*;
 use mmtk::vm::ActivePlan;
 use mmtk::util::conversions;
@@ -59,13 +59,13 @@ pub fn scan_boot_image<W: ProcessEdgesWork<VM=JikesRVM>>(tls: OpaquePointer, sub
                 if edges.len() >= W::CAPACITY {
                     let mut new_edges = Vec::with_capacity(W::CAPACITY);
                     mem::swap(&mut new_edges, &mut edges);
-                    SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(new_edges, true));
+                    SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(new_edges, true, &SINGLETON));
                 }
             });
             trace!("Chunk processed successfully");
             cursor += stride;
         }
-        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(edges, true));
+        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(edges, true, &SINGLETON));
     }
 }
 

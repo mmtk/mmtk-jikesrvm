@@ -1,4 +1,4 @@
-use mmtk::SelectedConstraints::*;
+use crate::SELECTED_CONSTRAINTS;
 
 /** Number of slots reserved for interface method pointers. */
 pub const IMT_METHOD_SLOTS: usize = 0; //VM.BuildForIMTInterfaceInvocation ? 29 : 0;
@@ -34,7 +34,7 @@ pub const TIB_FIRST_SPECIALIZED_METHOD_INDEX: usize = TIB_INTERFACE_DISPATCH_TAB
  * Next group of slots point to virtual method code blocks (slots V1..VN in above diagram).
  */
 pub const TIB_FIRST_VIRTUAL_METHOD_INDEX: usize = TIB_FIRST_SPECIALIZED_METHOD_INDEX
-    + NUM_SPECIALIZED_SCANS; // + SpecializedMethodManager.numSpecializedMethods();
+    + SELECTED_CONSTRAINTS.num_specialized_scans; // + SpecializedMethodManager.numSpecializedMethods();
 
 /**
  * Special value returned by RVMClassLoader.getFieldOffset() or

@@ -43,7 +43,7 @@ pub extern fn create_process_edges_work<W: ProcessEdgesWork<VM=JikesRVM>>(ptr: *
     debug_assert_eq!(W::CAPACITY, PROCESS_EDGES_WORK_SIZE);
     if !ptr.is_null() {
         let mut buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, W::CAPACITY) };
-        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(buf, false));
+        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(buf, false, &SINGLETON));
     }
     let (ptr, length, capacity) =  Vec::with_capacity(W::CAPACITY).into_raw_parts();
     debug_assert_eq!(capacity, W::CAPACITY);
@@ -61,7 +61,7 @@ impl Scanning<JikesRVM> for VMScanning {
     fn scan_thread_roots<W: ProcessEdgesWork<VM=JikesRVM>>() {
         unreachable!()
     }
-    fn scan_thread_root<W: ProcessEdgesWork<VM=JikesRVM>>(mutator: &'static mut Mutator<SelectedPlan<JikesRVM>>, tls: OpaquePointer) {
+    fn scan_thread_root<W: ProcessEdgesWork<VM=JikesRVM>>(mutator: &'static mut Mutator<JikesRVM>, tls: OpaquePointer) {
         let process_edges = create_process_edges_work::<W>;
         Self::compute_thread_roots(process_edges as _, false, mutator.get_tls(), tls);
     }
@@ -157,7 +157,7 @@ impl<'a, E: ProcessEdgesWork<VM = JikesRVM>> ObjectsClosure<'a, E> {
             let mut new_edges = Vec::new();
             mem::swap(&mut new_edges, &mut self.0);
             self.1
-                .add_work(WorkBucketStage::Closure, E::new(new_edges, false));
+                .add_work(WorkBucketStage::Closure, E::new(new_edges, false, &SINGLETON));
         }
     }
 }
@@ -168,7 +168,7 @@ impl<'a, E: ProcessEdgesWork<VM = JikesRVM>> Drop for ObjectsClosure<'a, E> {
         let mut new_edges = Vec::new();
         mem::swap(&mut new_edges, &mut self.0);
         self.1
-            .add_work(WorkBucketStage::Closure, E::new(new_edges, false));
+            .add_work(WorkBucketStage::Closure, E::new(new_edges, false, &SINGLETON));
     }
 }
 
@@ -289,9 +289,9 @@ impl <E: ProcessEdgesWork<VM=JikesRVM>> GCWork<JikesRVM> for ScanGlobalRoots<E> 
             if edges.len() >= E::CAPACITY {
                 let mut new_edges = Vec::with_capacity(E::CAPACITY);
                 mem::swap(&mut new_edges, &mut edges);
-                SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(E::new(new_edges, true));
+                SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(E::new(new_edges, true, &SINGLETON));
             }
         });
-        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(E::new(edges, true));
+        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(E::new(edges, true, &SINGLETON));
     }
 }

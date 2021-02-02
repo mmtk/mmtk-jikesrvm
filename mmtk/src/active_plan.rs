@@ -1,7 +1,7 @@
 use std::mem;
 use libc::c_void;
 use mmtk::vm::ActivePlan;
-use mmtk::{Plan, SelectedPlan};
+use mmtk::Plan;
 use mmtk::util::{Address, SynchronizedCounter};
 use mmtk::util::OpaquePointer;
 use entrypoint::*;
@@ -10,6 +10,7 @@ use JTOC_BASE;
 use JikesRVM;
 use SINGLETON;
 use mmtk::scheduler::*;
+use mmtk::Mutator;
 
 static MUTATOR_COUNTER: SynchronizedCounter = SynchronizedCounter::new(0);
 
@@ -33,8 +34,8 @@ impl ActivePlan<JikesRVM> for VMActivePlan {
         }
     }
 
-    fn global() -> &'static SelectedPlan<JikesRVM> {
-        &SINGLETON.plan
+    fn global() -> &'static dyn Plan<VM=JikesRVM> {
+        &*SINGLETON.plan
     }
 
     unsafe fn is_mutator(tls: OpaquePointer) -> bool {
@@ -43,17 +44,17 @@ impl ActivePlan<JikesRVM> for VMActivePlan {
     }
 
     // XXX: Are they actually static
-    unsafe fn mutator(tls: OpaquePointer) -> &'static mut <SelectedPlan<JikesRVM> as Plan>::Mutator {
+    unsafe fn mutator(tls: OpaquePointer) -> &'static mut Mutator<JikesRVM> {
         let thread: Address = unsafe { mem::transmute(tls) };
         let mutator = (thread + MMTK_HANDLE_FIELD_OFFSET).load::<usize>();
-        &mut *(mutator as *mut <SelectedPlan<JikesRVM> as Plan>::Mutator)
+        &mut *(mutator as *mut Mutator<JikesRVM>)
     }
 
     fn reset_mutator_iterator() {
         MUTATOR_COUNTER.reset();
     }
 
-    fn get_next_mutator() -> Option<&'static mut <SelectedPlan<JikesRVM> as Plan>::Mutator> {
+    fn get_next_mutator() -> Option<&'static mut Mutator<JikesRVM>> {
         loop {
             let idx = MUTATOR_COUNTER.increment();
             let num_threads = unsafe { (JTOC_BASE + NUM_THREADS_FIELD_OFFSET).load::<usize>() };
@@ -67,7 +68,7 @@ impl ActivePlan<JikesRVM> for VMActivePlan {
                     unsafe {
                         let mutator = (t + MMTK_HANDLE_FIELD_OFFSET).load::<usize>();
                         let ret =
-                            &mut *(mutator as *mut <SelectedPlan<JikesRVM> as Plan>::Mutator);
+                            &mut *(mutator as *mut Mutator<JikesRVM>);
                         return Some(ret);
                     }
                 }

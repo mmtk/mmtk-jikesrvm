@@ -33,6 +33,8 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     Address bumpAllocator0SpaceFat;
     @Entrypoint
     Address bumpAllocator0Plan;
+    @Entrypoint
+    Address bumpAllocator0PlanFat;
 
     // Bump Allocator 1
     @Entrypoint
@@ -47,6 +49,8 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     Address bumpAllocator1SpaceFat;
     @Entrypoint
     Address bumpAllocator1Plan;
+    @Entrypoint
+    Address bumpAllocator1PlanFat;
 
     // Bump Allocator 2
     @Entrypoint
@@ -61,6 +65,8 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     Address bumpAllocator2SpaceFat;
     @Entrypoint
     Address bumpAllocator2Plan;
+    @Entrypoint
+    Address bumpAllocator2PlanFat;
 
     // Bump Allocator 3
     @Entrypoint
@@ -75,6 +81,8 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     Address bumpAllocator3SpaceFat;
     @Entrypoint
     Address bumpAllocator3Plan;
+    @Entrypoint
+    Address bumpAllocator3PlanFat;
 
     // Bump Allocator 4
     @Entrypoint
@@ -89,6 +97,8 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     Address bumpAllocator4SpaceFat;
     @Entrypoint
     Address bumpAllocator4Plan;
+    @Entrypoint
+    Address bumpAllocator4PlanFat;
 
     // 1 x LargeObjectAllocator (1 x 3 words)
     @Entrypoint
@@ -97,6 +107,8 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     Address largeObjectAllocator0Space;
     @Entrypoint
     Address largeObjectAllocator0Plan;
+    @Entrypoint
+    Address largeObjectAllocator0PlanFat;
 
     // barrier
     @Entrypoint
@@ -109,6 +121,8 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     // plan
     @Entrypoint
     Address plan;
+    @Entrypoint
+    Address planFat;
 
     // MutatorConfig
     // allocator_mapping
@@ -131,7 +145,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     static final int MAX_BUMP_ALLOCATORS = 5;
     static final int MAX_LARGE_OBJECT_ALLOCATORS = 1;
     // Bump allocator size
-    static final int BUMP_ALLOCATOR_SIZE = 6 * BYTES_IN_WORD;
+    static final int BUMP_ALLOCATOR_SIZE = 7 * BYTES_IN_WORD;
     // Bump allocator field offsets
     static final int BUMP_ALLOCATOR_TLS = 0;
     static final int BUMP_ALLOCATOR_CURSOR = BYTES_IN_WORD;
@@ -139,11 +153,12 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     static final int BUMP_ALLOCATOR_SPACE = BYTES_IN_WORD * 3;
     static final int BUMP_ALLOCATOR_SPACE_FAT = BYTES_IN_WORD * 4;
     static final int BUMP_ALLOCATOR_PLAN = BYTES_IN_WORD * 5;
+    static final int BUMP_ALLOCATOR_PLAN_FAT = BYTES_IN_WORD * 6;
     // Large object allocator size. We do not need offsets for each field, as we don't need to implement fastpath for large object allocator.
-    static final int LARGE_OBJECT_ALLOCATOR_SIZE = 3 * BYTES_IN_WORD;
+    static final int LARGE_OBJECT_ALLOCATOR_SIZE = 4 * BYTES_IN_WORD;
 
     // The size of this mutator section
-    static final int MUTATOR_SIZE = MAX_BUMP_ALLOCATORS * BUMP_ALLOCATOR_SIZE + MAX_LARGE_OBJECT_ALLOCATORS * LARGE_OBJECT_ALLOCATOR_SIZE + 10 * BYTES_IN_WORD;
+    static final int MUTATOR_SIZE = MAX_BUMP_ALLOCATORS * BUMP_ALLOCATOR_SIZE + MAX_LARGE_OBJECT_ALLOCATORS * LARGE_OBJECT_ALLOCATOR_SIZE + 11 * BYTES_IN_WORD;
     // The base offset of this mutator section
     static final Offset MUTATOR_BASE_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "bumpAllocator0Tls", Address.class).getOffset();
     static final Offset BUMP_ALLOCATOR_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "bumpAllocator0Tls", Address.class).getOffset();

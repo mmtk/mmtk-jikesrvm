@@ -4,7 +4,6 @@ use std::ffi::CStr;
 use mmtk::memory_manager;
 use mmtk::util::{Address, OpaquePointer, ObjectReference};
 use mmtk::AllocationSemantics;
-use mmtk::SelectedPlan;
 use mmtk::Mutator;
 use mmtk::Plan;
 use mmtk::MMTK;
@@ -41,24 +40,24 @@ pub extern "C" fn start_control_collector(tls: OpaquePointer) {
 }
 
 #[no_mangle]
-pub extern "C" fn bind_mutator(tls: OpaquePointer) -> *mut Mutator<SelectedPlan<JikesRVM>> {
+pub extern "C" fn bind_mutator(tls: OpaquePointer) -> *mut Mutator<JikesRVM> {
     let box_mutator = memory_manager::bind_mutator(&SINGLETON, tls);
     Box::into_raw(box_mutator)
 }
 
 #[no_mangle]
-pub extern "C" fn destroy_mutator(mutator: *mut Mutator<SelectedPlan<JikesRVM>>) {
+pub extern "C" fn destroy_mutator(mutator: *mut Mutator<JikesRVM>) {
     memory_manager::destroy_mutator(unsafe { Box::from_raw(mutator) })
 }
 
 #[no_mangle]
-pub extern "C" fn alloc(mutator: *mut Mutator<SelectedPlan<JikesRVM>>, size: usize,
+pub extern "C" fn alloc(mutator: *mut Mutator<JikesRVM>, size: usize,
                            align: usize, offset: isize, allocator: AllocationSemantics) -> Address {
     memory_manager::alloc::<JikesRVM>(unsafe { &mut *mutator }, size, align, offset, allocator)
 }
 
 #[no_mangle]
-pub extern "C" fn post_alloc(mutator: *mut Mutator<SelectedPlan<JikesRVM>>, refer: ObjectReference, _type_refer: ObjectReference,
+pub extern "C" fn post_alloc(mutator: *mut Mutator<JikesRVM>, refer: ObjectReference, _type_refer: ObjectReference,
                                 bytes: usize, allocator: AllocationSemantics) {
     memory_manager::post_alloc::<JikesRVM>(unsafe { &mut *mutator }, refer, bytes, allocator)
 }
