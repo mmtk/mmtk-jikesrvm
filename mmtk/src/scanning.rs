@@ -157,7 +157,7 @@ impl<'a, E: ProcessEdgesWork<VM = JikesRVM>> ObjectsClosure<'a, E> {
             let mut new_edges = Vec::new();
             mem::swap(&mut new_edges, &mut self.0);
             self.1
-                .add_work(WorkBucketStage::Closure, E::new(new_edges, false));
+                .add_work(WorkBucketStage::Closure, E::new(new_edges, false, &SINGLETON));
         }
     }
 }
@@ -168,7 +168,7 @@ impl<'a, E: ProcessEdgesWork<VM = JikesRVM>> Drop for ObjectsClosure<'a, E> {
         let mut new_edges = Vec::new();
         mem::swap(&mut new_edges, &mut self.0);
         self.1
-            .add_work(WorkBucketStage::Closure, E::new(new_edges, false));
+            .add_work(WorkBucketStage::Closure, E::new(new_edges, false, &SINGLETON));
     }
 }
 
