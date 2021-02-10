@@ -5,7 +5,7 @@ use std::slice;
 use mmtk::vm::Scanning;
 use mmtk::*;
 use mmtk::scheduler::*;
-use mmtk::scheduler::gc_works::*;
+use mmtk::scheduler::gc_work::*;
 use mmtk::util::{ObjectReference, Address, SynchronizedCounter};
 use mmtk::util::OpaquePointer;
 use crate::unboxed_size_constants::LOG_BYTES_IN_ADDRESS;
@@ -215,14 +215,14 @@ impl VMScanning {
             debug!("Returned from JikesRVM thread roots");
         }
     }
-    fn scan_global_roots(tls: OpaquePointer, subwork_id: usize, total_subworks: usize, mut callback: impl FnMut(Address)) {
+    fn scan_global_roots(tls: OpaquePointer, subwork_id: usize, total_subwork: usize, mut callback: impl FnMut(Address)) {
         unsafe {
             // let cc = VMActivePlan::collector(tls);
 
             let jni_functions = (JTOC_BASE + JNI_FUNCTIONS_FIELD_OFFSET).load::<Address>();
             trace!("jni_functions: {:?}", jni_functions);
 
-            let threads = total_subworks;
+            let threads = total_subwork;
             // @Intrinsic JNIFunctions.length()
             let mut size = (jni_functions + ARRAY_LENGTH_OFFSET).load::<usize>();
             trace!("size: {:?}", size);
@@ -276,8 +276,8 @@ impl VMScanning {
 pub struct ScanGlobalRoots<E: ProcessEdgesWork<VM=JikesRVM>>(usize, usize, PhantomData<E>);
 
 impl <E: ProcessEdgesWork<VM=JikesRVM>> ScanGlobalRoots<E> {
-    pub fn new(subwork_id: usize, total_subworks: usize) -> Self {
-        Self(subwork_id, total_subworks, PhantomData)
+    pub fn new(subwork_id: usize, total_subwork: usize) -> Self {
+        Self(subwork_id, total_subwork, PhantomData)
     }
 }
 
