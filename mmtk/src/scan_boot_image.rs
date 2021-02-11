@@ -12,7 +12,7 @@ use java_size_constants::*;
 use entrypoint::*;
 use JTOC_BASE;
 use crate::{SINGLETON, JikesRVM};
-use mmtk::scheduler::gc_works::*;
+use mmtk::scheduler::gc_work::*;
 use mmtk::scheduler::*;
 use mmtk::MMTK;
 use std::marker::PhantomData;
@@ -32,7 +32,7 @@ const GUARD_REGION: usize = LONGENCODING_OFFSET_BYTES + 1; /* long offset + run 
 static ROOTS: AtomicUsize = AtomicUsize::new(0);
 static REFS: AtomicUsize = AtomicUsize::new(0);
 
-pub fn scan_boot_image<W: ProcessEdgesWork<VM=JikesRVM>>(tls: OpaquePointer, subwork_id: usize, total_subworks: usize) {
+pub fn scan_boot_image<W: ProcessEdgesWork<VM=JikesRVM>>(tls: OpaquePointer, subwork_id: usize, total_subwork: usize) {
     unsafe {
         let boot_record = (JTOC_BASE + THE_BOOT_RECORD_FIELD_OFFSET).load::<Address>();
         let map_start = (boot_record + BOOT_IMAGE_R_MAP_START_OFFSET).load::<Address>();
@@ -41,7 +41,7 @@ pub fn scan_boot_image<W: ProcessEdgesWork<VM=JikesRVM>>(tls: OpaquePointer, sub
 
         // let collector = VMActivePlan::collector(tls);
 
-        let stride = total_subworks << LOG_CHUNK_BYTES;
+        let stride = total_subwork << LOG_CHUNK_BYTES;
         trace!("stride={}", stride);
         let start = subwork_id << LOG_CHUNK_BYTES;
         trace!("start={}", start);
@@ -139,8 +139,8 @@ fn decode_long_encoding(cursor: Address) -> usize {
 pub struct ScanBootImageRoots<E: ProcessEdgesWork<VM=JikesRVM>>(usize, usize, PhantomData<E>);
 
 impl <E: ProcessEdgesWork<VM=JikesRVM>> ScanBootImageRoots<E> {
-    pub fn new(subwork_id: usize, total_subworks: usize) -> Self {
-        Self(subwork_id, total_subworks, PhantomData)
+    pub fn new(subwork_id: usize, total_subwork: usize) -> Self {
+        Self(subwork_id, total_subwork, PhantomData)
     }
 }
 

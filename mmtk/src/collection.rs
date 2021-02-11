@@ -5,7 +5,7 @@ use mmtk::util::Address;
 use mmtk::MutatorContext;
 use mmtk::util::opaque_pointer::OpaquePointer;
 use mmtk::scheduler::*;
-use mmtk::scheduler::gc_works::*;
+use mmtk::scheduler::gc_work::*;
 use entrypoint::*;
 use JTOC_BASE;
 use JikesRVM;
