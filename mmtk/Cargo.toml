@@ -27,6 +27,6 @@ mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "997a215408dae11
 # mmtk = { path = "../repos/mmtk-core" }
 
 [features]
-default = []
-nogc = ["mmtk/nogc", "mmtk/vm_space"]
-semispace = ["mmtk/semispace", "mmtk/vm_space"]
+default = ["mmtk/vm_space"]
+nogc = []
+semispace = []

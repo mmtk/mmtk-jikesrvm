@@ -12,6 +12,7 @@ use mmtk::util::address::Address;
 use mmtk::TraceLocal;
 use mmtk::vm::VMBinding;
 use mmtk::MMTK;
+use mmtk::plan::PlanConstraints;
 
 use entrypoint::*;
 use collection::BOOT_THREAD;
@@ -84,6 +85,19 @@ impl JikesRVM {
     }
 }
 
+
+#[cfg(feature = "nogc")]
+pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::nogc::NOGC_CONSTRAINTS;
+#[cfg(feature = "semispace")]
+pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::semispace::SS_CONSTRAINTS;
+
 lazy_static! {
-    pub static ref SINGLETON: MMTK<JikesRVM> = MMTK::new();
+    pub static ref SINGLETON: MMTK<JikesRVM> = {
+        #[cfg(feature = "nogc")]
+        std::env::set_var("MMTK_PLAN", "NoGC");
+        #[cfg(feature = "semispace")]
+        std::env::set_var("MMTK_PLAN", "SemiSpace");
+
+        MMTK::new()
+    };
 }
