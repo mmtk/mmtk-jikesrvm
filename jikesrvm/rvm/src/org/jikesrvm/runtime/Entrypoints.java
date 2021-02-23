@@ -149,12 +149,8 @@ public class Entrypoints {
                   "()V");
   public static final NormalMethod snipObsoleteCompiledMethodsMethod =
           getMethod(org.jikesrvm.compilers.common.CompiledMethods.class, "snipObsoleteCompiledMethods", "()V");
-  public static final NormalMethod getReferenceSlotSizeMethod =
-          getMethod(org.jikesrvm.runtime.Statics.class, "getReferenceSlotSize", "()I");
   public static final NormalMethod getNumberOfReferenceSlotsMethod =
           getMethod(org.jikesrvm.runtime.Statics.class, "getNumberOfReferenceSlots", "()I");
-  public static final NormalMethod functionTableLengthMethod =
-          getMethod(org.jikesrvm.jni.FunctionTable.class, "length", "()I");
   public static final NormalMethod implementedInJavaMethod =
           getMethod(org.jikesrvm.jni.JNIGenericHelpers.class, "implementedInJava", "(I)Z");
   public static final NormalMethod enqueueReferenceMethod =
@@ -162,8 +158,6 @@ public class Entrypoints {
 
   public static final RVMField numThreadsField =
           getField(org.jikesrvm.scheduler.RVMThread.class, "numThreads", int.class);
-  public static final RVMField movesCodeField =
-          getField(org.jikesrvm.mm.mminterface.MemoryManagerConstants.class, "MOVES_CODE", boolean.class);
   public static final RVMField isCollectorField =
           getField(org.jikesrvm.mm.mminterface.ThreadContext.class, "isRustMMTkCollector", boolean.class);
   public static final RVMField threadsField =
@@ -189,20 +183,11 @@ public class Entrypoints {
   public static final RVMField mmtkHandleField =
           getField(org.jikesrvm.mm.mminterface.Selected.Mutator.class, "mmtkHandle",
                   org.vmmagic.unboxed.Address.class);
-  public static final RVMField functionTableDataField =
-          getField(org.jikesrvm.jni.FunctionTable.class, "data",
-                  org.jikesrvm.compilers.common.CodeArray[].class);
-
+  
   public static final RVMField isClassTypeField =
           getField(org.jikesrvm.classloader.RVMType.class, "isClassType", boolean.class);
   public static final RVMField isArrayTypeField =
           getField(org.jikesrvm.classloader.RVMType.class, "isArrayType", boolean.class);
-  public static final RVMField isPrimitiveTypeField =
-          getField(org.jikesrvm.classloader.RVMType.class, "isPrimitiveType", boolean.class);
-  public static final RVMField isUnboxedTypeField =
-          getField(org.jikesrvm.classloader.RVMType.class, "isUnboxedType", boolean.class);
-  public static final RVMField isReferenceTypeField =
-          getField(org.jikesrvm.classloader.RVMType.class, "isReferenceType", boolean.class);
   public static final RVMField instanceSizeField =
           getField(org.jikesrvm.classloader.RVMClass.class, "instanceSize", int.class);
   public static final RVMField logElementSizeField =
@@ -210,45 +195,11 @@ public class Entrypoints {
   public static final RVMField referenceOffsetsField =
           getField(org.jikesrvm.classloader.RVMType.class, "referenceOffsets", int[].class);
 
-  public static final RVMField booleanArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "BooleanArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-  public static final RVMField byteArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "ByteArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-  public static final RVMField charArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "CharArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-  public static final RVMField shortArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "ShortArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-  public static final RVMField intArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "IntArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-  public static final RVMField longArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "LongArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-  public static final RVMField floatArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "FloatArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-  public static final RVMField doubleArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "DoubleArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-  public static final RVMField javaLangObjectArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "JavaLangObjectArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-
   public static final RVMField rvmClassAlignment =
           getField(org.jikesrvm.classloader.RVMClass.class, "alignment", int.class);
   public static final RVMField rvmArrayAlignment =
           getField(org.jikesrvm.classloader.RVMArray.class, "alignment", int.class);
-  public static final RVMField rvmArrayAcyclic =
-          getField(org.jikesrvm.classloader.RVMArray.class, "acyclic", boolean.class);
-  public static final RVMField rvmClassAcyclic =
-          getField(org.jikesrvm.classloader.RVMClass.class, "acyclic", boolean.class);
-  public static final RVMField rvmClassModifiers =
-          getField(org.jikesrvm.classloader.RVMClass.class, "modifiers", short.class);
-
+  
   public static final NormalMethod lockMethod =
       getMethod(org.jikesrvm.objectmodel.ObjectModel.class, "genericLock", "(Ljava/lang/Object;)V");
   public static final NormalMethod unlockMethod =
