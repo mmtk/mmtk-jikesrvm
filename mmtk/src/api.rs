@@ -29,9 +29,7 @@ pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
     }
     let singleton_mut = unsafe { &mut *(&*SINGLETON as *const MMTK<JikesRVM> as *mut MMTK<JikesRVM>) };
     memory_manager::gc_init(singleton_mut, heap_size);
-    debug_assert!(54 == JikesRVM::test(44));
-    debug_assert!(112 == JikesRVM::test2(45, 67));
-    debug_assert!(731 == JikesRVM::test3(21, 34, 9, 8));
+    debug_assert!(731 == JikesRVM::mm_entrypoint_test(21, 34, 9, 8));
 }
 
 #[no_mangle]

@@ -136,14 +136,8 @@ public class Entrypoints {
   public static final NormalMethod prepareMutatorMethod =
           getMethod(org.jikesrvm.mm.mminterface.MemoryManager.class, "prepareMutator",
                   "(Lorg/jikesrvm/scheduler/RVMThread;)V");
-  public static final NormalMethod testMethod =
-          getMethod(org.jikesrvm.mm.mminterface.MemoryManager.class, "test", "(I)I");
-  public static final NormalMethod test1Method =
-          getMethod(org.jikesrvm.mm.mminterface.MemoryManager.class, "test1", "()V");
-  public static final NormalMethod test2Method =
-          getMethod(org.jikesrvm.mm.mminterface.MemoryManager.class, "test2", "(II)I");
-  public static final NormalMethod test3Method =
-          getMethod(org.jikesrvm.mm.mminterface.MemoryManager.class, "test3", "(IIII)I");
+  public static final NormalMethod mmEntrypointTestMethod =
+          getMethod(org.jikesrvm.mm.mminterface.MemoryManager.class, "mmEntrypointTest", "(IIII)I");
   public static final NormalMethod dumpRefMethod =
           getMethod(org.jikesrvm.mm.mminterface.DebugUtil.class, "dumpRef",
                   "(Lorg/vmmagic/unboxed/ObjectReference;)V");
