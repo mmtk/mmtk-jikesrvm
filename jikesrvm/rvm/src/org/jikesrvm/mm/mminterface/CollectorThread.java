@@ -42,7 +42,7 @@ public final class CollectorThread extends SystemThread {
   private Address workerInstance = Address.zero();
 
   public void setWorker(Address worker) {
-    rvmThread.assertIsCollector();
+    rvmThread.assertIsRustMMTkCollector();
     workerInstance = worker;
   }
 
