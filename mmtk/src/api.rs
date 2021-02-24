@@ -113,7 +113,8 @@ pub extern "C" fn is_live_object(object: ObjectReference) -> i32 {
 #[no_mangle]
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
 pub extern "C" fn is_mapped_object(object: ObjectReference) -> i32 {
-    object.is_mapped() as i32
+    // object.is_mapped() as i32
+    memory_manager::is_mapped_object(object) as i32
 }
 
 #[no_mangle]

@@ -100,7 +100,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address bumpAllocator4PlanFat;
 
-    // 1 x LargeObjectAllocator (1 x 3 words)
+    // 1 x LargeObjectAllocator (1 x 4 words)
     @Entrypoint
     Address largeObjectAllocator0Tls;
     @Entrypoint
@@ -109,6 +109,16 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     Address largeObjectAllocator0Plan;
     @Entrypoint
     Address largeObjectAllocator0PlanFat;
+
+    // 1 x MallocAllocator
+    @Entrypoint
+    Address mallocAllocator0Tls;
+    @Entrypoint
+    Address mallocAllocator0Space;
+    @Entrypoint
+    Address mallocAllocator0Plan;
+    @Entrypoint
+    Address mallocAllocator0PlanFat;
 
     // barrier
     @Entrypoint
@@ -144,6 +154,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     // Number of allocators - these constants need to match the layout of the fields, also the constants in MMTk core.
     static final int MAX_BUMP_ALLOCATORS = 5;
     static final int MAX_LARGE_OBJECT_ALLOCATORS = 1;
+    static final int MAX_MALLOC_ALLOCATORS = 1;
     // Bump allocator size
     static final int BUMP_ALLOCATOR_SIZE = 7 * BYTES_IN_WORD;
     // Bump allocator field offsets
@@ -156,22 +167,30 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     static final int BUMP_ALLOCATOR_PLAN_FAT = BYTES_IN_WORD * 6;
     // Large object allocator size. We do not need offsets for each field, as we don't need to implement fastpath for large object allocator.
     static final int LARGE_OBJECT_ALLOCATOR_SIZE = 4 * BYTES_IN_WORD;
+    // Malloc allocator size. We do not need offsets for each field, as we don't need to implement fastpath for large object allocator.
+    static final int MALLOC_ALLOCATOR_SIZE = 4 * BYTES_IN_WORD;
 
     // The size of this mutator section
-    static final int MUTATOR_SIZE = MAX_BUMP_ALLOCATORS * BUMP_ALLOCATOR_SIZE + MAX_LARGE_OBJECT_ALLOCATORS * LARGE_OBJECT_ALLOCATOR_SIZE + 11 * BYTES_IN_WORD;
+    static final int MUTATOR_SIZE = MAX_BUMP_ALLOCATORS * BUMP_ALLOCATOR_SIZE
+        + MAX_LARGE_OBJECT_ALLOCATORS * LARGE_OBJECT_ALLOCATOR_SIZE
+        + MAX_MALLOC_ALLOCATORS * MALLOC_ALLOCATOR_SIZE
+        + 11 * BYTES_IN_WORD;
     // The base offset of this mutator section
     static final Offset MUTATOR_BASE_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "bumpAllocator0Tls", Address.class).getOffset();
     static final Offset BUMP_ALLOCATOR_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "bumpAllocator0Tls", Address.class).getOffset();
     static final Offset LARGE_OBJECT_ALLOCATOR_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "largeObjectAllocator0Tls", Address.class).getOffset();
+    static final Offset MALLOC_ALLOCATOR_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "mallocAllocator0Tls", Address.class).getOffset();
 
     // tag for allocator type
     public static final int TAG_BUMP_POINTER = 0;
     public static final int TAG_LARGE_OBJECT = 1;
+    public static final int TAG_MALLOC = 2;
 
     // tag for space type
     public static final int IMMORTAL_SPACE = 0;
     public static final int COPY_SPACE = 1;
     public static final int LARGE_OBJECT_SPACE = 2;
+    public static final int MALLOC_SPACE = 3;
 
     // The implementation of these methods are per plan, and they should match the allocatorMapping and spaceMapping in MMTk core for a plan.
     // The reason we need to reimplement them in the fastpath is that we need the compiler to see the code and be able to do constant propagation
@@ -211,7 +230,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
 
         if (ty == TAG_BUMP_POINTER) {
             return bumpAllocatorFastPath(bytes, align, offset, allocator, index);
-        } else if (ty == TAG_LARGE_OBJECT) {
+        } else if (ty == TAG_LARGE_OBJECT || ty == TAG_MALLOC) {
             // No fastpath for large object allocator. We just use the general slowpath.
             return slowPath(bytes, align, offset, allocator);
         } else {
