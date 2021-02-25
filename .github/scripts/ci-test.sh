@@ -15,7 +15,7 @@ python scripts/testMMTk.py -j $JAVA_HOME -g BaseBaseSemiSpace -a "Xms75M Xmx75M"
 # Run all possible dacapo benchmarks
 
 # FastAdaptiveNoGC (use largest heap possible)
-./bin/buildit localhost FastAdaptiveNoGC -j $JAVA_HOME --answer-yes --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
+./bin/buildit localhost FastAdaptiveNoGC -j $JAVA_HOME --answer-yes --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src  --m32
 ./dist/FastAdaptiveNoGC_x86_64-linux/rvm -Xms3G -Xmx3G -jar benchmarks/dacapo-2006-10-MR2.jar antlr
 ./dist/FastAdaptiveNoGC_x86_64-linux/rvm -Xms3G -Xmx3G -jar benchmarks/dacapo-2006-10-MR2.jar fop
 ./dist/FastAdaptiveNoGC_x86_64-linux/rvm -Xms3G -Xmx3G -jar benchmarks/dacapo-2006-10-MR2.jar luindex
@@ -24,7 +24,7 @@ python scripts/testMMTk.py -j $JAVA_HOME -g BaseBaseSemiSpace -a "Xms75M Xmx75M"
 RVM_OPTIONS='-X:gc:threads=16'
 
 # FastAdaptiveSemiSpace
-./bin/buildit localhost FastAdaptiveSemiSpace -j $JAVA_HOME --answer-yes --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src
+./bin/buildit localhost FastAdaptiveSemiSpace -j $JAVA_HOME --answer-yes --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src  --m32
 ./dist/FastAdaptiveSemiSpace_x86_64-linux/rvm $RVM_OPTIONS -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar antlr
 ./dist/FastAdaptiveSemiSpace_x86_64-linux/rvm $RVM_OPTIONS -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar bloat
 ./dist/FastAdaptiveSemiSpace_x86_64-linux/rvm $RVM_OPTIONS -Xms150M -Xmx150M -jar benchmarks/dacapo-2006-10-MR2.jar eclipse
