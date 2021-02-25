@@ -60,6 +60,13 @@ impl Collection<JikesRVM> for VMCollection {
             jtoc_call!(OUT_OF_MEMORY_METHOD_OFFSET, tls);
         }
     }
+
+    fn schedule_finalization(tls: OpaquePointer) {
+        println!("binding.schedule_finalization()");
+        unsafe {
+            jtoc_call!(SCHEDULE_FINALIZER_METHOD_OFFSET, tls);
+        }
+    }
 }
 
 impl VMCollection {
