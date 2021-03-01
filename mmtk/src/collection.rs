@@ -62,7 +62,6 @@ impl Collection<JikesRVM> for VMCollection {
     }
 
     fn schedule_finalization(tls: OpaquePointer) {
-        println!("binding.schedule_finalization()");
         unsafe {
             jtoc_call!(SCHEDULE_FINALIZER_METHOD_OFFSET, tls);
         }
