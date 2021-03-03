@@ -32,6 +32,8 @@ public class Entrypoints {
                   "(Lorg/jikesrvm/scheduler/RVMThread;Lorg/vmmagic/unboxed/Address;ZZ)V");
   public static final NormalMethod scanBootImageMethod =
           getMethod(org.jikesrvm.mm.mminterface.RustScanning.class, "scanBootImage", "(Lorg/vmmagic/unboxed/Address;)V");
+  public static final NormalMethod scheduleFinalizerMethod =
+          getMethod(org.jikesrvm.scheduler.FinalizerThread.class, "schedule", "()V");
 
   // The usual causes for getField/Method() to fail are:
   //  1. you misspelled the class name, member name, or member signature
