@@ -41,17 +41,4 @@ public class MSContext extends MMTkMutatorContext {
             return MMTkMutatorContext.LARGE_OBJECT_SPACE;
         else return MMTkMutatorContext.IMMORTAL_SPACE;
     }
-
-    // @Inline
-    // protected final int getAllocatorTag(int allocator) {
-    //     return MMTkMutatorContext.TAG_MALLOC;
-    // }
-    // @Inline
-    // protected final int getAllocatorIndex(int allocator) {
-    //     return 0;
-    // }
-    // @Inline
-    // protected final int getSpaceTag(int allocator) {
-    //     return MMTkMutatorContext.MALLOC_SPACE;
-    // }
 }
