@@ -204,12 +204,14 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     public static final int TAG_BUMP_POINTER = 0;
     public static final int TAG_LARGE_OBJECT = 1;
     public static final int TAG_MALLOC = 2;
+    public static final int TAG_IMMIX = 3;
 
     // tag for space type
     public static final int IMMORTAL_SPACE = 0;
     public static final int COPY_SPACE = 1;
     public static final int LARGE_OBJECT_SPACE = 2;
     public static final int MALLOC_SPACE = 3;
+    public static final int IMMIX_SPACE = 4;
 
     // The implementation of these methods are per plan, and they should match the allocatorMapping and spaceMapping in MMTk core for a plan.
     // The reason we need to reimplement them in the fastpath is that we need the compiler to see the code and be able to do constant propagation
@@ -249,7 +251,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
 
         if (ty == TAG_BUMP_POINTER) {
             return bumpAllocatorFastPath(bytes, align, offset, allocator, index);
-        } else if (ty == TAG_LARGE_OBJECT || ty == TAG_MALLOC) {
+        } else if (ty == TAG_LARGE_OBJECT || ty == TAG_MALLOC || ty == TAG_IMMIX) {
             // No fastpath for large object allocator. We just use the general slowpath.
             return slowPath(bytes, align, offset, allocator);
         } else {
@@ -307,7 +309,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
         // It depends on the space to decide which fastpath we should use
         int space = getSpaceTag(allocator);
 
-        if (space == COPY_SPACE) {
+        if (space == COPY_SPACE || space == IMMIX_SPACE) {
             // Nothing to do for post_alloc for CopySpace
         } else {
             // slowpath to call into MMTk core's post_alloc()

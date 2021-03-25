@@ -92,6 +92,8 @@ pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::nogc::NOGC_CONSTRA
 pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::semispace::SS_CONSTRAINTS;
 #[cfg(feature = "marksweep")]
 pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::marksweep::MS_CONSTRAINTS;
+#[cfg(feature = "immix")]
+pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::immix::IMMIX_CONSTRAINTS;
 
 lazy_static! {
     pub static ref SINGLETON: MMTK<JikesRVM> = {
@@ -101,6 +103,8 @@ lazy_static! {
         std::env::set_var("MMTK_PLAN", "SemiSpace");
         #[cfg(feature = "marksweep")]
         std::env::set_var("MMTK_PLAN", "MarkSweep");
+        #[cfg(feature = "immix")]
+        std::env::set_var("MMTK_PLAN", "Immix");
 
         MMTK::new()
     };
