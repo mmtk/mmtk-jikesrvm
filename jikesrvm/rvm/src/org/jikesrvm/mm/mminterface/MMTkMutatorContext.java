@@ -298,7 +298,10 @@ public abstract class MMTkMutatorContext extends MutatorContext {
         }
     }
 
-    static final boolean IMMIX_USES_HEADER_MARK_BITS = false;
+    @Inline
+    protected boolean immixUsesHeaderMarkBits() {
+        return false;
+    }
 
     @Inline
     protected final Address immixAllocatorFastPath(int bytes, int align, int offset, int allocator, int allocatorIndex) {
@@ -341,7 +344,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
         // It depends on the space to decide which fastpath we should use
         int space = getSpaceTag(allocator);
 
-        if (space == COPY_SPACE || (!IMMIX_USES_HEADER_MARK_BITS && space == IMMIX_SPACE)) {
+        if (space == COPY_SPACE || (!immixUsesHeaderMarkBits() && space == IMMIX_SPACE)) {
             // Nothing to do for post_alloc for CopySpace
         } else {
             // slowpath to call into MMTk core's post_alloc()
