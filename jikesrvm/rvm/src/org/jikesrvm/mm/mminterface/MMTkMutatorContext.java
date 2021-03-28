@@ -121,6 +121,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     Address mallocAllocator0PlanFat;
 
     // 1 x ImmixAllocator
+    @Entrypoint
     Address immixAllocator0Tls;
     Address immixAllocator0Cursor;
     Address immixAllocator0Limit;
@@ -197,6 +198,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     static final Offset BUMP_ALLOCATOR_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "bumpAllocator0Tls", Address.class).getOffset();
     static final Offset LARGE_OBJECT_ALLOCATOR_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "largeObjectAllocator0Tls", Address.class).getOffset();
     static final Offset MALLOC_ALLOCATOR_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "mallocAllocator0Tls", Address.class).getOffset();
+    static final Offset IMMIX_ALLOCATOR_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "immixAllocator0Tls", Address.class).getOffset();
     // The size of this mutator section
     static final int MUTATOR_SIZE = EntrypointHelper.getField(MMTkMutatorContext.class, "lastField", Address.class).getOffset().minus(MUTATOR_BASE_OFFSET).toInt();
 
@@ -251,7 +253,9 @@ public abstract class MMTkMutatorContext extends MutatorContext {
 
         if (ty == TAG_BUMP_POINTER) {
             return bumpAllocatorFastPath(bytes, align, offset, allocator, index);
-        } else if (ty == TAG_LARGE_OBJECT || ty == TAG_MALLOC || ty == TAG_IMMIX) {
+        } else if (ty == TAG_IMMIX) {
+            return immixAllocatorFastPath(bytes, align, offset, allocator, index);
+        } else if (ty == TAG_LARGE_OBJECT || ty == TAG_MALLOC) {
             // No fastpath for large object allocator. We just use the general slowpath.
             return slowPath(bytes, align, offset, allocator);
         } else {
@@ -294,6 +298,34 @@ public abstract class MMTkMutatorContext extends MutatorContext {
         }
     }
 
+    static final boolean IMMIX_USES_HEADER_MARK_BITS = false;
+
+    @Inline
+    protected final Address immixAllocatorFastPath(int bytes, int align, int offset, int allocator, int allocatorIndex) {
+        // Align allocation
+        Word mask = Word.fromIntSignExtend(align - 1);
+        Word negOff = Word.fromIntSignExtend(-offset);
+
+        // allocatorIndex should be compile-time constant. We do not need to worry about the multiplication.
+        // The offset will be optimized to a constant.
+        Address allocatorBase = Magic.objectAsAddress(this).plus(IMMIX_ALLOCATOR_OFFSET);
+
+        Address cursor = allocatorBase.loadAddress(Offset.fromIntZeroExtend(BUMP_ALLOCATOR_CURSOR));
+        Address limit = allocatorBase.loadAddress(Offset.fromIntZeroExtend(BUMP_ALLOCATOR_LIMIT));
+        Offset delta = negOff.minus(cursor.toWord()).and(mask).toOffset();
+        Address result = cursor.plus(delta);
+        Address newCursor = result.plus(bytes);
+
+        if (newCursor.GT(limit)) {
+            // Out of local buffer, use the general slowpath
+            return slowPath(bytes, align, offset, allocator);
+        } else {
+            // Save the new cursor
+            allocatorBase.store(newCursor, Offset.fromIntZeroExtend(BUMP_ALLOCATOR_CURSOR));
+            return result;
+        }
+    }
+
     // General allocation slowpath.
     @NoInline
     protected final Address slowPath(int bytes, int align, int offset, int allocator) {
@@ -309,7 +341,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
         // It depends on the space to decide which fastpath we should use
         int space = getSpaceTag(allocator);
 
-        if (space == COPY_SPACE || space == IMMIX_SPACE) {
+        if (space == COPY_SPACE || (!IMMIX_USES_HEADER_MARK_BITS && space == IMMIX_SPACE)) {
             // Nothing to do for post_alloc for CopySpace
         } else {
             // slowpath to call into MMTk core's post_alloc()
