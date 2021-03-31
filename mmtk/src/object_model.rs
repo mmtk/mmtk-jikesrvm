@@ -96,7 +96,6 @@ impl VMObjectModel {
 }
 
 impl ObjectModel<JikesRVM> for VMObjectModel {
-    const HAS_GC_BYTE: bool = true;
     const GC_BYTE_OFFSET: isize = AVAILABLE_BITS_OFFSET;
     
     #[inline(always)]
