@@ -1,13 +1,8 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
-use libc::c_void;
 use mmtk::util::Address;
 use mmtk::util::OpaquePointer;
-use mmtk::{TraceLocal, Plan};
 use crate::unboxed_size_constants::*;
-use mmtk::vm::ActivePlan;
 use mmtk::util::conversions;
-use collection::VMCollection;
-use active_plan::VMActivePlan;
 use java_size_constants::*;
 use entrypoint::*;
 use JTOC_BASE;
@@ -18,25 +13,21 @@ use mmtk::MMTK;
 use std::marker::PhantomData;
 use std::mem;
 
-const DEBUG: bool = false;
 const FILTER: bool = true;
 
 const LOG_CHUNK_BYTES: usize = 12;
-const CHUNK_BYTES: usize = 1 << LOG_CHUNK_BYTES;
 const LONGENCODING_MASK: usize = 0x1;
 const RUN_MASK: usize = 0x2;
-const MAX_RUN: usize = (1 << BITS_IN_BYTE) - 1;
 const LONGENCODING_OFFSET_BYTES: usize = 4;
-const GUARD_REGION: usize = LONGENCODING_OFFSET_BYTES + 1; /* long offset + run encoding */
 
 static ROOTS: AtomicUsize = AtomicUsize::new(0);
 static REFS: AtomicUsize = AtomicUsize::new(0);
 
-pub fn scan_boot_image<W: ProcessEdgesWork<VM=JikesRVM>>(tls: OpaquePointer, subwork_id: usize, total_subwork: usize) {
+pub fn scan_boot_image<W: ProcessEdgesWork<VM=JikesRVM>>(_tls: OpaquePointer, subwork_id: usize, total_subwork: usize) {
     unsafe {
         let boot_record = (JTOC_BASE + THE_BOOT_RECORD_FIELD_OFFSET).load::<Address>();
         let map_start = (boot_record + BOOT_IMAGE_R_MAP_START_OFFSET).load::<Address>();
-        let map_end = ((boot_record + BOOT_IMAGE_R_MAP_END_OFFSET).load::<Address>());
+        let map_end = (boot_record + BOOT_IMAGE_R_MAP_END_OFFSET).load::<Address>();
         let image_start = (boot_record + BOOT_IMAGE_DATA_START_FIELD_OFFSET).load::<Address>();
 
         // let collector = VMActivePlan::collector(tls);
@@ -70,7 +61,7 @@ pub fn scan_boot_image<W: ProcessEdgesWork<VM=JikesRVM>>(tls: OpaquePointer, sub
 }
 
 fn process_chunk(chunk_start: Address, image_start: Address,
-                                map_start: Address, map_end: Address, mut report_edge: impl FnMut(Address)) {
+                                _map_start: Address, map_end: Address, mut report_edge: impl FnMut(Address)) {
     let mut value: usize;
     let mut offset: usize = 0;
     let mut cursor: Address = chunk_start;
@@ -104,7 +95,7 @@ fn process_chunk(chunk_start: Address, image_start: Address,
                 report_edge(slot);
             }
             if runlength != 0 {
-                for i in 0..runlength {
+                for _ in 0..runlength {
                     offset += BYTES_IN_ADDRESS;
                     slot = image_start + offset;
                     debug_assert!(conversions::is_address_aligned(slot));
@@ -145,7 +136,7 @@ impl <E: ProcessEdgesWork<VM=JikesRVM>> ScanBootImageRoots<E> {
 }
 
 impl <E: ProcessEdgesWork<VM=JikesRVM>> GCWork<JikesRVM> for ScanBootImageRoots<E> {
-    fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, mmtk: &'static MMTK<JikesRVM>) {
+    fn do_work(&mut self, _worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
         scan_boot_image::<E>(OpaquePointer::UNINITIALIZED, self.0, self.1);
     }
 }

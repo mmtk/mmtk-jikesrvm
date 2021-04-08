@@ -112,7 +112,7 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
 
             /* Update the referent */
             VMReferenceGlue::set_referent(new_reference, new_referent);
-            return new_reference;
+            new_reference
         } else {
             /* Referent is unreachable. Clear the referent and enqueue the reference object. */
 
@@ -122,7 +122,7 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
             VMReferenceGlue::clear_referent(new_reference);
             let new_reference_raw = new_reference.value() as *mut c_void;
             unsafe { jtoc_call!(ENQUEUE_REFERENCE_METHOD_OFFSET, tls, new_reference_raw); }
-            return unsafe { Address::zero().to_object_reference() };
+            unsafe { Address::zero().to_object_reference() }
         }
     }
 }

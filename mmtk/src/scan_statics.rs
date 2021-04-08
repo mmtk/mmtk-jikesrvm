@@ -1,16 +1,10 @@
-use libc::c_void;
 use std::marker::PhantomData;
-use mmtk::util::Address;
 use mmtk::util::OpaquePointer;
-use mmtk::vm::ActivePlan;
-use mmtk::{TraceLocal, Plan};
 use mmtk::scheduler::gc_work::*;
 use mmtk::scheduler::*;
 use mmtk::MMTK;
 use entrypoint::*;
 use JTOC_BASE;
-use collection::VMCollection;
-use active_plan::VMActivePlan;
 use crate::{SINGLETON, JikesRVM};
 
 #[cfg(target_pointer_width = "32")]
@@ -70,7 +64,7 @@ impl <E: ProcessEdgesWork<VM=JikesRVM>> ScanStaticRoots<E> {
 }
 
 impl <E: ProcessEdgesWork<VM=JikesRVM>> GCWork<JikesRVM> for ScanStaticRoots<E> {
-    fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, mmtk: &'static MMTK<JikesRVM>) {
+    fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
         scan_statics::<E>(worker.tls, self.0, self.1);
     }
 }

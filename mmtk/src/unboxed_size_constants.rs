@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub const LOG_BITS_IN_BYTE: usize = 3;
 
 #[cfg(target_pointer_width = "32")]

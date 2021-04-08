@@ -1,6 +1,5 @@
 #![feature(llvm_asm)]
 #![feature(vec_into_raw_parts)]
-#[macro_use]
 extern crate mmtk;
 extern crate libc;
 #[macro_use]
@@ -9,7 +8,6 @@ extern crate lazy_static;
 extern crate log;
 
 use mmtk::util::address::Address;
-use mmtk::TraceLocal;
 use mmtk::vm::VMBinding;
 use mmtk::MMTK;
 use mmtk::plan::PlanConstraints;

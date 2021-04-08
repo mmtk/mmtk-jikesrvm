@@ -1,4 +1,3 @@
-use libc::c_void;
 use std::mem::size_of;
 use std::slice;
 
@@ -6,23 +5,16 @@ use mmtk::vm::Scanning;
 use mmtk::*;
 use mmtk::scheduler::*;
 use mmtk::scheduler::gc_work::*;
-use mmtk::util::{ObjectReference, Address, SynchronizedCounter};
+use mmtk::util::{ObjectReference, Address};
 use mmtk::util::OpaquePointer;
 use crate::unboxed_size_constants::LOG_BYTES_IN_ADDRESS;
-use crate::unboxed_size_constants::BYTES_IN_ADDRESS;
-use mmtk::vm::ObjectModel;
 use mmtk::vm::ActivePlan;
-use mmtk::vm::Collection;
 use memory_manager_constants::*;
 use java_header_constants::*;
-use scan_sanity;
 use entrypoint::*;
 use JTOC_BASE;
 use object_model::VMObjectModel;
 use active_plan::VMActivePlan;
-use collection::VMCollection;
-use java_header::TIB_OFFSET;
-use tib_layout_constants::TIB_TYPE_INDEX;
 use JikesRVM;
 use crate::SINGLETON;
 use crate::scan_statics::ScanStaticRoots;
@@ -39,13 +31,13 @@ const DUMP_REF: bool = false;
 // Fix the size of any `ProcessEdgesWork` to 4096. THe constant is also hard-coded in Java code.
 pub const PROCESS_EDGES_WORK_SIZE: usize = 4096;
 
-pub extern fn create_process_edges_work<W: ProcessEdgesWork<VM=JikesRVM>>(ptr: *mut Address, length: usize) -> *mut Address {
+pub(crate) extern fn create_process_edges_work<W: ProcessEdgesWork<VM=JikesRVM>>(ptr: *mut Address, length: usize) -> *mut Address {
     debug_assert_eq!(W::CAPACITY, PROCESS_EDGES_WORK_SIZE);
     if !ptr.is_null() {
-        let mut buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, W::CAPACITY) };
+        let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, W::CAPACITY) };
         SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(buf, false, &SINGLETON));
     }
-    let (ptr, length, capacity) =  Vec::with_capacity(W::CAPACITY).into_raw_parts();
+    let (ptr, _length, capacity) =  Vec::with_capacity(W::CAPACITY).into_raw_parts();
     debug_assert_eq!(capacity, W::CAPACITY);
     ptr
 }
@@ -149,7 +141,7 @@ struct ObjectsClosure<'a, E: ProcessEdgesWork<VM = JikesRVM>>(Vec<Address>, &'a 
 impl<'a, E: ProcessEdgesWork<VM = JikesRVM>> ObjectsClosure<'a, E> {
     #[inline]
     fn process_edge(&mut self, slot: Address) {
-        if self.0.len() == 0 {
+        if self.0.is_empty() {
             self.0.reserve(E::CAPACITY);
         }
         self.0.push(slot);
@@ -173,7 +165,7 @@ impl<'a, E: ProcessEdgesWork<VM = JikesRVM>> Drop for ObjectsClosure<'a, E> {
 }
 
 impl VMScanning {
-    fn scan_object_fields<'a, E: ProcessEdgesWork<VM=JikesRVM>>(object: ObjectReference, closure: &mut ObjectsClosure<'a, E>) {
+    fn scan_object_fields<E: ProcessEdgesWork<VM=JikesRVM>>(object: ObjectReference, closure: &mut ObjectsClosure<E>) {
         trace!("Getting reference array");
         let elt0_ptr: usize = unsafe {
             let rvm_type = VMObjectModel::load_rvm_type(object);
@@ -203,7 +195,7 @@ impl VMScanning {
         unsafe {
             let process_code_locations = MOVES_CODE;
             // `mutator` is a jikesrvm tls pointer. Transmute it to addess to read its internal information
-            let thread = unsafe { mem::transmute::<OpaquePointer, Address>(mutator) };
+            let thread = mem::transmute::<OpaquePointer, Address>(mutator);
             debug_assert!(!thread.is_zero());
             if (thread + IS_COLLECTOR_FIELD_OFFSET).load::<bool>() {
                 return;
@@ -282,7 +274,7 @@ impl <E: ProcessEdgesWork<VM=JikesRVM>> ScanGlobalRoots<E> {
 }
 
 impl <E: ProcessEdgesWork<VM=JikesRVM>> GCWork<JikesRVM> for ScanGlobalRoots<E> {
-    fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, mmtk: &'static MMTK<JikesRVM>) {
+    fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
         let mut edges = Vec::with_capacity(E::CAPACITY);
         VMScanning::scan_global_roots(worker.tls, self.0, self.1, |edge| {
             edges.push(edge);

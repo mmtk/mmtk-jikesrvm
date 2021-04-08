@@ -18,7 +18,7 @@ pub const ACC_ANNOTATION: u16   = 0x2000;  //   X      -      -
 pub const ACC_ENUM: u16         = 0x4000;  //   X      X      -
 
 pub const APPLICABLE_TO_FIELDS: u16 =
-    (ACC_PUBLIC |
+    ACC_PUBLIC |
     ACC_PRIVATE |
     ACC_PROTECTED |
     ACC_STATIC |
@@ -26,10 +26,10 @@ pub const APPLICABLE_TO_FIELDS: u16 =
     ACC_VOLATILE |
     ACC_TRANSIENT |
     ACC_SYNTHETIC |
-    ACC_ENUM);
+    ACC_ENUM;
 
 pub const APPLICABLE_TO_METHODS: u16 =
-    (ACC_PUBLIC |
+    ACC_PUBLIC |
     ACC_PRIVATE |
     ACC_PROTECTED |
     ACC_STATIC |
@@ -40,10 +40,10 @@ pub const APPLICABLE_TO_METHODS: u16 =
     ACC_NATIVE |
     ACC_ABSTRACT |
     ACC_STRICT |
-    ACC_SYNTHETIC);
+    ACC_SYNTHETIC;
 
 pub const APPLICABLE_TO_CLASSES: u16 =
-    (ACC_PUBLIC |
+    ACC_PUBLIC |
     ACC_PRIVATE |
     ACC_PROTECTED |
     ACC_STATIC |
@@ -53,7 +53,7 @@ pub const APPLICABLE_TO_CLASSES: u16 =
     ACC_ABSTRACT |
     ACC_SYNTHETIC |
     ACC_ANNOTATION |
-    ACC_ENUM);
+    ACC_ENUM;
 
 /**
  * The modifiers that can appear in the return value of
@@ -61,13 +61,13 @@ pub const APPLICABLE_TO_CLASSES: u16 =
  * the Java API specification.
  */
 pub const APPLICABLE_FOR_CLASS_GET_MODIFIERS: u16 =
-    (ACC_PUBLIC |
+    ACC_PUBLIC |
     ACC_PRIVATE |
     ACC_PROTECTED |
     ACC_STATIC |
     ACC_FINAL |
     ACC_INTERFACE |
-    ACC_ABSTRACT);
+    ACC_ABSTRACT;
 
 /* Possible states of a class description. */
 /** nothing present yet */
@@ -102,17 +102,17 @@ pub const TAG_MEMBERNAME_AND_DESCRIPTOR: u8 = 12;
 
 // Type codes for class, array, and primitive types.
 //
-pub const CLASS_TYPE_CODE: u8 = 'L' as u8;
-pub const ARRAY_TYPE_CODE: u8 = '[' as u8;
-pub const VOID_TYPE_CODE: u8 = 'V' as u8;
-pub const BOOLEAN_TYPE_CODE: u8 = 'Z' as u8;
-pub const BYTE_TYPE_CODE: u8 = 'B' as u8;
-pub const SHORT_TYPE_CODE: u8 = 'S' as u8;
-pub const INT_TYPE_CODE: u8 = 'I' as u8;
-pub const LONG_TYPE_CODE: u8 = 'J' as u8;
-pub const FLOAT_TYPE_CODE: u8 = 'F' as u8;
-pub const DOUBLE_TYPE_CODE: u8 = 'D' as u8;
-pub const CHAR_TYPE_CODE: u8 = 'C' as u8;
+pub const CLASS_TYPE_CODE: u8 = b'L';
+pub const ARRAY_TYPE_CODE: u8 = b'[';
+pub const VOID_TYPE_CODE: u8 = b'V';
+pub const BOOLEAN_TYPE_CODE: u8 = b'Z';
+pub const BYTE_TYPE_CODE: u8 = b'B';
+pub const SHORT_TYPE_CODE: u8 = b'S';
+pub const INT_TYPE_CODE: u8 = b'I';
+pub const LONG_TYPE_CODE: u8 = b'J';
+pub const FLOAT_TYPE_CODE: u8 = b'F';
+pub const DOUBLE_TYPE_CODE: u8 = b'D';
+pub const CHAR_TYPE_CODE: u8 = b'C';
 
 // Constants for our internal encoding of constant pools.
 /** Constant pool entry for a UTF-8 encoded atom */

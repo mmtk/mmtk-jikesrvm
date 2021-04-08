@@ -1,42 +1,35 @@
 use libc::*;
-use std::mem::size_of;
-use std::sync::atomic::{AtomicUsize, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::unboxed_size_constants::*;
-use mmtk::vm::ActivePlan;
 use mmtk::vm::ObjectModel;
-use mmtk::util::{Address, ObjectReference, OpaquePointer};
+use mmtk::util::{Address, ObjectReference};
 use mmtk::util::alloc::allocator::fill_alignment_gap;
-use mmtk::util::constants::{};
 use mmtk::AllocationSemantics;
 use mmtk::util::conversions;
 use mmtk::CopyContext;
 
-use java_header_constants::{ADDRESS_BASED_HASHING, GC_HEADER_OFFSET, DYNAMIC_HASH_OFFSET,
-                            HASH_STATE_MASK, HASH_STATE_HASHED_AND_MOVED, ARRAY_BASE_OFFSET, ARRAY_LENGTH_OFFSET,
+use java_header_constants::{ADDRESS_BASED_HASHING, DYNAMIC_HASH_OFFSET,
+                            HASH_STATE_MASK, HASH_STATE_HASHED_AND_MOVED, ARRAY_LENGTH_OFFSET,
                             HASHCODE_BYTES, HASH_STATE_UNHASHED, HASH_STATE_HASHED, HASHCODE_OFFSET, ALIGNMENT_MASK};
 use java_header::*;
 use memory_manager_constants::*;
 use tib_layout_constants::*;
 use entrypoint::*;
 use java_size_constants::{BYTES_IN_INT, BYTES_IN_DOUBLE};
-use class_loader_constants::*;
-
-use JTOC_BASE;
-use active_plan::VMActivePlan;
 use JikesRVM;
 
 /** Should we gather stats on hash code state transitions for address-based hashing? */
 const HASH_STATS: bool = false;
 /** count number of Object.hashCode() operations */
+#[allow(dead_code)]
 static HASH_REQUESTS: AtomicUsize = AtomicUsize::new(0);
 /** count transitions from UNHASHED to HASHED */
+#[allow(dead_code)]
 static HASH_TRANSITION1: AtomicUsize = AtomicUsize::new(0);
 /** count transitions from HASHED to HASHED_AND_MOVED */
+#[allow(dead_code)]
 static HASH_TRANSITION2: AtomicUsize = AtomicUsize::new(0);
-
-/** Whether to pack bytes and shorts into 32bit fields*/
-const PACKED: bool = true;
 
 // FIXME [ZC]: There are places we use Address::load<> instead of atomics operations
 // where the memory location is indeed accessed by multiple threads (collector/mutator).
@@ -61,6 +54,7 @@ impl VMObjectModel {
         unsafe { (object.to_address() + TIB_OFFSET).load::<Address>() }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn get_align_when_copied(object: ObjectReference) -> usize {
         trace!("ObjectModel.get_align_when_copied");
         let rvm_type = Self::load_rvm_type(object);
@@ -72,6 +66,7 @@ impl VMObjectModel {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn get_align_offset_when_copied(object: ObjectReference) -> isize {
         trace!("ObjectModel.get_align_offset_when_copied");
         let rvm_type = Self::load_rvm_type(object);
@@ -117,18 +112,17 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
     #[inline(always)]
     fn copy_to(from: ObjectReference, to: ObjectReference, region: Address) -> Address {
         trace!("ObjectModel.copy_to");
-        let tib = Self::load_tib(from);
         let rvm_type = Self::load_rvm_type(from);
-        let mut bytes: usize = 0;
 
         let copy = from != to;
 
-        if copy {
-            bytes = Self::bytes_required_when_copied(from, rvm_type);
+        let bytes = if copy {
+            let bytes = Self::bytes_required_when_copied(from, rvm_type);
             Self::move_object(unsafe { Address::zero() }, from, to, bytes, rvm_type);
+            bytes
         } else {
-            bytes = Self::bytes_used(from, rvm_type);
-        }
+            Self::bytes_used(from, rvm_type)
+        };
 
         let start = Self::object_start_ref(to);
         fill_alignment_gap::<JikesRVM>(region, start);
@@ -159,13 +153,15 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         Self::bytes_used(object, rvm_type)
     }
 
-    fn get_type_descriptor(reference: ObjectReference) -> &'static [i8] {
+    fn get_type_descriptor(_reference: ObjectReference) -> &'static [i8] {
         unimplemented!()
     }
 
     #[inline(always)]
     fn object_start_ref(object: ObjectReference) -> Address {
         trace!("ObjectModel.object_start_ref");
+        // Easier to read if we do not collapse if here.
+        #[allow(clippy::collapsible_if)]
         if MOVES_OBJECTS {
             if ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
                 let hash_state = unsafe {
@@ -183,7 +179,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         object.to_address() + TIB_OFFSET
     }
 
-    fn dump_object(object: ObjectReference) {
+    fn dump_object(_object: ObjectReference) {
         unimplemented!()
     }
 }
@@ -292,6 +288,8 @@ impl VMObjectModel {
                     + (num_elements << (rvm_type + LOG_ELEMENT_SIZE_FIELD_OFFSET).load::<usize>())
             };
 
+            // Easier to read if we do not collapse if here.
+            #[allow(clippy::collapsible_if)]
             if MOVES_OBJECTS {
                 if ADDRESS_BASED_HASHING {
                     let hash_state = (object.to_address() + STATUS_OFFSET).load::<usize>()
@@ -312,7 +310,7 @@ impl VMObjectModel {
 
     #[inline(always)]
     fn move_object(immut_to_address: Address, from_obj: ObjectReference, immut_to_obj: ObjectReference,
-                   num_bytes: usize, rvm_type: Address) -> ObjectReference {
+                   num_bytes: usize, _rvm_type: Address) -> ObjectReference {
         trace!("VMObjectModel.move_object");
         let mut to_address = immut_to_address;
         let mut to_obj = immut_to_obj;
@@ -341,7 +339,7 @@ impl VMObjectModel {
                     }
                 } else if !DYNAMIC_HASH_OFFSET && hash_state == HASH_STATE_HASHED_AND_MOVED {
                     // Simple operation (no hash state change), but one word larger header
-                    obj_ref_offset += (HASHCODE_BYTES as isize);
+                    obj_ref_offset += HASHCODE_BYTES as isize;
                 }
             }
         }
@@ -385,7 +383,7 @@ impl VMObjectModel {
     unsafe fn aligned_32_copy(dst: Address, src: Address, copy_bytes: usize) {
         trace!("VMObjectModel.aligned_32_copy");
         //debug_assert!(copy_bytes >= 0);
-        debug_assert!(copy_bytes & BYTES_IN_INT - 1 == 0);
+        debug_assert!(copy_bytes & (BYTES_IN_INT - 1) == 0);
         debug_assert!(src.is_aligned_to(BYTES_IN_INT));
         debug_assert!(src.is_aligned_to(BYTES_IN_INT));
         debug_assert!(src + copy_bytes <= dst || src >= dst + BYTES_IN_INT);
@@ -393,7 +391,7 @@ impl VMObjectModel {
         let cnt = copy_bytes;
         let src_end = src + cnt;
         let dst_end = dst + cnt;
-        let overlap = !(src_end <= dst) && !(dst_end <= src);
+        let overlap = src_end > dst && dst_end > src;
         if overlap {
             memmove(dst.to_mut_ptr(), src.to_mut_ptr(), cnt);
         } else {
@@ -418,7 +416,7 @@ impl VMObjectModel {
     }
 
     #[inline(always)]
-    fn get_offset_for_alignment_array(object: ObjectReference, rvm_type: Address) -> isize {
+    fn get_offset_for_alignment_array(object: ObjectReference, _rvm_type: Address) -> isize {
         trace!("VMObjectModel.get_offset_for_alignment_array");
         let mut offset = OBJECT_REF_OFFSET;
 
@@ -435,7 +433,7 @@ impl VMObjectModel {
     }
 
     #[inline(always)]
-    fn get_offset_for_alignment_class(object: ObjectReference, rvm_type: Address) -> isize {
+    fn get_offset_for_alignment_class(object: ObjectReference, _rvm_type: Address) -> isize {
         trace!("VMObjectModel.get_offset_for_alignment_class");
         let mut offset = SCALAR_HEADER_SIZE as isize;
 
