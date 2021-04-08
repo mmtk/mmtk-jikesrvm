@@ -7,7 +7,7 @@ pub const IMT_METHOD_SLOTS: usize = 0; //VM.BuildForIMTInterfaceInvocation ? 29 
 pub const TIB_TYPE_INDEX: usize = 0;
 
 /** A vector of ids for classes that this one extends. See
- DynamicTypeCheck.java */
+DynamicTypeCheck.java */
 pub const TIB_SUPERCLASS_IDS_INDEX: usize = TIB_TYPE_INDEX + 1;
 
 /** Does this class implement the ith interface? See DynamicTypeCheck.java */
@@ -33,8 +33,8 @@ pub const TIB_FIRST_SPECIALIZED_METHOD_INDEX: usize = TIB_INTERFACE_DISPATCH_TAB
 /**
  * Next group of slots point to virtual method code blocks (slots V1..VN in above diagram).
  */
-pub const TIB_FIRST_VIRTUAL_METHOD_INDEX: usize = TIB_FIRST_SPECIALIZED_METHOD_INDEX
-    + SELECTED_CONSTRAINTS.num_specialized_scans; // + SpecializedMethodManager.numSpecializedMethods();
+pub const TIB_FIRST_VIRTUAL_METHOD_INDEX: usize =
+    TIB_FIRST_SPECIALIZED_METHOD_INDEX + SELECTED_CONSTRAINTS.num_specialized_scans; // + SpecializedMethodManager.numSpecializedMethods();
 
 /**
  * Special value returned by RVMClassLoader.getFieldOffset() or

@@ -11,3 +11,5 @@ cargo clippy --target i686-unknown-linux-gnu --features marksweep
 cargo clippy --target i686-unknown-linux-gnu --features nogc --release
 cargo clippy --target i686-unknown-linux-gnu --features semispace --release
 cargo clippy --target i686-unknown-linux-gnu --features marksweep --release
+
+cargo fmt -- --check

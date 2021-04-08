@@ -1,6 +1,6 @@
-use mmtk::{TraceLocal};
-use mmtk::util::OpaquePointer;
 use entrypoint::*;
+use mmtk::util::OpaquePointer;
+use mmtk::TraceLocal;
 
 pub fn scan_boot_image_sanity<T: TraceLocal>(_trace: &mut T, tls: OpaquePointer) {
     trace!("scan_boot_image_sanity");

@@ -1,10 +1,10 @@
 use libc::c_void;
 
-use mmtk::vm::ReferenceGlue;
-use mmtk::util::{Address, ObjectReference};
-use mmtk::TraceLocal;
 use mmtk::util::reference_processor::*;
 use mmtk::util::OpaquePointer;
+use mmtk::util::{Address, ObjectReference};
+use mmtk::vm::ReferenceGlue;
+use mmtk::TraceLocal;
 
 use entrypoint::*;
 use JikesRVM;
@@ -20,9 +20,7 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
 
     fn get_referent(object: ObjectReference) -> ObjectReference {
         debug_assert!(!object.is_null());
-        unsafe {
-            (object.to_address() + REFERENCE_REFERENT_FIELD_OFFSET).load::<ObjectReference>()
-        }
+        unsafe { (object.to_address() + REFERENCE_REFERENT_FIELD_OFFSET).load::<ObjectReference>() }
     }
 
     /**
@@ -39,19 +37,29 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
      * @return an updated reference (e.g. with a new address) if the reference
      *  is still live, {@code ObjectReference.nullReference()} otherwise
      */
-    fn process_reference<T: TraceLocal>(trace: &mut T, reference: ObjectReference, tls: OpaquePointer) -> ObjectReference {
+    fn process_reference<T: TraceLocal>(
+        trace: &mut T,
+        reference: ObjectReference,
+        tls: OpaquePointer,
+    ) -> ObjectReference {
         debug_assert!(!reference.is_null());
 
-        if TRACE_DETAIL { trace!("Processing reference: {:?}", reference); }
+        if TRACE_DETAIL {
+            trace!("Processing reference: {:?}", reference);
+        }
 
         /*
          * If the reference is dead, we're done with it. Let it (and
          * possibly its referent) be garbage-collected.
          */
         if !reference.is_live() {
-            VMReferenceGlue::clear_referent(reference);                   // Too much paranoia ...
-            if TRACE_UNREACHABLE { trace!(" UNREACHABLE reference: {:?}", reference); }
-            if TRACE_DETAIL { trace!(" (unreachable)"); }
+            VMReferenceGlue::clear_referent(reference); // Too much paranoia ...
+            if TRACE_UNREACHABLE {
+                trace!(" UNREACHABLE reference: {:?}", reference);
+            }
+            if TRACE_DETAIL {
+                trace!(" (unreachable)");
+            }
             return unsafe { Address::zero().to_object_reference() };
         }
 
@@ -59,7 +67,9 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
         let new_reference = trace.get_forwarded_reference(reference);
         let old_referent = VMReferenceGlue::get_referent(reference);
 
-        if TRACE_DETAIL { trace!(" ~> {:?}", old_referent); }
+        if TRACE_DETAIL {
+            trace!(" ~> {:?}", old_referent);
+        }
 
         /*
          * If the application has cleared the referent the Java spec says
@@ -68,11 +78,15 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
          * waiting list.
          */
         if old_referent.is_null() {
-            if TRACE_DETAIL { trace!("(null referent)"); }
+            if TRACE_DETAIL {
+                trace!("(null referent)");
+            }
             return unsafe { Address::zero().to_object_reference() };
         }
 
-        if TRACE_DETAIL { trace!(" => {:?}", new_reference); }
+        if TRACE_DETAIL {
+            trace!(" => {:?}", new_reference);
+        }
 
         if old_referent.is_live() {
             if cfg!(feature = "debug") {
@@ -90,7 +104,9 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
              */
             let new_referent = trace.get_forwarded_referent(old_referent);
 
-            if TRACE_DETAIL { trace!(" ~> {:?}", new_referent); }
+            if TRACE_DETAIL {
+                trace!(" ~> {:?}", new_referent);
+            }
 
             if cfg!(feature = "debug") {
                 // FIXME
@@ -116,12 +132,17 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
         } else {
             /* Referent is unreachable. Clear the referent and enqueue the reference object. */
 
-            if TRACE_DETAIL { trace!(" UNREACHABLE"); }
-                else if TRACE_UNREACHABLE { trace!(" UNREACHABLE referent: {:?}", old_referent); }
+            if TRACE_DETAIL {
+                trace!(" UNREACHABLE");
+            } else if TRACE_UNREACHABLE {
+                trace!(" UNREACHABLE referent: {:?}", old_referent);
+            }
 
             VMReferenceGlue::clear_referent(new_reference);
             let new_reference_raw = new_reference.value() as *mut c_void;
-            unsafe { jtoc_call!(ENQUEUE_REFERENCE_METHOD_OFFSET, tls, new_reference_raw); }
+            unsafe {
+                jtoc_call!(ENQUEUE_REFERENCE_METHOD_OFFSET, tls, new_reference_raw);
+            }
             unsafe { Address::zero().to_object_reference() }
         }
     }

@@ -1,18 +1,18 @@
-use libc::c_void;
+use crate::scanning::PROCESS_EDGES_WORK_SIZE;
+use collection::VMCollection;
+use collection::BOOT_THREAD;
 use libc::c_char;
-use std::ffi::CStr;
+use libc::c_void;
 use mmtk::memory_manager;
-use mmtk::util::{Address, OpaquePointer, ObjectReference};
+use mmtk::scheduler::*;
+use mmtk::util::{Address, ObjectReference, OpaquePointer};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use mmtk::MMTK;
-use mmtk::scheduler::*;
+use std::ffi::CStr;
 use JikesRVM;
 use JTOC_BASE;
 use SINGLETON;
-use collection::BOOT_THREAD;
-use collection::VMCollection;
-use crate::scanning::PROCESS_EDGES_WORK_SIZE;
 
 /// # Safety
 /// Caller needs to make sure the ptr is a valid vector pointer.
@@ -25,12 +25,12 @@ pub unsafe extern "C" fn release_buffer(ptr: *mut Address) {
 pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
     unsafe {
         JTOC_BASE = Address::from_mut_ptr(jtoc);
-        BOOT_THREAD
-            = OpaquePointer::from_address(VMCollection::thread_from_id(1));
+        BOOT_THREAD = OpaquePointer::from_address(VMCollection::thread_from_id(1));
     }
     // MMTk should not be used before gc_init, and gc_init is single threaded. It is fine we get a mutable reference from the singleton.
     #[allow(clippy::cast_ref_to_mut)]
-    let singleton_mut = unsafe { &mut *(&*SINGLETON as *const MMTK<JikesRVM> as *mut MMTK<JikesRVM>) };
+    let singleton_mut =
+        unsafe { &mut *(&*SINGLETON as *const MMTK<JikesRVM> as *mut MMTK<JikesRVM>) };
     memory_manager::gc_init(singleton_mut, heap_size);
     debug_assert!(54 == JikesRVM::test(44));
     debug_assert!(112 == JikesRVM::test2(45, 67));
@@ -58,16 +58,26 @@ pub extern "C" fn destroy_mutator(mutator: *mut Mutator<JikesRVM>) {
 #[no_mangle]
 // We trust the mutator pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn alloc(mutator: *mut Mutator<JikesRVM>, size: usize,
-                           align: usize, offset: isize, allocator: AllocationSemantics) -> Address {
+pub extern "C" fn alloc(
+    mutator: *mut Mutator<JikesRVM>,
+    size: usize,
+    align: usize,
+    offset: isize,
+    allocator: AllocationSemantics,
+) -> Address {
     memory_manager::alloc::<JikesRVM>(unsafe { &mut *mutator }, size, align, offset, allocator)
 }
 
 #[no_mangle]
 // We trust the mutator pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn post_alloc(mutator: *mut Mutator<JikesRVM>, refer: ObjectReference, _type_refer: ObjectReference,
-                                bytes: usize, allocator: AllocationSemantics) {
+pub extern "C" fn post_alloc(
+    mutator: *mut Mutator<JikesRVM>,
+    refer: ObjectReference,
+    _type_refer: ObjectReference,
+    bytes: usize,
+    allocator: AllocationSemantics,
+) {
     memory_manager::post_alloc::<JikesRVM>(unsafe { &mut *mutator }, refer, bytes, allocator)
 }
 
@@ -170,7 +180,11 @@ pub extern "C" fn harness_end(_tls: OpaquePointer) {
 pub extern "C" fn process(name: *const c_char, value: *const c_char) -> i32 {
     let name_str: &CStr = unsafe { CStr::from_ptr(name) };
     let value_str: &CStr = unsafe { CStr::from_ptr(value) };
-    memory_manager::process(&SINGLETON, name_str.to_str().unwrap(), value_str.to_str().unwrap()) as i32
+    memory_manager::process(
+        &SINGLETON,
+        name_str.to_str().unwrap(),
+        value_str.to_str().unwrap(),
+    ) as i32
 }
 
 #[no_mangle]
@@ -193,17 +207,22 @@ pub extern "C" fn add_finalizer(object: ObjectReference) {
 pub extern "C" fn get_finalized_object() -> ObjectReference {
     match memory_manager::get_finalized_object(&SINGLETON) {
         Some(obj) => obj,
-        None => unsafe { Address::ZERO.to_object_reference() }
+        None => unsafe { Address::ZERO.to_object_reference() },
     }
 }
 
 // Allocation slow path
 
-use mmtk::util::alloc::{BumpAllocator, LargeObjectAllocator};
 use mmtk::util::alloc::Allocator as IAllocator;
+use mmtk::util::alloc::{BumpAllocator, LargeObjectAllocator};
 
 #[no_mangle]
-pub extern "C" fn alloc_slow_bump_monotone_immortal(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
+pub extern "C" fn alloc_slow_bump_monotone_immortal(
+    allocator: *mut c_void,
+    size: usize,
+    align: usize,
+    offset: isize,
+) -> Address {
     unsafe { &mut *(allocator as *mut BumpAllocator<JikesRVM>) }.alloc_slow(size, align, offset)
 }
 
@@ -212,18 +231,34 @@ pub extern "C" fn alloc_slow_bump_monotone_immortal(allocator: *mut c_void, size
 
 #[no_mangle]
 #[cfg(any(feature = "semispace"))]
-pub extern "C" fn alloc_slow_bump_monotone_copy(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
+pub extern "C" fn alloc_slow_bump_monotone_copy(
+    allocator: *mut c_void,
+    size: usize,
+    align: usize,
+    offset: isize,
+) -> Address {
     unsafe { &mut *(allocator as *mut BumpAllocator<JikesRVM>) }.alloc_slow(size, align, offset)
 }
 #[no_mangle]
 #[cfg(not(any(feature = "semispace")))]
-pub extern "C" fn alloc_slow_bump_monotone_copy(_allocator: *mut c_void, _size: usize, _align: usize, _offset:isize) -> Address {
+pub extern "C" fn alloc_slow_bump_monotone_copy(
+    _allocator: *mut c_void,
+    _size: usize,
+    _align: usize,
+    _offset: isize,
+) -> Address {
     unimplemented!()
 }
 
 #[no_mangle]
-pub extern "C" fn alloc_slow_largeobject(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
-    unsafe { &mut *(allocator as *mut LargeObjectAllocator<JikesRVM>) }.alloc_slow(size, align, offset)
+pub extern "C" fn alloc_slow_largeobject(
+    allocator: *mut c_void,
+    size: usize,
+    align: usize,
+    offset: isize,
+) -> Address {
+    unsafe { &mut *(allocator as *mut LargeObjectAllocator<JikesRVM>) }
+        .alloc_slow(size, align, offset)
 }
 
 // Test
@@ -242,12 +277,11 @@ pub extern "C" fn test_stack_alignment() {
 #[no_mangle]
 pub extern "C" fn test_stack_alignment1(a: usize, b: usize, c: usize, d: usize, e: usize) -> usize {
     info!("Entering stack alignment test");
-    info!("a:{}, b:{}, c:{}, d:{}, e:{}",
-          a, b, c, d, e);
+    info!("a:{}, b:{}, c:{}, d:{}, e:{}", a, b, c, d, e);
     unsafe {
         llvm_asm!("movaps %xmm1, (%esp)" : : : "sp", "%xmm1", "memory");
     }
-    let result = a + b * 2 + c * 3  + d * 4 + e * 5;
+    let result = a + b * 2 + c * 3 + d * 4 + e * 5;
     info!("Exiting stack alignment test");
     result
 }

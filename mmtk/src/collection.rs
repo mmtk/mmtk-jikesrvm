@@ -1,12 +1,12 @@
-use mmtk::vm::Collection;
-use mmtk::util::Address;
-use mmtk::MutatorContext;
-use mmtk::util::opaque_pointer::OpaquePointer;
-use mmtk::scheduler::*;
-use mmtk::scheduler::gc_work::*;
 use entrypoint::*;
-use JTOC_BASE;
+use mmtk::scheduler::gc_work::*;
+use mmtk::scheduler::*;
+use mmtk::util::opaque_pointer::OpaquePointer;
+use mmtk::util::Address;
+use mmtk::vm::Collection;
+use mmtk::MutatorContext;
 use JikesRVM;
+use JTOC_BASE;
 
 pub static mut BOOT_THREAD: OpaquePointer = OpaquePointer::UNINITIALIZED;
 
@@ -71,7 +71,8 @@ impl VMCollection {
     /// Caller needs to make sure thread_id is valid.
     #[inline(always)]
     pub unsafe fn thread_from_id(thread_id: usize) -> Address {
-        ((JTOC_BASE + THREAD_BY_SLOT_FIELD_OFFSET).load::<Address>() + 4 * thread_id).load::<Address>()
+        ((JTOC_BASE + THREAD_BY_SLOT_FIELD_OFFSET).load::<Address>() + 4 * thread_id)
+            .load::<Address>()
     }
 
     /// # Safety

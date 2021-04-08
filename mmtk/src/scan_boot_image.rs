@@ -1,17 +1,17 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
-use mmtk::util::Address;
-use mmtk::util::OpaquePointer;
 use crate::unboxed_size_constants::*;
-use mmtk::util::conversions;
-use java_size_constants::*;
+use crate::{JikesRVM, SINGLETON};
 use entrypoint::*;
-use JTOC_BASE;
-use crate::{SINGLETON, JikesRVM};
+use java_size_constants::*;
 use mmtk::scheduler::gc_work::*;
 use mmtk::scheduler::*;
+use mmtk::util::conversions;
+use mmtk::util::Address;
+use mmtk::util::OpaquePointer;
 use mmtk::MMTK;
 use std::marker::PhantomData;
 use std::mem;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use JTOC_BASE;
 
 const FILTER: bool = true;
 
@@ -23,7 +23,11 @@ const LONGENCODING_OFFSET_BYTES: usize = 4;
 static ROOTS: AtomicUsize = AtomicUsize::new(0);
 static REFS: AtomicUsize = AtomicUsize::new(0);
 
-pub fn scan_boot_image<W: ProcessEdgesWork<VM=JikesRVM>>(_tls: OpaquePointer, subwork_id: usize, total_subwork: usize) {
+pub fn scan_boot_image<W: ProcessEdgesWork<VM = JikesRVM>>(
+    _tls: OpaquePointer,
+    subwork_id: usize,
+    total_subwork: usize,
+) {
     unsafe {
         let boot_record = (JTOC_BASE + THE_BOOT_RECORD_FIELD_OFFSET).load::<Address>();
         let map_start = (boot_record + BOOT_IMAGE_R_MAP_START_OFFSET).load::<Address>();
@@ -50,23 +54,33 @@ pub fn scan_boot_image<W: ProcessEdgesWork<VM=JikesRVM>>(_tls: OpaquePointer, su
                 if edges.len() >= W::CAPACITY {
                     let mut new_edges = Vec::with_capacity(W::CAPACITY);
                     mem::swap(&mut new_edges, &mut edges);
-                    SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(new_edges, true, &SINGLETON));
+                    SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
+                        .add(W::new(new_edges, true, &SINGLETON));
                 }
             });
             trace!("Chunk processed successfully");
             cursor += stride;
         }
-        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(edges, true, &SINGLETON));
+        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
+            .add(W::new(edges, true, &SINGLETON));
     }
 }
 
-fn process_chunk(chunk_start: Address, image_start: Address,
-                                _map_start: Address, map_end: Address, mut report_edge: impl FnMut(Address)) {
+fn process_chunk(
+    chunk_start: Address,
+    image_start: Address,
+    _map_start: Address,
+    map_end: Address,
+    mut report_edge: impl FnMut(Address),
+) {
     let mut value: usize;
     let mut offset: usize = 0;
     let mut cursor: Address = chunk_start;
     unsafe {
-        while { value = cursor.load::<u8>() as usize; value != 0 } {
+        while {
+            value = cursor.load::<u8>() as usize;
+            value != 0
+        } {
             /* establish the offset */
             if (value & LONGENCODING_MASK) != 0 {
                 offset = decode_long_encoding(cursor);
@@ -126,16 +140,15 @@ fn decode_long_encoding(cursor: Address) -> usize {
     }
 }
 
+pub struct ScanBootImageRoots<E: ProcessEdgesWork<VM = JikesRVM>>(usize, usize, PhantomData<E>);
 
-pub struct ScanBootImageRoots<E: ProcessEdgesWork<VM=JikesRVM>>(usize, usize, PhantomData<E>);
-
-impl <E: ProcessEdgesWork<VM=JikesRVM>> ScanBootImageRoots<E> {
+impl<E: ProcessEdgesWork<VM = JikesRVM>> ScanBootImageRoots<E> {
     pub fn new(subwork_id: usize, total_subwork: usize) -> Self {
         Self(subwork_id, total_subwork, PhantomData)
     }
 }
 
-impl <E: ProcessEdgesWork<VM=JikesRVM>> GCWork<JikesRVM> for ScanBootImageRoots<E> {
+impl<E: ProcessEdgesWork<VM = JikesRVM>> GCWork<JikesRVM> for ScanBootImageRoots<E> {
     fn do_work(&mut self, _worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
         scan_boot_image::<E>(OpaquePointer::UNINITIALIZED, self.0, self.1);
     }
