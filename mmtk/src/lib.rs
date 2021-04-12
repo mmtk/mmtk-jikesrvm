@@ -1,44 +1,42 @@
 #![feature(llvm_asm)]
 #![feature(vec_into_raw_parts)]
-#[macro_use]
-extern crate mmtk;
 extern crate libc;
+extern crate mmtk;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
+use mmtk::plan::PlanConstraints;
 use mmtk::util::address::Address;
-use mmtk::TraceLocal;
 use mmtk::vm::VMBinding;
 use mmtk::MMTK;
-use mmtk::plan::PlanConstraints;
 
-use entrypoint::*;
 use collection::BOOT_THREAD;
+use entrypoint::*;
 
 mod entrypoint;
 mod unboxed_size_constants;
 #[macro_use]
 mod jtoc_call;
-pub mod scanning;
+pub mod active_plan;
+pub mod api;
+pub mod boot_image_size;
+pub mod class_loader_constants;
 pub mod collection;
-pub mod object_model;
+pub mod heap_layout_constants;
 pub mod java_header;
-pub mod java_size_constants;
 pub mod java_header_constants;
+pub mod java_size_constants;
 pub mod memory_manager_constants;
 pub mod misc_header_constants;
-pub mod tib_layout_constants;
-pub mod class_loader_constants;
-pub mod scan_statics;
-pub mod scan_boot_image;
-pub mod active_plan;
-pub mod heap_layout_constants;
-pub mod boot_image_size;
-pub mod scan_sanity;
+pub mod object_model;
 pub mod reference_glue;
-pub mod api;
+pub mod scan_boot_image;
+pub mod scan_sanity;
+pub mod scan_statics;
+pub mod scanning;
+pub mod tib_layout_constants;
 
 pub static mut JTOC_BASE: Address = Address::ZERO;
 
@@ -58,33 +56,33 @@ impl VMBinding for JikesRVM {
 impl JikesRVM {
     #[inline(always)]
     pub fn test(input: usize) -> usize {
-        unsafe {
-            jtoc_call!(TEST_METHOD_OFFSET, BOOT_THREAD, input)
-        }
+        unsafe { jtoc_call!(TEST_METHOD_OFFSET, BOOT_THREAD, input) }
     }
 
     #[inline(always)]
     pub fn test1() -> usize {
-        unsafe {
-            jtoc_call!(TEST1_METHOD_OFFSET, BOOT_THREAD)
-        }
+        unsafe { jtoc_call!(TEST1_METHOD_OFFSET, BOOT_THREAD) }
     }
 
     #[inline(always)]
     pub fn test2(input1: usize, input2: usize) -> usize {
-        unsafe {
-            jtoc_call!(TEST2_METHOD_OFFSET, BOOT_THREAD, input1, input2)
-        }
+        unsafe { jtoc_call!(TEST2_METHOD_OFFSET, BOOT_THREAD, input1, input2) }
     }
 
     #[inline(always)]
     pub fn test3(input1: usize, input2: usize, input3: usize, input4: usize) -> usize {
         unsafe {
-            jtoc_call!(TEST3_METHOD_OFFSET, BOOT_THREAD, input1, input2, input3, input4)
+            jtoc_call!(
+                TEST3_METHOD_OFFSET,
+                BOOT_THREAD,
+                input1,
+                input2,
+                input3,
+                input4
+            )
         }
     }
 }
-
 
 #[cfg(feature = "nogc")]
 pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::nogc::NOGC_CONSTRAINTS;

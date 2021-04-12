@@ -1,8 +1,8 @@
-use memory_manager_constants::*;
 use crate::unboxed_size_constants::*;
 use java_size_constants::*;
-use misc_header_constants::*;
 use memory_manager_constants;
+use memory_manager_constants::*;
+use misc_header_constants::*;
 
 /** Number of bytes in object's TIB pointer */
 pub const TIB_BYTES: usize = BYTES_IN_ADDRESS;
@@ -33,7 +33,7 @@ pub const MISC_HEADER_BYTES: usize = NUM_BYTES_HEADER;
 pub const OTHER_HEADER_BYTES: usize = GC_HEADER_BYTES + MISC_HEADER_BYTES;
 
 /** Offset of array length from object reference */
-pub const ARRAY_LENGTH_OFFSET: isize = - (ARRAY_LENGTH_BYTES as isize);
+pub const ARRAY_LENGTH_OFFSET: isize = -(ARRAY_LENGTH_BYTES as isize);
 /** Offset of the first field from object reference */
 pub const FIELD_ZERO_OFFSET: isize = ARRAY_LENGTH_OFFSET;
 /** Offset of the Java header from the object reference */
@@ -85,8 +85,8 @@ pub const SEGREGATE_ARRAYS_FOR_LINEAR_SCAN: bool = false;
 pub const HASH_STATE_UNHASHED: usize = 0;
 pub const HASH_STATE_HASHED: usize = 1 << 8; //0x00000100
 pub const HASH_STATE_HASHED_AND_MOVED: usize = 3 << 8; //0x0000300
-pub const HASH_STATE_MASK: usize = (HASH_STATE_UNHASHED | HASH_STATE_HASHED)
-        | HASH_STATE_HASHED_AND_MOVED;
+pub const HASH_STATE_MASK: usize =
+    (HASH_STATE_UNHASHED | HASH_STATE_HASHED) | HASH_STATE_HASHED_AND_MOVED;
 
 pub const HASHCODE_BYTES: usize = BYTES_IN_INT;
 pub const HASHCODE_OFFSET: isize = GC_HEADER_OFFSET - (HASHCODE_BYTES as isize);

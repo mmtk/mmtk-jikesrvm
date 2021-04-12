@@ -1,35 +1,27 @@
-use libc::c_void;
 use std::mem::size_of;
 use std::slice;
 
+use crate::scan_boot_image::ScanBootImageRoots;
+use crate::scan_statics::ScanStaticRoots;
+use crate::unboxed_size_constants::LOG_BYTES_IN_ADDRESS;
+use crate::SINGLETON;
+use active_plan::VMActivePlan;
+use entrypoint::*;
+use java_header_constants::*;
+use memory_manager_constants::*;
+use mmtk::scheduler::gc_work::*;
+use mmtk::scheduler::*;
+use mmtk::util::OpaquePointer;
+use mmtk::util::{Address, ObjectReference};
+use mmtk::vm::ActivePlan;
 use mmtk::vm::Scanning;
 use mmtk::*;
-use mmtk::scheduler::*;
-use mmtk::scheduler::gc_work::*;
-use mmtk::util::{ObjectReference, Address, SynchronizedCounter};
-use mmtk::util::OpaquePointer;
-use crate::unboxed_size_constants::LOG_BYTES_IN_ADDRESS;
-use crate::unboxed_size_constants::BYTES_IN_ADDRESS;
-use mmtk::vm::ObjectModel;
-use mmtk::vm::ActivePlan;
-use mmtk::vm::Collection;
-use memory_manager_constants::*;
-use java_header_constants::*;
-use scan_sanity;
-use entrypoint::*;
-use JTOC_BASE;
 use object_model::VMObjectModel;
-use active_plan::VMActivePlan;
-use collection::VMCollection;
-use java_header::TIB_OFFSET;
-use tib_layout_constants::TIB_TYPE_INDEX;
-use JikesRVM;
-use crate::SINGLETON;
-use crate::scan_statics::ScanStaticRoots;
-use crate::scan_boot_image::ScanBootImageRoots;
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::Drop;
+use JikesRVM;
+use JTOC_BASE;
 
 #[derive(Default)]
 pub struct VMScanning {}
@@ -39,44 +31,63 @@ const DUMP_REF: bool = false;
 // Fix the size of any `ProcessEdgesWork` to 4096. THe constant is also hard-coded in Java code.
 pub const PROCESS_EDGES_WORK_SIZE: usize = 4096;
 
-pub extern fn create_process_edges_work<W: ProcessEdgesWork<VM=JikesRVM>>(ptr: *mut Address, length: usize) -> *mut Address {
+pub(crate) extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = JikesRVM>>(
+    ptr: *mut Address,
+    length: usize,
+) -> *mut Address {
     debug_assert_eq!(W::CAPACITY, PROCESS_EDGES_WORK_SIZE);
     if !ptr.is_null() {
-        let mut buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, W::CAPACITY) };
-        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(W::new(buf, false, &SINGLETON));
+        let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, W::CAPACITY) };
+        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
+            .add(W::new(buf, false, &SINGLETON));
     }
-    let (ptr, length, capacity) =  Vec::with_capacity(W::CAPACITY).into_raw_parts();
+    let (ptr, _length, capacity) = Vec::with_capacity(W::CAPACITY).into_raw_parts();
     debug_assert_eq!(capacity, W::CAPACITY);
     ptr
 }
 
 impl Scanning<JikesRVM> for VMScanning {
     const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
-    fn scan_objects<W: ProcessEdgesWork<VM=JikesRVM>>(objects: &[ObjectReference], worker: &mut GCWorker<JikesRVM>) {
+    fn scan_objects<W: ProcessEdgesWork<VM = JikesRVM>>(
+        objects: &[ObjectReference],
+        worker: &mut GCWorker<JikesRVM>,
+    ) {
         let mut closure = ObjectsClosure::<W>(Vec::with_capacity(W::CAPACITY), worker, PhantomData);
         for o in objects {
             Self::scan_object_fields(*o, &mut closure);
         }
     }
-    fn scan_thread_roots<W: ProcessEdgesWork<VM=JikesRVM>>() {
+    fn scan_thread_roots<W: ProcessEdgesWork<VM = JikesRVM>>() {
         unreachable!()
     }
-    fn scan_thread_root<W: ProcessEdgesWork<VM=JikesRVM>>(mutator: &'static mut Mutator<JikesRVM>, tls: OpaquePointer) {
+    fn scan_thread_root<W: ProcessEdgesWork<VM = JikesRVM>>(
+        mutator: &'static mut Mutator<JikesRVM>,
+        tls: OpaquePointer,
+    ) {
         let process_edges = create_process_edges_work::<W>;
         Self::compute_thread_roots(process_edges as _, false, mutator.get_tls(), tls);
     }
-    fn scan_vm_specific_roots<W: ProcessEdgesWork<VM=JikesRVM>>() {
+    fn scan_vm_specific_roots<W: ProcessEdgesWork<VM = JikesRVM>>() {
         let workers = SINGLETON.scheduler.num_workers();
         for i in 0..workers {
-            SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare].add(ScanStaticRoots::<W>::new(i, workers));
-            SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare].add(ScanBootImageRoots::<W>::new(i, workers));
-            SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare].add(ScanGlobalRoots::<W>::new(i, workers));
+            SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare]
+                .add(ScanStaticRoots::<W>::new(i, workers));
+            SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare]
+                .add(ScanBootImageRoots::<W>::new(i, workers));
+            SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare]
+                .add(ScanGlobalRoots::<W>::new(i, workers));
         }
     }
-    fn scan_object<T: TransitiveClosure>(trace: &mut T, object: ObjectReference, tls: OpaquePointer) {
+    fn scan_object<T: TransitiveClosure>(
+        trace: &mut T,
+        object: ObjectReference,
+        tls: OpaquePointer,
+    ) {
         if DUMP_REF {
             let obj_ptr = object.value();
-            unsafe { jtoc_call!(DUMP_REF_METHOD_OFFSET, tls, obj_ptr); }
+            unsafe {
+                jtoc_call!(DUMP_REF_METHOD_OFFSET, tls, obj_ptr);
+            }
         }
         trace!("Getting reference array");
         let elt0_ptr: usize = unsafe {
@@ -144,20 +155,26 @@ impl Scanning<JikesRVM> for VMScanning {
     }
 }
 
-struct ObjectsClosure<'a, E: ProcessEdgesWork<VM = JikesRVM>>(Vec<Address>, &'a mut GCWorker<JikesRVM>, PhantomData<E>);
+struct ObjectsClosure<'a, E: ProcessEdgesWork<VM = JikesRVM>>(
+    Vec<Address>,
+    &'a mut GCWorker<JikesRVM>,
+    PhantomData<E>,
+);
 
 impl<'a, E: ProcessEdgesWork<VM = JikesRVM>> ObjectsClosure<'a, E> {
     #[inline]
     fn process_edge(&mut self, slot: Address) {
-        if self.0.len() == 0 {
+        if self.0.is_empty() {
             self.0.reserve(E::CAPACITY);
         }
         self.0.push(slot);
         if self.0.len() >= E::CAPACITY {
             let mut new_edges = Vec::new();
             mem::swap(&mut new_edges, &mut self.0);
-            self.1
-                .add_work(WorkBucketStage::Closure, E::new(new_edges, false, &SINGLETON));
+            self.1.add_work(
+                WorkBucketStage::Closure,
+                E::new(new_edges, false, &SINGLETON),
+            );
         }
     }
 }
@@ -167,13 +184,18 @@ impl<'a, E: ProcessEdgesWork<VM = JikesRVM>> Drop for ObjectsClosure<'a, E> {
     fn drop(&mut self) {
         let mut new_edges = Vec::new();
         mem::swap(&mut new_edges, &mut self.0);
-        self.1
-            .add_work(WorkBucketStage::Closure, E::new(new_edges, false, &SINGLETON));
+        self.1.add_work(
+            WorkBucketStage::Closure,
+            E::new(new_edges, false, &SINGLETON),
+        );
     }
 }
 
 impl VMScanning {
-    fn scan_object_fields<'a, E: ProcessEdgesWork<VM=JikesRVM>>(object: ObjectReference, closure: &mut ObjectsClosure<'a, E>) {
+    fn scan_object_fields<E: ProcessEdgesWork<VM = JikesRVM>>(
+        object: ObjectReference,
+        closure: &mut ObjectsClosure<E>,
+    ) {
         trace!("Getting reference array");
         let elt0_ptr: usize = unsafe {
             let rvm_type = VMObjectModel::load_rvm_type(object);
@@ -199,23 +221,42 @@ impl VMScanning {
             }
         }
     }
-    fn compute_thread_roots(process_edges: *mut extern fn (ptr: *mut Address, length: usize) -> *mut Address, new_roots_sufficient: bool, mutator: OpaquePointer, tls: OpaquePointer) {
+    fn compute_thread_roots(
+        process_edges: *mut extern "C" fn(ptr: *mut Address, length: usize) -> *mut Address,
+        new_roots_sufficient: bool,
+        mutator: OpaquePointer,
+        tls: OpaquePointer,
+    ) {
         unsafe {
             let process_code_locations = MOVES_CODE;
             // `mutator` is a jikesrvm tls pointer. Transmute it to addess to read its internal information
-            let thread = unsafe { mem::transmute::<OpaquePointer, Address>(mutator) };
+            let thread = mem::transmute::<OpaquePointer, Address>(mutator);
             debug_assert!(!thread.is_zero());
             if (thread + IS_COLLECTOR_FIELD_OFFSET).load::<bool>() {
                 return;
             }
             let thread_usize = thread.as_usize();
-            debug!("Calling JikesRVM to compute thread roots, thread_usize={:x}", thread_usize);
-            jtoc_call!(SCAN_THREAD_METHOD_OFFSET, tls, thread_usize, process_edges,
-                process_code_locations, new_roots_sufficient);
+            debug!(
+                "Calling JikesRVM to compute thread roots, thread_usize={:x}",
+                thread_usize
+            );
+            jtoc_call!(
+                SCAN_THREAD_METHOD_OFFSET,
+                tls,
+                thread_usize,
+                process_edges,
+                process_code_locations,
+                new_roots_sufficient
+            );
             debug!("Returned from JikesRVM thread roots");
         }
     }
-    fn scan_global_roots(tls: OpaquePointer, subwork_id: usize, total_subwork: usize, mut callback: impl FnMut(Address)) {
+    fn scan_global_roots(
+        tls: OpaquePointer,
+        subwork_id: usize,
+        total_subwork: usize,
+        mut callback: impl FnMut(Address),
+    ) {
         unsafe {
             // let cc = VMActivePlan::collector(tls);
 
@@ -273,25 +314,27 @@ impl VMScanning {
     }
 }
 
-pub struct ScanGlobalRoots<E: ProcessEdgesWork<VM=JikesRVM>>(usize, usize, PhantomData<E>);
+pub struct ScanGlobalRoots<E: ProcessEdgesWork<VM = JikesRVM>>(usize, usize, PhantomData<E>);
 
-impl <E: ProcessEdgesWork<VM=JikesRVM>> ScanGlobalRoots<E> {
+impl<E: ProcessEdgesWork<VM = JikesRVM>> ScanGlobalRoots<E> {
     pub fn new(subwork_id: usize, total_subwork: usize) -> Self {
         Self(subwork_id, total_subwork, PhantomData)
     }
 }
 
-impl <E: ProcessEdgesWork<VM=JikesRVM>> GCWork<JikesRVM> for ScanGlobalRoots<E> {
-    fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, mmtk: &'static MMTK<JikesRVM>) {
+impl<E: ProcessEdgesWork<VM = JikesRVM>> GCWork<JikesRVM> for ScanGlobalRoots<E> {
+    fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
         let mut edges = Vec::with_capacity(E::CAPACITY);
         VMScanning::scan_global_roots(worker.tls, self.0, self.1, |edge| {
             edges.push(edge);
             if edges.len() >= E::CAPACITY {
                 let mut new_edges = Vec::with_capacity(E::CAPACITY);
                 mem::swap(&mut new_edges, &mut edges);
-                SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(E::new(new_edges, true, &SINGLETON));
+                SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
+                    .add(E::new(new_edges, true, &SINGLETON));
             }
         });
-        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure].add(E::new(edges, true, &SINGLETON));
+        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
+            .add(E::new(edges, true, &SINGLETON));
     }
 }

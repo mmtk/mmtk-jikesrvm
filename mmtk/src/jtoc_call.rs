@@ -23,8 +23,6 @@ macro_rules! jikesrvm_instance_call {
 #[macro_export]
 macro_rules! jikesrvm_call {
     ($call_addr:expr, $tls:expr $(, $arg:ident)*) => ({
-        use collection::VMCollection as _VMCollection;
-        use libc::c_void;
         debug_assert!(!$tls.is_null());
 
         let ret: usize;

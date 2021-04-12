@@ -1,14 +1,12 @@
-use libc::c_void;
-
-use mmtk::vm::Collection;
-use mmtk::util::Address;
-use mmtk::MutatorContext;
-use mmtk::util::opaque_pointer::OpaquePointer;
-use mmtk::scheduler::*;
-use mmtk::scheduler::gc_work::*;
 use entrypoint::*;
-use JTOC_BASE;
+use mmtk::scheduler::gc_work::*;
+use mmtk::scheduler::*;
+use mmtk::util::opaque_pointer::OpaquePointer;
+use mmtk::util::Address;
+use mmtk::vm::Collection;
+use mmtk::MutatorContext;
 use JikesRVM;
+use JTOC_BASE;
 
 pub static mut BOOT_THREAD: OpaquePointer = OpaquePointer::UNINITIALIZED;
 
@@ -49,7 +47,7 @@ impl Collection<JikesRVM> for VMCollection {
         }
     }
 
-    fn prepare_mutator<T: MutatorContext<JikesRVM>>(tls: OpaquePointer, m: &T) {
+    fn prepare_mutator<T: MutatorContext<JikesRVM>>(tls: OpaquePointer, _m: &T) {
         unsafe {
             jtoc_call!(PREPARE_MUTATOR_METHOD_OFFSET, tls, tls);
         }
@@ -69,11 +67,16 @@ impl Collection<JikesRVM> for VMCollection {
 }
 
 impl VMCollection {
+    /// # Safety
+    /// Caller needs to make sure thread_id is valid.
     #[inline(always)]
     pub unsafe fn thread_from_id(thread_id: usize) -> Address {
-        ((JTOC_BASE + THREAD_BY_SLOT_FIELD_OFFSET).load::<Address>() + 4 * thread_id).load::<Address>()
+        ((JTOC_BASE + THREAD_BY_SLOT_FIELD_OFFSET).load::<Address>() + 4 * thread_id)
+            .load::<Address>()
     }
 
+    /// # Safety
+    /// Caller needs to make sure thread_index is valid.
     #[inline(always)]
     pub unsafe fn thread_from_index(thread_index: usize) -> Address {
         ((JTOC_BASE + THREADS_FIELD_OFFSET).load::<Address>() + 4 * thread_index).load::<Address>()
