@@ -274,7 +274,7 @@ impl VMScanning {
             let mut end = if subwork_id + 1 == threads {
                 size
             } else {
-                threads * chunk_size
+                (subwork_id + 1) * chunk_size
             };
             trace!("end: {:?}", end);
 
