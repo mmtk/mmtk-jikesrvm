@@ -72,8 +72,8 @@ impl Scanning<JikesRVM> for VMScanning {
         for i in 0..workers {
             SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare]
                 .add(ScanStaticRoots::<W>::new(i, workers));
-            SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare]
-                .add(ScanBootImageRoots::<W>::new(i, workers));
+            // SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare]
+            //     .add(ScanBootImageRoots::<W>::new(i, workers));
             SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare]
                 .add(ScanGlobalRoots::<W>::new(i, workers));
         }
