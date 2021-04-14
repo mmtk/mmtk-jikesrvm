@@ -46,6 +46,9 @@ pub fn scan_statics<W: ProcessEdgesWork<VM = JikesRVM>>(
         while slot < end {
             let slot_offset = slot * 4;
             // TODO: check_reference?
+            #[cfg(feature = "extreme_assertions")]
+            mmtk::util::edge_logger::log_edge(slots + slot_offset);
+
             edges.push(slots + slot_offset);
             if edges.len() >= W::CAPACITY {
                 SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
