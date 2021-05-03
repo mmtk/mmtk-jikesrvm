@@ -24,7 +24,17 @@ impl ActivePlan<JikesRVM> for VMActivePlan {
     }
 
     fn number_of_mutators() -> usize {
-        unsafe { (JTOC_BASE + NUM_THREADS_FIELD_OFFSET).load::<usize>() }
+        let num_threads = unsafe { (JTOC_BASE + NUM_THREADS_FIELD_OFFSET).load::<usize>() };
+        let mut num_mutators = 0usize;
+        for idx in 0..num_threads {
+            let t = unsafe { VMCollection::thread_from_index(idx) };
+            let active_mutator_context =
+                unsafe { (t + ACTIVE_MUTATOR_CONTEXT_FIELD_OFFSET).load::<bool>() };
+            if active_mutator_context {
+                num_mutators += 1;
+            }
+        }
+        num_mutators
     }
 
     fn global() -> &'static dyn Plan<VM = JikesRVM> {
@@ -48,9 +58,10 @@ impl ActivePlan<JikesRVM> for VMActivePlan {
     }
 
     fn get_next_mutator() -> Option<&'static mut Mutator<JikesRVM>> {
+        // We don't need this in the loop for STW-GC
+        let num_threads = unsafe { (JTOC_BASE + NUM_THREADS_FIELD_OFFSET).load::<usize>() };
         loop {
             let idx = MUTATOR_COUNTER.increment();
-            let num_threads = unsafe { (JTOC_BASE + NUM_THREADS_FIELD_OFFSET).load::<usize>() };
             if idx >= num_threads {
                 return None;
             } else {
