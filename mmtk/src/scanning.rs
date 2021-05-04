@@ -276,9 +276,9 @@ impl VMScanning {
             trace!("size: {:?}", size);
             let mut chunk_size = size / threads;
             trace!("chunk_size: {:?}", chunk_size);
-            let mut start = subwork_id * chunk_size;
+            let start = subwork_id * chunk_size;
             trace!("start: {:?}", start);
-            let mut end = if subwork_id + 1 == threads {
+            let end = if subwork_id + 1 == threads {
                 size
             } else {
                 (subwork_id + 1) * chunk_size
@@ -309,9 +309,9 @@ impl VMScanning {
             trace!("jni_global_refs size: {:?}", size);
             chunk_size = size / threads;
             trace!("chunk_size: {:?}", chunk_size);
-            let mut start = subwork_id * chunk_size;
+            let start = subwork_id * chunk_size;
             trace!("start: {:?}", start);
-            let mut end = if subwork_id + 1 == threads {
+            let end = if subwork_id + 1 == threads {
                 size
             } else {
                 (subwork_id + 1) * chunk_size
