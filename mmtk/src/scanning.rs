@@ -38,10 +38,6 @@ pub(crate) extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = Jike
     debug_assert_eq!(W::CAPACITY, PROCESS_EDGES_WORK_SIZE);
     if !ptr.is_null() {
         let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, W::CAPACITY) };
-        #[cfg(feature = "extreme_assertions")]
-        for edge in &buf {
-            mmtk::util::edge_logger::log_edge(*edge);
-        }
         SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
             .add(W::new(buf, false, &SINGLETON));
     }
@@ -168,9 +164,6 @@ struct ObjectsClosure<'a, E: ProcessEdgesWork<VM = JikesRVM>>(
 impl<'a, E: ProcessEdgesWork<VM = JikesRVM>> ObjectsClosure<'a, E> {
     #[inline]
     fn process_edge(&mut self, slot: Address) {
-        #[cfg(feature = "extreme_assertions")]
-        mmtk::util::edge_logger::log_edge(slot);
-
         if self.0.is_empty() {
             self.0.reserve(E::CAPACITY);
         }
@@ -337,9 +330,6 @@ impl<E: ProcessEdgesWork<VM = JikesRVM>> GCWork<JikesRVM> for ScanGlobalRoots<E>
     fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
         let mut edges = Vec::with_capacity(E::CAPACITY);
         VMScanning::scan_global_roots(worker.tls, self.0, self.1, |edge| {
-            #[cfg(feature = "extreme_assertions")]
-            mmtk::util::edge_logger::log_edge(edge);
-
             edges.push(edge);
             if edges.len() >= E::CAPACITY {
                 let mut new_edges = Vec::with_capacity(E::CAPACITY);

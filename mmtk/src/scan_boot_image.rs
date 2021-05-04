@@ -50,9 +50,6 @@ pub fn scan_boot_image<W: ProcessEdgesWork<VM = JikesRVM>>(
         while cursor < map_end {
             trace!("Processing chunk at {:x}", cursor);
             process_chunk(cursor, image_start, map_start, map_end, |edge| {
-                #[cfg(feature = "extreme_assertions")]
-                mmtk::util::edge_logger::log_edge(edge);
-
                 edges.push(edge);
                 if edges.len() >= W::CAPACITY {
                     let mut new_edges = Vec::with_capacity(W::CAPACITY);
