@@ -1,6 +1,5 @@
 use collection::VMCollection;
 use entrypoint::*;
-use mmtk::scheduler::*;
 use mmtk::util::OpaquePointer;
 use mmtk::util::{Address, SynchronizedCounter};
 use mmtk::vm::ActivePlan;
