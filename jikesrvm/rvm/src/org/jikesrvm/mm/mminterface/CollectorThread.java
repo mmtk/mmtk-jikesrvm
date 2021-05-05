@@ -77,8 +77,6 @@ public final class CollectorThread extends SystemThread {
     if (!VM.BuildWithRustMMTk) {
       rvmThread.collectorContext = context;
       rvmThread.collectorContext.initCollector(nextId);
-    } else {
-      rvmThread.activeMutatorContext = false;
     }
     nextId++;
   }

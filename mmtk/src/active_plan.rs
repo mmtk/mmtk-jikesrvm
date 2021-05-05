@@ -28,9 +28,8 @@ impl ActivePlan<JikesRVM> for VMActivePlan {
         let mut num_mutators = 0usize;
         for idx in 0..num_threads {
             let t = unsafe { VMCollection::thread_from_index(idx) };
-            let active_mutator_context =
-                unsafe { (t + ACTIVE_MUTATOR_CONTEXT_FIELD_OFFSET).load::<bool>() };
-            if active_mutator_context {
+            let is_mutator = unsafe { !(t + IS_COLLECTOR_FIELD_OFFSET).load::<bool>() };
+            if is_mutator {
                 num_mutators += 1;
             }
         }
@@ -66,9 +65,8 @@ impl ActivePlan<JikesRVM> for VMActivePlan {
                 return None;
             } else {
                 let t = unsafe { VMCollection::thread_from_index(idx) };
-                let active_mutator_context =
-                    unsafe { (t + ACTIVE_MUTATOR_CONTEXT_FIELD_OFFSET).load::<bool>() };
-                if active_mutator_context {
+                let is_mutator = unsafe { !(t + IS_COLLECTOR_FIELD_OFFSET).load::<bool>() };
+                if is_mutator {
                     unsafe {
                         let mutator = (t + MMTK_HANDLE_FIELD_OFFSET).load::<usize>();
                         let ret = &mut *(mutator as *mut Mutator<JikesRVM>);
