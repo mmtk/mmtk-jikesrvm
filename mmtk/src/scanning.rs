@@ -1,7 +1,7 @@
 use std::mem::size_of;
 use std::slice;
 
-use crate::scan_boot_image::ScanBootImageRoots;
+// use crate::scan_boot_image::ScanBootImageRoots;
 use crate::scan_statics::ScanStaticRoots;
 use crate::unboxed_size_constants::LOG_BYTES_IN_ADDRESS;
 use crate::SINGLETON;
@@ -72,8 +72,8 @@ impl Scanning<JikesRVM> for VMScanning {
         for i in 0..workers {
             SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare]
                 .add(ScanStaticRoots::<W>::new(i, workers));
-            SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare]
-                .add(ScanBootImageRoots::<W>::new(i, workers));
+            // SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare]
+            //     .add(ScanBootImageRoots::<W>::new(i, workers));
             SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare]
                 .add(ScanGlobalRoots::<W>::new(i, workers));
         }
@@ -269,12 +269,12 @@ impl VMScanning {
             trace!("size: {:?}", size);
             let mut chunk_size = size / threads;
             trace!("chunk_size: {:?}", chunk_size);
-            let mut start = subwork_id * chunk_size;
+            let start = subwork_id * chunk_size;
             trace!("start: {:?}", start);
-            let mut end = if subwork_id + 1 == threads {
+            let end = if subwork_id + 1 == threads {
                 size
             } else {
-                threads * chunk_size
+                (subwork_id + 1) * chunk_size
             };
             trace!("end: {:?}", end);
 
@@ -302,9 +302,13 @@ impl VMScanning {
             trace!("jni_global_refs size: {:?}", size);
             chunk_size = size / threads;
             trace!("chunk_size: {:?}", chunk_size);
-            start = 0;
+            let start = subwork_id * chunk_size;
             trace!("start: {:?}", start);
-            end = size;
+            let end = if subwork_id + 1 == threads {
+                size
+            } else {
+                (subwork_id + 1) * chunk_size
+            };
             trace!("end: {:?}", end);
 
             for i in start..end {
