@@ -1,6 +1,5 @@
 use collection::VMCollection;
 use entrypoint::*;
-use mmtk::scheduler::*;
 use mmtk::util::OpaquePointer;
 use mmtk::util::{Address, SynchronizedCounter};
 use mmtk::vm::ActivePlan;
@@ -17,12 +16,6 @@ static MUTATOR_COUNTER: SynchronizedCounter = SynchronizedCounter::new(0);
 pub struct VMActivePlan {}
 
 impl ActivePlan<JikesRVM> for VMActivePlan {
-    unsafe fn worker(tls: OpaquePointer) -> &'static mut GCWorker<JikesRVM> {
-        let thread: Address = mem::transmute(tls);
-        let system_thread = (thread + SYSTEM_THREAD_FIELD_OFFSET).load::<Address>();
-        &mut *((system_thread + WORKER_INSTANCE_FIELD_OFFSET).load::<*mut GCWorker<JikesRVM>>())
-    }
-
     fn number_of_mutators() -> usize {
         let num_threads = unsafe { (JTOC_BASE + NUM_THREADS_FIELD_OFFSET).load::<usize>() };
         let mut num_mutators = 0usize;
