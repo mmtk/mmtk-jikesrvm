@@ -1,6 +1,6 @@
 use collection::VMCollection;
 use entrypoint::*;
-use mmtk::util::OpaquePointer;
+use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, SynchronizedCounter};
 use mmtk::vm::ActivePlan;
 use mmtk::Mutator;
@@ -33,16 +33,18 @@ impl ActivePlan<JikesRVM> for VMActivePlan {
         &*SINGLETON.plan
     }
 
-    unsafe fn is_mutator(tls: OpaquePointer) -> bool {
-        let thread: Address = mem::transmute(tls);
-        !(thread + IS_COLLECTOR_FIELD_OFFSET).load::<bool>()
+    fn is_mutator(tls: VMThread) -> bool {
+        let thread: Address = unsafe { mem::transmute(tls) };
+        ! unsafe { (thread + IS_COLLECTOR_FIELD_OFFSET).load::<bool>() }
     }
 
     // XXX: Are they actually static
-    unsafe fn mutator(tls: OpaquePointer) -> &'static mut Mutator<JikesRVM> {
-        let thread: Address = mem::transmute(tls);
-        let mutator = (thread + MMTK_HANDLE_FIELD_OFFSET).load::<usize>();
-        &mut *(mutator as *mut Mutator<JikesRVM>)
+    fn mutator(tls: VMMutatorThread) -> &'static mut Mutator<JikesRVM> {
+        unsafe {
+            let thread: Address = mem::transmute(tls);
+            let mutator = (thread + MMTK_HANDLE_FIELD_OFFSET).load::<usize>();
+            &mut *(mutator as *mut Mutator<JikesRVM>)
+        }
     }
 
     fn reset_mutator_iterator() {

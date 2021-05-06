@@ -11,7 +11,7 @@ use java_header_constants::*;
 use memory_manager_constants::*;
 use mmtk::scheduler::gc_work::*;
 use mmtk::scheduler::*;
-use mmtk::util::OpaquePointer;
+use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::ActivePlan;
 use mmtk::vm::Scanning;
@@ -62,7 +62,7 @@ impl Scanning<JikesRVM> for VMScanning {
     }
     fn scan_thread_root<W: ProcessEdgesWork<VM = JikesRVM>>(
         mutator: &'static mut Mutator<JikesRVM>,
-        tls: OpaquePointer,
+        tls: VMWorkerThread,
     ) {
         let process_edges = create_process_edges_work::<W>;
         Self::compute_thread_roots(process_edges as _, false, mutator.get_tls(), tls);
@@ -81,7 +81,7 @@ impl Scanning<JikesRVM> for VMScanning {
     fn scan_object<T: TransitiveClosure>(
         trace: &mut T,
         object: ObjectReference,
-        tls: OpaquePointer,
+        tls: VMWorkerThread,
     ) {
         if DUMP_REF {
             let obj_ptr = object.value();
@@ -115,7 +115,7 @@ impl Scanning<JikesRVM> for VMScanning {
         }
     }
 
-    fn notify_initial_thread_scan_complete(partial_scan: bool, tls: OpaquePointer) {
+    fn notify_initial_thread_scan_complete(partial_scan: bool, tls: VMWorkerThread) {
         if !partial_scan {
             unsafe {
                 jtoc_call!(SNIP_OBSOLETE_COMPILED_METHODS_METHOD_OFFSET, tls);
@@ -123,7 +123,17 @@ impl Scanning<JikesRVM> for VMScanning {
         }
 
         unsafe {
-            VMActivePlan::mutator(tls).flush_remembered_sets();
+            // FIXME: in the original JikesRVM code, it is indeed calling mutator.flush_remembered_sets() from a collector thread.
+            // I guess it is because the above method (snipObsoleteCompliedMethods()) may mutate objects, and those are caught by barriers,
+            // and we need to flush remembered sets before scanning objects. So it is okay.
+            // However, I am not sure if this is still correct for Rust MMTk.
+            // We need to be really careful when implementing a Rust MMTk plan with barriers. Basically we need to check:
+            // 1. If a worker thread mutates objects, are those caught by barriers?
+            // 2. Can we call flush_remembered_sets() on a worker thread, and will that correctly flush remembered sets from the above?
+            // 3. Do we always wait for all thread/stack scanning to finish before starting scanning object?
+            //    We said we want to scan objects as soon as one thread finishes the scanning.
+            let mutator: VMMutatorThread = std::mem::transmute(tls);
+            VMActivePlan::mutator(mutator).flush_remembered_sets();
         }
     }
 
@@ -224,13 +234,13 @@ impl VMScanning {
     fn compute_thread_roots(
         process_edges: *mut extern "C" fn(ptr: *mut Address, length: usize) -> *mut Address,
         new_roots_sufficient: bool,
-        mutator: OpaquePointer,
-        tls: OpaquePointer,
+        mutator: VMMutatorThread,
+        tls: VMWorkerThread,
     ) {
         unsafe {
             let process_code_locations = MOVES_CODE;
             // `mutator` is a jikesrvm tls pointer. Transmute it to addess to read its internal information
-            let thread = mem::transmute::<OpaquePointer, Address>(mutator);
+            let thread = mem::transmute::<VMMutatorThread, Address>(mutator);
             debug_assert!(!thread.is_zero());
             if (thread + IS_COLLECTOR_FIELD_OFFSET).load::<bool>() {
                 return;
@@ -252,7 +262,7 @@ impl VMScanning {
         }
     }
     fn scan_global_roots(
-        tls: OpaquePointer,
+        tls: VMWorkerThread,
         subwork_id: usize,
         total_subwork: usize,
         mut callback: impl FnMut(Address),
