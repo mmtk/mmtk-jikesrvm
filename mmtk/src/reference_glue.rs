@@ -1,7 +1,7 @@
 use libc::c_void;
 
-use mmtk::util::reference_processor::*;
 use mmtk::util::opaque_pointer::*;
+use mmtk::util::reference_processor::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::ReferenceGlue;
 use mmtk::TraceLocal;

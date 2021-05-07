@@ -35,7 +35,7 @@ impl ActivePlan<JikesRVM> for VMActivePlan {
 
     fn is_mutator(tls: VMThread) -> bool {
         let thread: Address = unsafe { mem::transmute(tls) };
-        ! unsafe { (thread + IS_COLLECTOR_FIELD_OFFSET).load::<bool>() }
+        !unsafe { (thread + IS_COLLECTOR_FIELD_OFFSET).load::<bool>() }
     }
 
     // XXX: Are they actually static
