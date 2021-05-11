@@ -1,5 +1,6 @@
 use crate::{JikesRVM, SINGLETON};
 use entrypoint::*;
+use mmtk::memory_manager;
 use mmtk::scheduler::gc_work::*;
 use mmtk::scheduler::*;
 use mmtk::util::OpaquePointer;
@@ -48,15 +49,13 @@ pub fn scan_statics<W: ProcessEdgesWork<VM = JikesRVM>>(
             // TODO: check_reference?
             edges.push(slots + slot_offset);
             if edges.len() >= W::CAPACITY {
-                SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
-                    .add(W::new(edges, true, &SINGLETON));
+                memory_manager::add_work_packet(&SINGLETON, WorkBucketStage::Closure, W::new(edges, true, &SINGLETON));
                 edges = Vec::with_capacity(W::CAPACITY);
             }
             // trace.process_root_edge(slots + slot_offset, true);
             slot += REF_SLOT_SIZE;
         }
-        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
-            .add(W::new(edges, true, &SINGLETON));
+        memory_manager::add_work_packet(&SINGLETON, WorkBucketStage::Closure, W::new(edges, true, &SINGLETON));
     }
 }
 
