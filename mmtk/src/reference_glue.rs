@@ -1,7 +1,7 @@
 use libc::c_void;
 
+use mmtk::util::opaque_pointer::*;
 use mmtk::util::reference_processor::*;
-use mmtk::util::OpaquePointer;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::ReferenceGlue;
 use mmtk::TraceLocal;
@@ -40,7 +40,7 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
     fn process_reference<T: TraceLocal>(
         trace: &mut T,
         reference: ObjectReference,
-        tls: OpaquePointer,
+        tls: VMWorkerThread,
     ) -> ObjectReference {
         debug_assert!(!reference.is_null());
 

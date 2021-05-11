@@ -5,7 +5,8 @@ use libc::c_char;
 use libc::c_void;
 use mmtk::memory_manager;
 use mmtk::scheduler::*;
-use mmtk::util::{Address, ObjectReference, OpaquePointer};
+use mmtk::util::opaque_pointer::*;
+use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use mmtk::MMTK;
@@ -38,12 +39,12 @@ pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
 }
 
 #[no_mangle]
-pub extern "C" fn start_control_collector(tls: OpaquePointer) {
+pub extern "C" fn start_control_collector(tls: VMWorkerThread) {
     memory_manager::start_control_collector(&SINGLETON, tls);
 }
 
 #[no_mangle]
-pub extern "C" fn bind_mutator(tls: OpaquePointer) -> *mut Mutator<JikesRVM> {
+pub extern "C" fn bind_mutator(tls: VMMutatorThread) -> *mut Mutator<JikesRVM> {
     let box_mutator = memory_manager::bind_mutator(&SINGLETON, tls);
     Box::into_raw(box_mutator)
 }
@@ -90,12 +91,12 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> i32 {
 #[no_mangle]
 // We trust the worker pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn start_worker(tls: OpaquePointer, worker: *mut GCWorker<JikesRVM>) {
+pub extern "C" fn start_worker(tls: VMWorkerThread, worker: *mut GCWorker<JikesRVM>) {
     memory_manager::start_worker::<JikesRVM>(tls, unsafe { worker.as_mut().unwrap() }, &SINGLETON)
 }
 
 #[no_mangle]
-pub extern "C" fn enable_collection(tls: OpaquePointer) {
+pub extern "C" fn enable_collection(tls: VMThread) {
     memory_manager::enable_collection(&SINGLETON, tls)
 }
 
@@ -121,7 +122,7 @@ pub extern "C" fn scan_region() {
 }
 
 #[no_mangle]
-pub extern "C" fn handle_user_collection_request(tls: OpaquePointer) {
+pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
     memory_manager::handle_user_collection_request::<JikesRVM>(&SINGLETON, tls);
 }
 
@@ -164,7 +165,7 @@ pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectR
 }
 
 #[no_mangle]
-pub extern "C" fn harness_begin(tls: OpaquePointer) {
+pub extern "C" fn harness_begin(tls: VMMutatorThread) {
     memory_manager::harness_begin(&SINGLETON, tls)
 }
 
