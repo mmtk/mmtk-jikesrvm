@@ -10,7 +10,6 @@ use entrypoint::*;
 use java_header_constants::*;
 use memory_manager_constants::*;
 use mmtk::memory_manager;
-use mmtk::scheduler::gc_work::*;
 use mmtk::scheduler::*;
 use mmtk::util::OpaquePointer;
 use mmtk::util::{Address, ObjectReference};

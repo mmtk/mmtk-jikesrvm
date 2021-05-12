@@ -1,7 +1,6 @@
 use crate::{JikesRVM, SINGLETON};
 use entrypoint::*;
 use mmtk::memory_manager;
-use mmtk::scheduler::gc_work::*;
 use mmtk::scheduler::*;
 use mmtk::util::OpaquePointer;
 use mmtk::MMTK;

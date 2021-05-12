@@ -3,7 +3,6 @@ use crate::{JikesRVM, SINGLETON};
 use entrypoint::*;
 use java_size_constants::*;
 use mmtk::memory_manager;
-use mmtk::scheduler::gc_work::*;
 use mmtk::scheduler::*;
 use mmtk::util::conversions;
 use mmtk::util::Address;
