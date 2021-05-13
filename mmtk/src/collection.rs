@@ -1,6 +1,6 @@
 use entrypoint::*;
 use mmtk::scheduler::*;
-use mmtk::util::opaque_pointer::OpaquePointer;
+use mmtk::util::opaque_pointer::*;
 use mmtk::util::Address;
 use mmtk::vm::Collection;
 use mmtk::MutatorContext;
@@ -15,27 +15,27 @@ pub struct VMCollection {}
 // FIXME: Shouldn't these all be unsafe because of tls?
 impl Collection<JikesRVM> for VMCollection {
     #[inline(always)]
-    fn stop_all_mutators<E: ProcessEdgesWork<VM = JikesRVM>>(tls: OpaquePointer) {
+    fn stop_all_mutators<E: ProcessEdgesWork<VM = JikesRVM>>(tls: VMWorkerThread) {
         unsafe {
             jtoc_call!(BLOCK_ALL_MUTATORS_FOR_GC_METHOD_OFFSET, tls);
         }
     }
 
     #[inline(always)]
-    fn resume_mutators(tls: OpaquePointer) {
+    fn resume_mutators(tls: VMWorkerThread) {
         unsafe {
             jtoc_call!(UNBLOCK_ALL_MUTATORS_FOR_GC_METHOD_OFFSET, tls);
         }
     }
 
     #[inline(always)]
-    fn block_for_gc(tls: OpaquePointer) {
+    fn block_for_gc(tls: VMMutatorThread) {
         unsafe {
             jtoc_call!(BLOCK_FOR_GC_METHOD_OFFSET, tls);
         }
     }
 
-    fn spawn_worker_thread(tls: OpaquePointer, ctx: Option<&GCWorker<JikesRVM>>) {
+    fn spawn_worker_thread(tls: VMThread, ctx: Option<&GCWorker<JikesRVM>>) {
         let ctx_ptr = if let Some(r) = ctx {
             r as *const GCWorker<JikesRVM> as *mut GCWorker<JikesRVM>
         } else {
@@ -47,8 +47,8 @@ impl Collection<JikesRVM> for VMCollection {
     }
 
     fn prepare_mutator<T: MutatorContext<JikesRVM>>(
-        tls_worker: OpaquePointer,
-        tls_mutator: OpaquePointer,
+        tls_worker: VMWorkerThread,
+        tls_mutator: VMMutatorThread,
         _m: &T,
     ) {
         unsafe {
@@ -56,13 +56,13 @@ impl Collection<JikesRVM> for VMCollection {
         }
     }
 
-    fn out_of_memory(tls: OpaquePointer) {
+    fn out_of_memory(tls: VMThread) {
         unsafe {
             jtoc_call!(OUT_OF_MEMORY_METHOD_OFFSET, tls);
         }
     }
 
-    fn schedule_finalization(tls: OpaquePointer) {
+    fn schedule_finalization(tls: VMWorkerThread) {
         unsafe {
             jtoc_call!(SCHEDULE_FINALIZER_METHOD_OFFSET, tls);
         }

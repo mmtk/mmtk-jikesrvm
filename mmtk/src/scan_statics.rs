@@ -2,7 +2,7 @@ use crate::{JikesRVM, SINGLETON};
 use entrypoint::*;
 use mmtk::memory_manager;
 use mmtk::scheduler::*;
-use mmtk::util::OpaquePointer;
+use mmtk::util::opaque_pointer::*;
 use mmtk::MMTK;
 use std::marker::PhantomData;
 use JTOC_BASE;
@@ -15,7 +15,7 @@ const REF_SLOT_SIZE: usize = 2;
 const CHUNK_SIZE_MASK: usize = 0xFFFFFFFF - (REF_SLOT_SIZE - 1);
 
 pub fn scan_statics<W: ProcessEdgesWork<VM = JikesRVM>>(
-    tls: OpaquePointer,
+    tls: VMWorkerThread,
     subwork_id: usize,
     total_subwork: usize,
 ) {
