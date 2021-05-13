@@ -54,13 +54,21 @@ pub fn scan_boot_image<W: ProcessEdgesWork<VM = JikesRVM>>(
                 if edges.len() >= W::CAPACITY {
                     let mut new_edges = Vec::with_capacity(W::CAPACITY);
                     mem::swap(&mut new_edges, &mut edges);
-                    memory_manager::add_work_packet(&SINGLETON, WorkBucketStage::Closure, W::new(new_edges, true, &SINGLETON));
+                    memory_manager::add_work_packet(
+                        &SINGLETON,
+                        WorkBucketStage::Closure,
+                        W::new(new_edges, true, &SINGLETON),
+                    );
                 }
             });
             trace!("Chunk processed successfully");
             cursor += stride;
         }
-        memory_manager::add_work_packet(&SINGLETON, WorkBucketStage::Closure, W::new(edges, true, &SINGLETON));
+        memory_manager::add_work_packet(
+            &SINGLETON,
+            WorkBucketStage::Closure,
+            W::new(edges, true, &SINGLETON),
+        );
     }
 }
 

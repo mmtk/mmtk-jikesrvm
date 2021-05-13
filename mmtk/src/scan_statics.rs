@@ -48,13 +48,21 @@ pub fn scan_statics<W: ProcessEdgesWork<VM = JikesRVM>>(
             // TODO: check_reference?
             edges.push(slots + slot_offset);
             if edges.len() >= W::CAPACITY {
-                memory_manager::add_work_packet(&SINGLETON, WorkBucketStage::Closure, W::new(edges, true, &SINGLETON));
+                memory_manager::add_work_packet(
+                    &SINGLETON,
+                    WorkBucketStage::Closure,
+                    W::new(edges, true, &SINGLETON),
+                );
                 edges = Vec::with_capacity(W::CAPACITY);
             }
             // trace.process_root_edge(slots + slot_offset, true);
             slot += REF_SLOT_SIZE;
         }
-        memory_manager::add_work_packet(&SINGLETON, WorkBucketStage::Closure, W::new(edges, true, &SINGLETON));
+        memory_manager::add_work_packet(
+            &SINGLETON,
+            WorkBucketStage::Closure,
+            W::new(edges, true, &SINGLETON),
+        );
     }
 }
 
