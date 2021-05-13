@@ -1,73 +1,69 @@
-pub const ACC_PUBLIC: u16       = 0x0001;  //   X      X      X
-pub const ACC_PRIVATE: u16      = 0x0002;  //   X      X      X (applicable to inner classes)
-pub const ACC_PROTECTED: u16    = 0x0004;  //   X      X      X (applicable to inner classes)
-pub const ACC_STATIC: u16       = 0x0008;  //   X      X      X (applicable to inner classes)
-pub const ACC_FINAL: u16        = 0x0010;  //   X      X      X
-pub const ACC_SYNCHRONIZED: u16 = 0x0020;  //   -      -      X  <- same value as ACC_SUPER
-pub const ACC_SUPER: u16        = 0x0020;  //   X      -      -  <- same value as ACC_SYNCHRONIZED
-pub const ACC_VOLATILE: u16     = 0x0040;  //   -      X      -
-pub const BRIDGE: u16           = 0x0040;  //   -      -      X  <- same value as ACC_VOLATILE
-pub const ACC_TRANSIENT: u16    = 0x0080;  //   -      X      -
-pub const VARARGS: u16          = 0x0080;  //   -      -      X  <- same value as ACC_TRANSIENT
-pub const ACC_NATIVE: u16       = 0x0100;  //   -      -      X
-pub const ACC_INTERFACE: u16    = 0x0200;  //   X      -      -
-pub const ACC_ABSTRACT: u16     = 0x0400;  //   X      -      X
-pub const ACC_STRICT: u16       = 0x0800;  //   -      -      X
-pub const ACC_SYNTHETIC: u16    = 0x1000;  //   X      X      X
-pub const ACC_ANNOTATION: u16   = 0x2000;  //   X      -      -
-pub const ACC_ENUM: u16         = 0x4000;  //   X      X      -
+pub const ACC_PUBLIC: u16 = 0x0001; //   X      X      X
+pub const ACC_PRIVATE: u16 = 0x0002; //   X      X      X (applicable to inner classes)
+pub const ACC_PROTECTED: u16 = 0x0004; //   X      X      X (applicable to inner classes)
+pub const ACC_STATIC: u16 = 0x0008; //   X      X      X (applicable to inner classes)
+pub const ACC_FINAL: u16 = 0x0010; //   X      X      X
+pub const ACC_SYNCHRONIZED: u16 = 0x0020; //   -      -      X  <- same value as ACC_SUPER
+pub const ACC_SUPER: u16 = 0x0020; //   X      -      -  <- same value as ACC_SYNCHRONIZED
+pub const ACC_VOLATILE: u16 = 0x0040; //   -      X      -
+pub const BRIDGE: u16 = 0x0040; //   -      -      X  <- same value as ACC_VOLATILE
+pub const ACC_TRANSIENT: u16 = 0x0080; //   -      X      -
+pub const VARARGS: u16 = 0x0080; //   -      -      X  <- same value as ACC_TRANSIENT
+pub const ACC_NATIVE: u16 = 0x0100; //   -      -      X
+pub const ACC_INTERFACE: u16 = 0x0200; //   X      -      -
+pub const ACC_ABSTRACT: u16 = 0x0400; //   X      -      X
+pub const ACC_STRICT: u16 = 0x0800; //   -      -      X
+pub const ACC_SYNTHETIC: u16 = 0x1000; //   X      X      X
+pub const ACC_ANNOTATION: u16 = 0x2000; //   X      -      -
+pub const ACC_ENUM: u16 = 0x4000; //   X      X      -
 
-pub const APPLICABLE_TO_FIELDS: u16 =
-    (ACC_PUBLIC |
-    ACC_PRIVATE |
-    ACC_PROTECTED |
-    ACC_STATIC |
-    ACC_FINAL |
-    ACC_VOLATILE |
-    ACC_TRANSIENT |
-    ACC_SYNTHETIC |
-    ACC_ENUM);
+pub const APPLICABLE_TO_FIELDS: u16 = ACC_PUBLIC
+    | ACC_PRIVATE
+    | ACC_PROTECTED
+    | ACC_STATIC
+    | ACC_FINAL
+    | ACC_VOLATILE
+    | ACC_TRANSIENT
+    | ACC_SYNTHETIC
+    | ACC_ENUM;
 
-pub const APPLICABLE_TO_METHODS: u16 =
-    (ACC_PUBLIC |
-    ACC_PRIVATE |
-    ACC_PROTECTED |
-    ACC_STATIC |
-    ACC_FINAL |
-    ACC_SYNCHRONIZED |
-    BRIDGE |
-    VARARGS |
-    ACC_NATIVE |
-    ACC_ABSTRACT |
-    ACC_STRICT |
-    ACC_SYNTHETIC);
+pub const APPLICABLE_TO_METHODS: u16 = ACC_PUBLIC
+    | ACC_PRIVATE
+    | ACC_PROTECTED
+    | ACC_STATIC
+    | ACC_FINAL
+    | ACC_SYNCHRONIZED
+    | BRIDGE
+    | VARARGS
+    | ACC_NATIVE
+    | ACC_ABSTRACT
+    | ACC_STRICT
+    | ACC_SYNTHETIC;
 
-pub const APPLICABLE_TO_CLASSES: u16 =
-    (ACC_PUBLIC |
-    ACC_PRIVATE |
-    ACC_PROTECTED |
-    ACC_STATIC |
-    ACC_FINAL |
-    ACC_SUPER |
-    ACC_INTERFACE |
-    ACC_ABSTRACT |
-    ACC_SYNTHETIC |
-    ACC_ANNOTATION |
-    ACC_ENUM);
+pub const APPLICABLE_TO_CLASSES: u16 = ACC_PUBLIC
+    | ACC_PRIVATE
+    | ACC_PROTECTED
+    | ACC_STATIC
+    | ACC_FINAL
+    | ACC_SUPER
+    | ACC_INTERFACE
+    | ACC_ABSTRACT
+    | ACC_SYNTHETIC
+    | ACC_ANNOTATION
+    | ACC_ENUM;
 
 /**
  * The modifiers that can appear in the return value of
  * {@link java.lang.Class#getModifiers()} according to
  * the Java API specification.
  */
-pub const APPLICABLE_FOR_CLASS_GET_MODIFIERS: u16 =
-    (ACC_PUBLIC |
-    ACC_PRIVATE |
-    ACC_PROTECTED |
-    ACC_STATIC |
-    ACC_FINAL |
-    ACC_INTERFACE |
-    ACC_ABSTRACT);
+pub const APPLICABLE_FOR_CLASS_GET_MODIFIERS: u16 = ACC_PUBLIC
+    | ACC_PRIVATE
+    | ACC_PROTECTED
+    | ACC_STATIC
+    | ACC_FINAL
+    | ACC_INTERFACE
+    | ACC_ABSTRACT;
 
 /* Possible states of a class description. */
 /** nothing present yet */
@@ -102,17 +98,17 @@ pub const TAG_MEMBERNAME_AND_DESCRIPTOR: u8 = 12;
 
 // Type codes for class, array, and primitive types.
 //
-pub const CLASS_TYPE_CODE: u8 = 'L' as u8;
-pub const ARRAY_TYPE_CODE: u8 = '[' as u8;
-pub const VOID_TYPE_CODE: u8 = 'V' as u8;
-pub const BOOLEAN_TYPE_CODE: u8 = 'Z' as u8;
-pub const BYTE_TYPE_CODE: u8 = 'B' as u8;
-pub const SHORT_TYPE_CODE: u8 = 'S' as u8;
-pub const INT_TYPE_CODE: u8 = 'I' as u8;
-pub const LONG_TYPE_CODE: u8 = 'J' as u8;
-pub const FLOAT_TYPE_CODE: u8 = 'F' as u8;
-pub const DOUBLE_TYPE_CODE: u8 = 'D' as u8;
-pub const CHAR_TYPE_CODE: u8 = 'C' as u8;
+pub const CLASS_TYPE_CODE: u8 = b'L';
+pub const ARRAY_TYPE_CODE: u8 = b'[';
+pub const VOID_TYPE_CODE: u8 = b'V';
+pub const BOOLEAN_TYPE_CODE: u8 = b'Z';
+pub const BYTE_TYPE_CODE: u8 = b'B';
+pub const SHORT_TYPE_CODE: u8 = b'S';
+pub const INT_TYPE_CODE: u8 = b'I';
+pub const LONG_TYPE_CODE: u8 = b'J';
+pub const FLOAT_TYPE_CODE: u8 = b'F';
+pub const DOUBLE_TYPE_CODE: u8 = b'D';
+pub const CHAR_TYPE_CODE: u8 = b'C';
 
 // Constants for our internal encoding of constant pools.
 /** Constant pool entry for a UTF-8 encoded atom */

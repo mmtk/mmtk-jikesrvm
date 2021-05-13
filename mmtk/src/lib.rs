@@ -1,8 +1,7 @@
 #![feature(llvm_asm)]
 #![feature(vec_into_raw_parts)]
-#[macro_use]
-extern crate mmtk;
 extern crate libc;
+extern crate mmtk;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
@@ -75,6 +74,8 @@ impl JikesRVM {
 pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::nogc::NOGC_CONSTRAINTS;
 #[cfg(feature = "semispace")]
 pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::semispace::SS_CONSTRAINTS;
+#[cfg(feature = "marksweep")]
+pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::marksweep::MS_CONSTRAINTS;
 
 lazy_static! {
     pub static ref SINGLETON: MMTK<JikesRVM> = {
@@ -82,6 +83,8 @@ lazy_static! {
         std::env::set_var("MMTK_PLAN", "NoGC");
         #[cfg(feature = "semispace")]
         std::env::set_var("MMTK_PLAN", "SemiSpace");
+        #[cfg(feature = "marksweep")]
+        std::env::set_var("MMTK_PLAN", "MarkSweep");
 
         MMTK::new()
     };

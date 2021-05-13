@@ -1,6 +1,6 @@
-use mmtk::util::Address;
-use boot_image_size::DATA_SIZE_ADJUSTMENT;
 use boot_image_size::CODE_SIZE_ADJUSTMENT;
+use boot_image_size::DATA_SIZE_ADJUSTMENT;
+use mmtk::util::Address;
 
 /** The traditional 32-bit heap layout */
 pub const HEAP_LAYOUT_32BIT: usize = 1;
@@ -40,7 +40,8 @@ pub const BOOT_IMAGE_CODE_SIZE: usize = BOOT_IMAGE_RMAP_START.get_extent(BOOT_IM
  * is not set and the boot image data size is greater than or equal to this amount
  * of bytes.
  */
-pub const BOOT_IMAGE_DATA_SIZE_LIMIT: usize = (1.0 * (56 << 20) as f32 * DATA_SIZE_ADJUSTMENT) as usize;
+pub const BOOT_IMAGE_DATA_SIZE_LIMIT: usize =
+    (1.0 * (56 << 20) as f32 * DATA_SIZE_ADJUSTMENT) as usize;
 
 /**
  * Limit for boot image code size: fail the build if
@@ -49,17 +50,18 @@ pub const BOOT_IMAGE_DATA_SIZE_LIMIT: usize = (1.0 * (56 << 20) as f32 * DATA_SI
  * of bytes.
  */
 // TODO Changed the limit from 24 << 20 to 24 << 21, need to check if this has unintended side effects
-pub const BOOT_IMAGE_CODE_SIZE_LIMIT: usize = (1.0 * (24 << 21) as f32 * CODE_SIZE_ADJUSTMENT) as usize;
+pub const BOOT_IMAGE_CODE_SIZE_LIMIT: usize =
+    (1.0 * (24 << 21) as f32 * CODE_SIZE_ADJUSTMENT) as usize;
 
 /* Typical compression ratio is about 1/20 */
-pub const BAD_MAP_COMPRESSION: usize = 5;  // conservative heuristic
-pub const MAX_BOOT_IMAGE_RMAP_SIZE: usize = BOOT_IMAGE_DATA_SIZE/BAD_MAP_COMPRESSION;
+pub const BAD_MAP_COMPRESSION: usize = 5; // conservative heuristic
+pub const MAX_BOOT_IMAGE_RMAP_SIZE: usize = BOOT_IMAGE_DATA_SIZE / BAD_MAP_COMPRESSION;
 
 /** The address of the end of the data section of the boot image. */
 pub const BOOT_IMAGE_DATA_END: Address = BOOT_IMAGE_DATA_START.add(BOOT_IMAGE_DATA_SIZE);
 
 /** The address of the end of the code section of the boot image. */
-pub const BOOT_IMAGE_CODE_END: Address = BOOT_IMAGE_CODE_START.add( BOOT_IMAGE_CODE_SIZE);
+pub const BOOT_IMAGE_CODE_END: Address = BOOT_IMAGE_CODE_START.add(BOOT_IMAGE_CODE_SIZE);
 
 /** The address of the end of the ref map section of the boot image. */
 pub const BOOT_IMAGE_RMAP_END: Address = BOOT_IMAGE_RMAP_START.add(MAX_BOOT_IMAGE_RMAP_SIZE);

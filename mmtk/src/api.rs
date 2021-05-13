@@ -1,62 +1,82 @@
-use libc::c_void;
+use crate::scanning::PROCESS_EDGES_WORK_SIZE;
+use collection::VMCollection;
+use collection::BOOT_THREAD;
 use libc::c_char;
-use std::ffi::CStr;
+use libc::c_void;
 use mmtk::memory_manager;
-use mmtk::util::{Address, OpaquePointer, ObjectReference};
+use mmtk::scheduler::*;
+use mmtk::util::opaque_pointer::*;
+use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
-use mmtk::Plan;
 use mmtk::MMTK;
-use mmtk::scheduler::*;
+use std::ffi::CStr;
 use JikesRVM;
 use JTOC_BASE;
 use SINGLETON;
-use collection::BOOT_THREAD;
-use collection::VMCollection;
-use crate::scanning::PROCESS_EDGES_WORK_SIZE;
 
+/// # Safety
+/// Caller needs to make sure the ptr is a valid vector pointer.
 #[no_mangle]
-pub extern "C" fn release_buffer(ptr: *mut Address) {
-    let _vec = unsafe { Vec::<Address>::from_raw_parts(ptr, 0, PROCESS_EDGES_WORK_SIZE) };
+pub unsafe extern "C" fn release_buffer(ptr: *mut Address) {
+    let _vec = Vec::<Address>::from_raw_parts(ptr, 0, PROCESS_EDGES_WORK_SIZE);
 }
 
 #[no_mangle]
 pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
     unsafe {
         JTOC_BASE = Address::from_mut_ptr(jtoc);
-        BOOT_THREAD
-            = OpaquePointer::from_address(VMCollection::thread_from_id(1));
+        BOOT_THREAD = OpaquePointer::from_address(VMCollection::thread_from_id(1));
     }
-    let singleton_mut = unsafe { &mut *(&*SINGLETON as *const MMTK<JikesRVM> as *mut MMTK<JikesRVM>) };
+    // MMTk should not be used before gc_init, and gc_init is single threaded. It is fine we get a mutable reference from the singleton.
+    #[allow(clippy::cast_ref_to_mut)]
+    let singleton_mut =
+        unsafe { &mut *(&*SINGLETON as *const MMTK<JikesRVM> as *mut MMTK<JikesRVM>) };
     memory_manager::gc_init(singleton_mut, heap_size);
     debug_assert!(731 == JikesRVM::mm_entrypoint_test(21, 34, 9, 8));
 }
 
 #[no_mangle]
-pub extern "C" fn start_control_collector(tls: OpaquePointer) {
+pub extern "C" fn start_control_collector(tls: VMWorkerThread) {
     memory_manager::start_control_collector(&SINGLETON, tls);
 }
 
 #[no_mangle]
-pub extern "C" fn bind_mutator(tls: OpaquePointer) -> *mut Mutator<JikesRVM> {
+pub extern "C" fn bind_mutator(tls: VMMutatorThread) -> *mut Mutator<JikesRVM> {
     let box_mutator = memory_manager::bind_mutator(&SINGLETON, tls);
     Box::into_raw(box_mutator)
 }
 
 #[no_mangle]
+// It is fine we turn the pointer back to box, as we turned a boxed value to the raw pointer in bind_mutator()
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn destroy_mutator(mutator: *mut Mutator<JikesRVM>) {
     memory_manager::destroy_mutator(unsafe { Box::from_raw(mutator) })
 }
 
 #[no_mangle]
-pub extern "C" fn alloc(mutator: *mut Mutator<JikesRVM>, size: usize,
-                           align: usize, offset: isize, allocator: AllocationSemantics) -> Address {
+// We trust the mutator pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub extern "C" fn alloc(
+    mutator: *mut Mutator<JikesRVM>,
+    size: usize,
+    align: usize,
+    offset: isize,
+    allocator: AllocationSemantics,
+) -> Address {
     memory_manager::alloc::<JikesRVM>(unsafe { &mut *mutator }, size, align, offset, allocator)
 }
 
 #[no_mangle]
-pub extern "C" fn post_alloc(mutator: *mut Mutator<JikesRVM>, refer: ObjectReference, _type_refer: ObjectReference,
-                                bytes: usize, allocator: AllocationSemantics) {
+// We trust the mutator pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub extern "C" fn post_alloc(
+    mutator: *mut Mutator<JikesRVM>,
+    refer: ObjectReference,
+    _type_refer: ObjectReference,
+    bytes: usize,
+    allocator: AllocationSemantics,
+) {
     memory_manager::post_alloc::<JikesRVM>(unsafe { &mut *mutator }, refer, bytes, allocator)
 }
 
@@ -67,12 +87,14 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> i32 {
 }
 
 #[no_mangle]
-pub extern "C" fn start_worker(tls: OpaquePointer, worker: *mut GCWorker<JikesRVM>) {
+// We trust the worker pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub extern "C" fn start_worker(tls: VMWorkerThread, worker: *mut GCWorker<JikesRVM>) {
     memory_manager::start_worker::<JikesRVM>(tls, unsafe { worker.as_mut().unwrap() }, &SINGLETON)
 }
 
 #[no_mangle]
-pub extern "C" fn enable_collection(tls: OpaquePointer) {
+pub extern "C" fn enable_collection(tls: VMThread) {
     memory_manager::enable_collection(&SINGLETON, tls)
 }
 
@@ -98,7 +120,7 @@ pub extern "C" fn scan_region() {
 }
 
 #[no_mangle]
-pub extern "C" fn handle_user_collection_request(tls: OpaquePointer) {
+pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
     memory_manager::handle_user_collection_request::<JikesRVM>(&SINGLETON, tls);
 }
 
@@ -111,13 +133,13 @@ pub extern "C" fn is_live_object(object: ObjectReference) -> i32 {
 #[no_mangle]
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
 pub extern "C" fn is_mapped_object(object: ObjectReference) -> i32 {
-    object.is_mapped() as i32
+    memory_manager::is_mapped_object(object) as i32
 }
 
 #[no_mangle]
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
 pub extern "C" fn is_mapped_address(address: Address) -> i32 {
-    address.is_mapped() as i32
+    memory_manager::is_mapped_address(address) as i32
 }
 
 #[no_mangle]
@@ -141,21 +163,27 @@ pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectR
 }
 
 #[no_mangle]
-pub extern "C" fn harness_begin(tls: OpaquePointer) {
+pub extern "C" fn harness_begin(tls: VMMutatorThread) {
     memory_manager::harness_begin(&SINGLETON, tls)
 }
 
 #[no_mangle]
-pub extern "C" fn harness_end(tls: OpaquePointer) {
+pub extern "C" fn harness_end(_tls: OpaquePointer) {
     memory_manager::harness_end(&SINGLETON)
 }
 
 #[no_mangle]
+// We trust the name/value pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
 pub extern "C" fn process(name: *const c_char, value: *const c_char) -> i32 {
     let name_str: &CStr = unsafe { CStr::from_ptr(name) };
     let value_str: &CStr = unsafe { CStr::from_ptr(value) };
-    memory_manager::process(&SINGLETON, name_str.to_str().unwrap(), value_str.to_str().unwrap()) as i32
+    memory_manager::process(
+        &SINGLETON,
+        name_str.to_str().unwrap(),
+        value_str.to_str().unwrap(),
+    ) as i32
 }
 
 #[no_mangle]
@@ -168,15 +196,32 @@ pub extern "C" fn last_heap_address() -> Address {
     memory_manager::last_heap_address()
 }
 
-// Allocation slow path
-
-use mmtk::util::alloc::{BumpAllocator, LargeObjectAllocator};
-use mmtk::util::alloc::Allocator as IAllocator;
-use mmtk::util::heap::MonotonePageResource;
+// finalization
+#[no_mangle]
+pub extern "C" fn add_finalizer(object: ObjectReference) {
+    memory_manager::add_finalizer(&SINGLETON, object);
+}
 
 #[no_mangle]
-pub extern "C" fn alloc_slow_bump_monotone_immortal(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
-    use mmtk::policy::immortalspace::ImmortalSpace;
+pub extern "C" fn get_finalized_object() -> ObjectReference {
+    match memory_manager::get_finalized_object(&SINGLETON) {
+        Some(obj) => obj,
+        None => unsafe { Address::ZERO.to_object_reference() },
+    }
+}
+
+// Allocation slow path
+
+use mmtk::util::alloc::Allocator as IAllocator;
+use mmtk::util::alloc::{BumpAllocator, LargeObjectAllocator};
+
+#[no_mangle]
+pub extern "C" fn alloc_slow_bump_monotone_immortal(
+    allocator: *mut c_void,
+    size: usize,
+    align: usize,
+    offset: isize,
+) -> Address {
     unsafe { &mut *(allocator as *mut BumpAllocator<JikesRVM>) }.alloc_slow(size, align, offset)
 }
 
@@ -185,19 +230,34 @@ pub extern "C" fn alloc_slow_bump_monotone_immortal(allocator: *mut c_void, size
 
 #[no_mangle]
 #[cfg(any(feature = "semispace"))]
-pub extern "C" fn alloc_slow_bump_monotone_copy(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
-    use mmtk::policy::copyspace::CopySpace;
+pub extern "C" fn alloc_slow_bump_monotone_copy(
+    allocator: *mut c_void,
+    size: usize,
+    align: usize,
+    offset: isize,
+) -> Address {
     unsafe { &mut *(allocator as *mut BumpAllocator<JikesRVM>) }.alloc_slow(size, align, offset)
 }
 #[no_mangle]
 #[cfg(not(any(feature = "semispace")))]
-pub extern "C" fn alloc_slow_bump_monotone_copy(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
+pub extern "C" fn alloc_slow_bump_monotone_copy(
+    _allocator: *mut c_void,
+    _size: usize,
+    _align: usize,
+    _offset: isize,
+) -> Address {
     unimplemented!()
 }
 
 #[no_mangle]
-pub extern "C" fn alloc_slow_largeobject(allocator: *mut c_void, size: usize, align: usize, offset:isize) -> Address {
-    unsafe { &mut *(allocator as *mut LargeObjectAllocator<JikesRVM>) }.alloc_slow(size, align, offset)
+pub extern "C" fn alloc_slow_largeobject(
+    allocator: *mut c_void,
+    size: usize,
+    align: usize,
+    offset: isize,
+) -> Address {
+    unsafe { &mut *(allocator as *mut LargeObjectAllocator<JikesRVM>) }
+        .alloc_slow(size, align, offset)
 }
 
 // Test
@@ -212,15 +272,15 @@ pub extern "C" fn test_stack_alignment() {
     info!("Exiting stack alignment test");
 }
 
+#[allow(clippy::many_single_char_names)]
 #[no_mangle]
 pub extern "C" fn test_stack_alignment1(a: usize, b: usize, c: usize, d: usize, e: usize) -> usize {
     info!("Entering stack alignment test");
-    info!("a:{}, b:{}, c:{}, d:{}, e:{}",
-          a, b, c, d, e);
+    info!("a:{}, b:{}, c:{}, d:{}, e:{}", a, b, c, d, e);
     unsafe {
         llvm_asm!("movaps %xmm1, (%esp)" : : : "sp", "%xmm1", "memory");
     }
-    let result = a + b * 2 + c * 3  + d * 4 + e * 5;
+    let result = a + b * 2 + c * 3 + d * 4 + e * 5;
     info!("Exiting stack alignment test");
     result
 }

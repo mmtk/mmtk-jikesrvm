@@ -35,4 +35,3 @@ pub const CODE_SIZE_ADJUSTMENT: f32 = 1.5;
 
 #[cfg(not(target_arch = "x86_64"))]
 pub const CODE_SIZE_ADJUSTMENT: f32 = 1.0;
-

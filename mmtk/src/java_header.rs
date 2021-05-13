@@ -1,12 +1,12 @@
-use std::sync::atomic::AtomicUsize;
 use java_header_constants;
 use java_header_constants::*;
+use std::sync::atomic::AtomicUsize;
 
 pub const SCALAR_HEADER_SIZE: usize = JAVA_HEADER_BYTES + OTHER_HEADER_BYTES;
 pub const ARRAY_HEADER_SIZE: usize = SCALAR_HEADER_SIZE + ARRAY_LENGTH_BYTES;
 
 /** offset of object reference from the lowest memory word */
-pub const OBJECT_REF_OFFSET: isize = ARRAY_HEADER_SIZE as isize;  // from start to ref
+pub const OBJECT_REF_OFFSET: isize = ARRAY_HEADER_SIZE as isize; // from start to ref
 pub const TIB_OFFSET: isize = JAVA_HEADER_OFFSET;
 pub const STATUS_OFFSET: isize = TIB_OFFSET + TIB_BYTES as isize;
 #[cfg(target_endian = "little")]
@@ -33,7 +33,7 @@ pub const THIN_LOCK_DEDICATED_U16_OFFSET: usize = 4;
 #[cfg(all(target_endian = "big", target_pointer_width = "32"))]
 pub const THIN_LOCK_DEDICATED_U16_OFFSET: usize = 0;
 /** How many bits do we have to shift to only hold the high locking bits */
-pub const THIN_LOCK_DEDICATED_U16_SHIFT: usize  = 16;
+pub const THIN_LOCK_DEDICATED_U16_SHIFT: usize = 16;
 
 /** The alignment value **/
 pub const ALIGNMENT_VALUE: usize = java_header_constants::ALIGNMENT_VALUE;

@@ -16,8 +16,7 @@ jobs:
           # CI_ACCESS_TOKEN is a secret set with the repo
           token: ${{ secrets.CI_ACCESS_TOKEN }}
           submodules: true
-      - name: Set credential for cargo dependency
-        run: sed -i 's/ssh:\/\/git@github.com\/mmtk/https:\/\/qinsoon:${{ secrets.CI_ACCESS_TOKEN }}@github.com\/mmtk/g' mmtk/Cargo.toml          
+
       - name: Setup Rust Toolchain
         run: echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV        
       - name: Setup Environments
@@ -26,3 +25,7 @@ jobs:
       # Run the tests
       - name: Dacapo Tests
         run: ./.github/scripts/ci-test.sh
+
+      # Style check
+      - name: Style checks
+        run: ./.github/scripts/ci-style.sh

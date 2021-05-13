@@ -32,6 +32,8 @@ public class Entrypoints {
                   "(Lorg/jikesrvm/scheduler/RVMThread;Lorg/vmmagic/unboxed/Address;ZZ)V");
   public static final NormalMethod scanBootImageMethod =
           getMethod(org.jikesrvm.mm.mminterface.RustScanning.class, "scanBootImage", "(Lorg/vmmagic/unboxed/Address;)V");
+  public static final NormalMethod scheduleFinalizerMethod =
+          getMethod(org.jikesrvm.scheduler.FinalizerThread.class, "schedule", "()V");
 
   // The usual causes for getField/Method() to fail are:
   //  1. you misspelled the class name, member name, or member signature
@@ -180,10 +182,6 @@ public class Entrypoints {
           getField(org.jikesrvm.mm.mminterface.ThreadContext.class, "isRustMMTkCollector", boolean.class);
   public static final RVMField threadsField =
           getField(org.jikesrvm.scheduler.RVMThread.class, "threads", org.jikesrvm.scheduler.RVMThread[].class);
-  public static final RVMField systemThreadField =
-          getField(org.jikesrvm.scheduler.RVMThread.class, "systemThread", org.jikesrvm.scheduler.SystemThread.class);
-  public static final RVMField workerInstanceField =
-          getField(org.jikesrvm.mm.mminterface.CollectorThread.class, "workerInstance", org.vmmagic.unboxed.Address.class);
   public static final RVMField JNIFunctionsField =
           getField(org.jikesrvm.jni.JNIEnvironment.class, "JNIFunctions", org.jikesrvm.jni.FunctionTable.class);
   public static final RVMField linkageTripletsField =

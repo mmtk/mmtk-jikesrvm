@@ -91,6 +91,12 @@ extern void add_weak_candidate(void* ref, void* referent);
 extern void add_soft_candidate(void* ref, void* referent);
 extern void add_phantom_candidate(void* ref, void* referent);
 
+/**
+ * Finalization
+ */
+extern void add_finalizer(void* obj);
+extern void* get_finalized_object();
+
 extern void harness_begin(void *tls);
 extern void harness_end();
 
