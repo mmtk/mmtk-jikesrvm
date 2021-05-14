@@ -2,7 +2,7 @@ use libc::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::unboxed_size_constants::*;
-use mmtk::util::alloc::allocator::fill_alignment_gap;
+use mmtk::util::alloc::fill_alignment_gap;
 use mmtk::util::conversions;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::ObjectModel;

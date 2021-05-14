@@ -1,5 +1,4 @@
 use entrypoint::*;
-use mmtk::scheduler::gc_work::*;
 use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::Address;

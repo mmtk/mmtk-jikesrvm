@@ -30,7 +30,7 @@ impl ActivePlan<JikesRVM> for VMActivePlan {
     }
 
     fn global() -> &'static dyn Plan<VM = JikesRVM> {
-        &*SINGLETON.plan
+        SINGLETON.get_plan()
     }
 
     fn is_mutator(tls: VMThread) -> bool {
