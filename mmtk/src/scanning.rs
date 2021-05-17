@@ -9,7 +9,7 @@ use active_plan::VMActivePlan;
 use entrypoint::*;
 use java_header_constants::*;
 use memory_manager_constants::*;
-use mmtk::scheduler::gc_work::*;
+use mmtk::memory_manager;
 use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
@@ -38,8 +38,11 @@ pub(crate) extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = Jike
     debug_assert_eq!(W::CAPACITY, PROCESS_EDGES_WORK_SIZE);
     if !ptr.is_null() {
         let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, W::CAPACITY) };
-        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
-            .add(W::new(buf, false, &SINGLETON));
+        memory_manager::add_work_packet(
+            &SINGLETON,
+            WorkBucketStage::Closure,
+            W::new(buf, false, &SINGLETON),
+        );
     }
     let (ptr, _length, capacity) = Vec::with_capacity(W::CAPACITY).into_raw_parts();
     debug_assert_eq!(capacity, W::CAPACITY);
@@ -68,14 +71,20 @@ impl Scanning<JikesRVM> for VMScanning {
         Self::compute_thread_roots(process_edges as _, false, mutator.get_tls(), tls);
     }
     fn scan_vm_specific_roots<W: ProcessEdgesWork<VM = JikesRVM>>() {
-        let workers = SINGLETON.scheduler.num_workers();
+        let workers = memory_manager::num_of_workers(&SINGLETON);
         for i in 0..workers {
-            SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare]
-                .add(ScanStaticRoots::<W>::new(i, workers));
+            memory_manager::add_work_packet(
+                &SINGLETON,
+                WorkBucketStage::Prepare,
+                ScanStaticRoots::<W>::new(i, workers),
+            );
             // SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare]
             //     .add(ScanBootImageRoots::<W>::new(i, workers));
-            SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare]
-                .add(ScanGlobalRoots::<W>::new(i, workers));
+            memory_manager::add_work_packet(
+                &SINGLETON,
+                WorkBucketStage::Prepare,
+                ScanGlobalRoots::<W>::new(i, workers),
+            );
         }
     }
     fn scan_object<T: TransitiveClosure>(
@@ -344,11 +353,17 @@ impl<E: ProcessEdgesWork<VM = JikesRVM>> GCWork<JikesRVM> for ScanGlobalRoots<E>
             if edges.len() >= E::CAPACITY {
                 let mut new_edges = Vec::with_capacity(E::CAPACITY);
                 mem::swap(&mut new_edges, &mut edges);
-                SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
-                    .add(E::new(new_edges, true, &SINGLETON));
+                memory_manager::add_work_packet(
+                    &SINGLETON,
+                    WorkBucketStage::Closure,
+                    E::new(new_edges, true, &SINGLETON),
+                )
             }
         });
-        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
-            .add(E::new(edges, true, &SINGLETON));
+        memory_manager::add_work_packet(
+            &SINGLETON,
+            WorkBucketStage::Closure,
+            E::new(edges, true, &SINGLETON),
+        );
     }
 }

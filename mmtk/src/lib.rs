@@ -71,11 +71,11 @@ impl JikesRVM {
 }
 
 #[cfg(feature = "nogc")]
-pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::nogc::NOGC_CONSTRAINTS;
+pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::NOGC_CONSTRAINTS;
 #[cfg(feature = "semispace")]
-pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::semispace::SS_CONSTRAINTS;
+pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::SS_CONSTRAINTS;
 #[cfg(feature = "marksweep")]
-pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::marksweep::MS_CONSTRAINTS;
+pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::MS_CONSTRAINTS;
 
 lazy_static! {
     pub static ref SINGLETON: MMTK<JikesRVM> = {
