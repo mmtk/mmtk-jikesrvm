@@ -2,7 +2,7 @@
 ===
 
 * Fixes a bug where benchmarks got stock randomly due to a synchronisation issue
-* Removes duplicate edges
+* Fixes a bug where edges were pushed more than once (e.g. duplicate edges)
 * Adds style checks
 * Cleans up some unused code
 * Refactors in accordance with the latest changes in `mmtk-core` API
