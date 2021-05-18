@@ -10,7 +10,6 @@ extern crate log;
 use mmtk::plan::PlanConstraints;
 use mmtk::util::address::Address;
 use mmtk::vm::VMBinding;
-use mmtk::TraceLocal;
 use mmtk::MMTK;
 
 use collection::BOOT_THREAD;
