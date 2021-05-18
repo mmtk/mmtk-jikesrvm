@@ -7,9 +7,9 @@ cd repos/jikesrvm
 # Only run one test
 
 # BaseBaseNoGC
-python scripts/testMMTk.py -j $JAVA_HOME -g BaseBaseNoGC -a "Xms1024M Xmx1024M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src -- --m32
+python scripts/testMMTk.py -j $JAVA_HOME -g BaseBaseNoGC -a "Xms1024M Xmx1024M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src --m32
 # BaseBaseSemiSpace
-python scripts/testMMTk.py -j $JAVA_HOME -g BaseBaseSemiSpace -a "Xms75M Xmx75M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src -- --m32
+python scripts/testMMTk.py -j $JAVA_HOME -g BaseBaseSemiSpace -a "Xms75M Xmx75M" -- --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src --m32
 
 # Test FastAdaptive builds
 # Run all possible dacapo benchmarks
