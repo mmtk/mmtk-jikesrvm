@@ -45,6 +45,24 @@ public class Entrypoints {
   public static final RVMMethod java_lang_reflect_Method_invokeMethod =
       getMethod(java.lang.reflect.Method.class, "invoke",
           "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;");
+  
+  public static final RVMMethod java_lang_reflect_Constructor_newInstance =
+      getMethod(java.lang.reflect.Constructor.class, "newInstance",
+          "([Ljava/lang/Object;)Ljava/lang/Object;");
+    
+  // This is only necessary to work around OpenJDKs work around, see sun_reflect_Reflection
+  // in the libraryInterface for details.
+  public static final RVMMethod java_lang_reflect_Method_getCallerClass;
+
+  // Necessary to wipe out cached fields (TODO OPENJDK/ICEDTEA consider doing this in the BootImageWriter)
+  public static final RVMField usr_paths_Field;
+  public static final RVMField sys_paths_Field;
+  // Necessary to set application classloader for OpenJDK
+  public static final RVMField scl_Field;
+  public static final RVMField sclSet_Field;
+  // Necessary for getInheritedAccessControlContext
+  public static final RVMField inheritedAccessControlContext_Field;
+
   public static final RVMMethod getClassFromStackFrame =
     getMethod(org.jikesrvm.classloader.RVMClass.class, "getClassFromStackFrame", "(I)Lorg/jikesrvm/classloader/RVMClass;");
   public static final RVMMethod getClassLoaderFromStackFrame =
@@ -138,14 +156,8 @@ public class Entrypoints {
   public static final NormalMethod prepareMutatorMethod =
           getMethod(org.jikesrvm.mm.mminterface.MemoryManager.class, "prepareMutator",
                   "(Lorg/jikesrvm/scheduler/RVMThread;)V");
-  public static final NormalMethod testMethod =
-          getMethod(org.jikesrvm.mm.mminterface.MemoryManager.class, "test", "(I)I");
-  public static final NormalMethod test1Method =
-          getMethod(org.jikesrvm.mm.mminterface.MemoryManager.class, "test1", "()V");
-  public static final NormalMethod test2Method =
-          getMethod(org.jikesrvm.mm.mminterface.MemoryManager.class, "test2", "(II)I");
-  public static final NormalMethod test3Method =
-          getMethod(org.jikesrvm.mm.mminterface.MemoryManager.class, "test3", "(IIII)I");
+  public static final NormalMethod mmEntrypointTestMethod =
+          getMethod(org.jikesrvm.mm.mminterface.MemoryManager.class, "mmEntrypointTest", "(IIII)I");
   public static final NormalMethod dumpRefMethod =
           getMethod(org.jikesrvm.mm.mminterface.DebugUtil.class, "dumpRef",
                   "(Lorg/vmmagic/unboxed/ObjectReference;)V");
@@ -157,12 +169,8 @@ public class Entrypoints {
                   "()V");
   public static final NormalMethod snipObsoleteCompiledMethodsMethod =
           getMethod(org.jikesrvm.compilers.common.CompiledMethods.class, "snipObsoleteCompiledMethods", "()V");
-  public static final NormalMethod getReferenceSlotSizeMethod =
-          getMethod(org.jikesrvm.runtime.Statics.class, "getReferenceSlotSize", "()I");
   public static final NormalMethod getNumberOfReferenceSlotsMethod =
           getMethod(org.jikesrvm.runtime.Statics.class, "getNumberOfReferenceSlots", "()I");
-  public static final NormalMethod functionTableLengthMethod =
-          getMethod(org.jikesrvm.jni.FunctionTable.class, "length", "()I");
   public static final NormalMethod implementedInJavaMethod =
           getMethod(org.jikesrvm.jni.JNIGenericHelpers.class, "implementedInJava", "(I)Z");
   public static final NormalMethod enqueueReferenceMethod =
@@ -170,10 +178,8 @@ public class Entrypoints {
 
   public static final RVMField numThreadsField =
           getField(org.jikesrvm.scheduler.RVMThread.class, "numThreads", int.class);
-  public static final RVMField movesCodeField =
-          getField(org.jikesrvm.mm.mminterface.MemoryManagerConstants.class, "MOVES_CODE", boolean.class);
   public static final RVMField isCollectorField =
-          getField(org.jikesrvm.mm.mminterface.ThreadContext.class, "isCollector", boolean.class);
+          getField(org.jikesrvm.mm.mminterface.ThreadContext.class, "isRustMMTkCollector", boolean.class);
   public static final RVMField threadsField =
           getField(org.jikesrvm.scheduler.RVMThread.class, "threads", org.jikesrvm.scheduler.RVMThread[].class);
   public static final RVMField JNIFunctionsField =
@@ -193,20 +199,11 @@ public class Entrypoints {
   public static final RVMField mmtkHandleField =
           getField(org.jikesrvm.mm.mminterface.Selected.Mutator.class, "mmtkHandle",
                   org.vmmagic.unboxed.Address.class);
-  public static final RVMField functionTableDataField =
-          getField(org.jikesrvm.jni.FunctionTable.class, "data",
-                  org.jikesrvm.compilers.common.CodeArray[].class);
-
+  
   public static final RVMField isClassTypeField =
           getField(org.jikesrvm.classloader.RVMType.class, "isClassType", boolean.class);
   public static final RVMField isArrayTypeField =
           getField(org.jikesrvm.classloader.RVMType.class, "isArrayType", boolean.class);
-  public static final RVMField isPrimitiveTypeField =
-          getField(org.jikesrvm.classloader.RVMType.class, "isPrimitiveType", boolean.class);
-  public static final RVMField isUnboxedTypeField =
-          getField(org.jikesrvm.classloader.RVMType.class, "isUnboxedType", boolean.class);
-  public static final RVMField isReferenceTypeField =
-          getField(org.jikesrvm.classloader.RVMType.class, "isReferenceType", boolean.class);
   public static final RVMField instanceSizeField =
           getField(org.jikesrvm.classloader.RVMClass.class, "instanceSize", int.class);
   public static final RVMField logElementSizeField =
@@ -214,45 +211,11 @@ public class Entrypoints {
   public static final RVMField referenceOffsetsField =
           getField(org.jikesrvm.classloader.RVMType.class, "referenceOffsets", int[].class);
 
-  public static final RVMField booleanArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "BooleanArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-  public static final RVMField byteArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "ByteArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-  public static final RVMField charArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "CharArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-  public static final RVMField shortArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "ShortArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-  public static final RVMField intArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "IntArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-  public static final RVMField longArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "LongArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-  public static final RVMField floatArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "FloatArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-  public static final RVMField doubleArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "DoubleArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-  public static final RVMField javaLangObjectArrayField =
-          getField(org.jikesrvm.classloader.RVMArray.class, "JavaLangObjectArray",
-                  org.jikesrvm.classloader.RVMArray.class);
-
   public static final RVMField rvmClassAlignment =
           getField(org.jikesrvm.classloader.RVMClass.class, "alignment", int.class);
   public static final RVMField rvmArrayAlignment =
           getField(org.jikesrvm.classloader.RVMArray.class, "alignment", int.class);
-  public static final RVMField rvmArrayAcyclic =
-          getField(org.jikesrvm.classloader.RVMArray.class, "acyclic", boolean.class);
-  public static final RVMField rvmClassAcyclic =
-          getField(org.jikesrvm.classloader.RVMClass.class, "acyclic", boolean.class);
-  public static final RVMField rvmClassModifiers =
-          getField(org.jikesrvm.classloader.RVMClass.class, "modifiers", short.class);
-
+  
   public static final NormalMethod lockMethod =
       getMethod(org.jikesrvm.objectmodel.ObjectModel.class, "genericLock", "(Ljava/lang/Object;)V");
   public static final NormalMethod unlockMethod =
@@ -595,6 +558,23 @@ public class Entrypoints {
                                             "exitFromJNI",
                                             "(I)Ljava/lang/Object;");
     }
+
+    if (VM.BuildForOpenJDK) {
+      java_lang_reflect_Method_getCallerClass = getMethod(java.lang.reflect.Method.class, "getCallerClass",
+          "()Ljava/lang/Class;");
+      usr_paths_Field = getField(java.lang.ClassLoader.class, "usr_paths", String[].class);
+      sys_paths_Field = getField(java.lang.ClassLoader.class, "sys_paths", String[].class);
+      scl_Field = getField(java.lang.ClassLoader.class, "scl", ClassLoader.class);
+      sclSet_Field = getField(java.lang.ClassLoader.class, "sclSet", boolean.class);
+      inheritedAccessControlContext_Field = getField(java.lang.Thread.class, "inheritedAccessControlContext", java.security.AccessControlContext.class);
+    } else {
+      java_lang_reflect_Method_getCallerClass = null;
+      usr_paths_Field = null;
+      sys_paths_Field = null;
+      scl_Field = null;
+      sclSet_Field = null;
+      inheritedAccessControlContext_Field = null;
+    }
   }
 
   public static final RVMField the_boot_recordField =
@@ -717,7 +697,7 @@ public class Entrypoints {
 
   // Initialize Harmony classlibrary specific fields
   static {
-    if (VM.BuildForHarmony) {
+    if (VM.BuildForOpenJDK) {
       luni1 = getField("Lorg/apache/harmony/luni/util/Msg;", "bundle", java.util.ResourceBundle.class);
       luni2 = getField("Lorg/apache/harmony/archive/internal/nls/Messages;", "bundle", java.util.ResourceBundle.class);
       luni3 = getField("Lorg/apache/harmony/luni/internal/nls/Messages;", "bundle", java.util.ResourceBundle.class);

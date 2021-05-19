@@ -55,25 +55,10 @@ impl VMBinding for JikesRVM {
 
 impl JikesRVM {
     #[inline(always)]
-    pub fn test(input: usize) -> usize {
-        unsafe { jtoc_call!(TEST_METHOD_OFFSET, BOOT_THREAD, input) }
-    }
-
-    #[inline(always)]
-    pub fn test1() -> usize {
-        unsafe { jtoc_call!(TEST1_METHOD_OFFSET, BOOT_THREAD) }
-    }
-
-    #[inline(always)]
-    pub fn test2(input1: usize, input2: usize) -> usize {
-        unsafe { jtoc_call!(TEST2_METHOD_OFFSET, BOOT_THREAD, input1, input2) }
-    }
-
-    #[inline(always)]
-    pub fn test3(input1: usize, input2: usize, input3: usize, input4: usize) -> usize {
+    pub fn mm_entrypoint_test(input1: usize, input2: usize, input3: usize, input4: usize) -> usize {
         unsafe {
             jtoc_call!(
-                TEST3_METHOD_OFFSET,
+                MM_ENTRYPOINT_TEST_METHOD_OFFSET,
                 BOOT_THREAD,
                 input1,
                 input2,
