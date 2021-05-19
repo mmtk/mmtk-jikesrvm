@@ -1,4 +1,3 @@
 [submodule "repos/jikesrvm"]
 	path = repos/jikesrvm
 	url = https://github.com/mmtk/jikesrvm
-	branch = cleanup_before_upstream
