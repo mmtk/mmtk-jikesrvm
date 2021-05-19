@@ -65,10 +65,10 @@ We recommend using the `buildit` script for the JikesRVM build.
 
 ```console
 $ cd repos/jikesrvm
-$ ./bin/buildit localhost RBaseBaseSemiSpace --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs/ --use-external-source=../../jikesrvm/rvm/src
+$ ./bin/buildit localhost RBaseBaseSemiSpace --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs/ --use-external-source=../../jikesrvm/rvm/src --m32
 ```
 
-The JikesRVM binary is under `repos/jikesrvm/dist/RBaseBaseSemiSpace_x86_64-linux/rvm` and the MMTk shared library is `repos/jikesrvm/dist/RBaseBaseSemiSpace_x86_64-linux/libmmtk.so`.
+The JikesRVM binary is under `repos/jikesrvm/dist/RBaseBaseSemiSpace_x86_64_m32-linux/rvm` and the MMTk shared library is `repos/jikesrvm/dist/RBaseBaseSemiSpace_x86_64_m32-linux/libmmtk.so`.
 
 You can build with other build configs, check `jikesrvm/build/configs`.
 
@@ -79,15 +79,15 @@ You can build with other build configs, check `jikesrvm/build/configs`.
 Fetch DaCapo:
 
 ```console
-$ # run from the root repo directory
-$ mkdir -p repos/jikesrvm/benchmarks
-$ wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar -O repos/jikesrvm/benchmarks/dacapo-2006-10-MR2.jar
+$ # run from the repo/jikesrvm directory
+$ mkdir -p benchmarks
+$ wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar -O benchmarks/dacapo-2006-10-MR2.jar
 ```
 
 Run `rvm`:
 
 ```console
-$ LD_LIBRARY_PATH=repos/jikesrvm/dist/RBaseBaseSemiSpace_x86_64-linux/ repos/jikesrvm/dist/RBaseBaseSemiSpace_x86_64-linux/rvm -Xms75M -Xmx75M -jar repos/jikesrvm/benchmarks/dacapo-2006-10-MR2.jar fop
+$ LD_LIBRARY_PATH=dist/RBaseBaseSemiSpace_x86_64_m32-linux/ dist/RBaseBaseSemiSpace_x86_64_m32-linux/rvm -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar fop
 ===== DaCapo fop starting =====
 ThreadId(1)[INFO:/root/mmtk-jikesrvm/repos/mmtk-core/src/plan/global.rs:112]   [POLL] copyspace0: Triggering collection
 ThreadId(1)[INFO:/root/mmtk-jikesrvm/repos/mmtk-core/src/plan/global.rs:112]   [POLL] copyspace1: Triggering collection
