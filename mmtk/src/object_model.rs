@@ -2,8 +2,10 @@ use libc::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::unboxed_size_constants::*;
+use crate::vm_metadata;
 use mmtk::util::alloc::fill_alignment_gap;
 use mmtk::util::conversions;
+use mmtk::util::metadata::MetadataSpec;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::ObjectModel;
 use mmtk::AllocationSemantics;
@@ -93,7 +95,51 @@ impl VMObjectModel {
 }
 
 impl ObjectModel<JikesRVM> for VMObjectModel {
-    const GC_BYTE_OFFSET: isize = AVAILABLE_BITS_OFFSET;
+    fn load_metadata(
+        metadata_spec: MetadataSpec,
+        object: ObjectReference,
+        mask: Option<usize>,
+        atomic_ordering: Option<Ordering>,
+    ) -> usize {
+        vm_metadata::load_metadata(metadata_spec, object, mask, atomic_ordering)
+    }
+
+    fn store_metadata(
+        metadata_spec: MetadataSpec,
+        object: ObjectReference,
+        val: usize,
+        mask: Option<usize>,
+        atomic_ordering: Option<Ordering>,
+    ) {
+    }
+
+    fn compare_exchange_metadata(
+        metadata_spec: MetadataSpec,
+        object: ObjectReference,
+        old_val: usize,
+        new_val: usize,
+        mask: Option<usize>,
+        success_order: Ordering,
+        failure_order: Ordering,
+    ) -> bool {
+        false
+    }
+
+    const GLOBAL_LOG_BIT_SPEC: MetadataSpec = metadata_defaults::LOGGING_SIDE_METADATA_SPEC;
+
+    const LOCAL_FORWARDING_POINTER_SPEC: MetadataSpec =
+        metadata_defaults::FORWARDING_POINTER_METADATA_SPEC;
+    const LOCAL_FORWARDING_BITS_SPEC: MetadataSpec =
+        metadata_defaults::FORWARDING_BITS_SIDE_METADATA_SPEC;
+    const LOCAL_MARK_BIT_SPEC: MetadataSpec = metadata_defaults::MARKING_SIDE_METADATA_SPEC;
+    const LOCAL_LOS_MARK_NURSERY_SPEC: MetadataSpec = metadata_defaults::LOS_SIDE_METADATA_SPEC;
+    const LOCAL_UNLOGGED_BIT_SPEC: MetadataSpec = metadata_defaults::UNLOGGED_SIDE_METADATA_SPEC;
+
+    const LAST_GLOBAL_SIDE_METADATA_OFFSET: usize =
+        metadata_defaults::LAST_GLOBAL_SIDE_METADATA_OFFSET;
+
+    const LAST_LOCAL_SIDE_METADATA_OFFSET: usize =
+        metadata_defaults::LAST_LOCAL_SIDE_METADATA_OFFSET;
 
     #[inline(always)]
     fn copy(
