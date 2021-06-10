@@ -111,6 +111,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         mask: Option<usize>,
         atomic_ordering: Option<Ordering>,
     ) {
+        vm_metadata::store_metadata(metadata_spec, object, val, mask, atomic_ordering);
     }
 
     fn compare_exchange_metadata(
@@ -122,24 +123,48 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         success_order: Ordering,
         failure_order: Ordering,
     ) -> bool {
-        false
+        vm_metadata::compare_exchange_metadata(
+            metadata_spec,
+            object,
+            old_val,
+            new_val,
+            mask,
+            success_order,
+            failure_order,
+        )
     }
 
-    const GLOBAL_LOG_BIT_SPEC: MetadataSpec = metadata_defaults::LOGGING_SIDE_METADATA_SPEC;
+    fn fetch_add_metadata(
+        metadata_spec: MetadataSpec,
+        object: ObjectReference,
+        val: usize,
+        order: Ordering,
+    ) -> usize {
+        vm_metadata::fetch_add_metadata(metadata_spec, object, val, order)
+    }
+
+    fn fetch_sub_metadata(
+        metadata_spec: MetadataSpec,
+        object: ObjectReference,
+        val: usize,
+        order: Ordering,
+    ) -> usize {
+        vm_metadata::fetch_sub_metadata(metadata_spec, object, val, order)
+    }
+
+    // For now we use the default const from mmtk-core
+    const GLOBAL_LOG_BIT_SPEC: MetadataSpec = vm_metadata::LOGGING_SIDE_METADATA_SPEC;
 
     const LOCAL_FORWARDING_POINTER_SPEC: MetadataSpec =
-        metadata_defaults::FORWARDING_POINTER_METADATA_SPEC;
-    const LOCAL_FORWARDING_BITS_SPEC: MetadataSpec =
-        metadata_defaults::FORWARDING_BITS_SIDE_METADATA_SPEC;
-    const LOCAL_MARK_BIT_SPEC: MetadataSpec = metadata_defaults::MARKING_SIDE_METADATA_SPEC;
-    const LOCAL_LOS_MARK_NURSERY_SPEC: MetadataSpec = metadata_defaults::LOS_SIDE_METADATA_SPEC;
-    const LOCAL_UNLOGGED_BIT_SPEC: MetadataSpec = metadata_defaults::UNLOGGED_SIDE_METADATA_SPEC;
+        vm_metadata::FORWARDING_POINTER_METADATA_SPEC;
+    const LOCAL_FORWARDING_BITS_SPEC: MetadataSpec = vm_metadata::FORWARDING_BITS_METADATA_SPEC;
+    const LOCAL_MARK_BIT_SPEC: MetadataSpec = vm_metadata::MARKING_METADATA_SPEC;
+    const LOCAL_LOS_MARK_NURSERY_SPEC: MetadataSpec = vm_metadata::LOS_METADATA_SPEC;
+    const LOCAL_UNLOGGED_BIT_SPEC: MetadataSpec = vm_metadata::UNLOGGED_SIDE_METADATA_SPEC;
 
-    const LAST_GLOBAL_SIDE_METADATA_OFFSET: usize =
-        metadata_defaults::LAST_GLOBAL_SIDE_METADATA_OFFSET;
+    const LAST_GLOBAL_SIDE_METADATA_OFFSET: usize = vm_metadata::LAST_GLOBAL_SIDE_METADATA_OFFSET;
 
-    const LAST_LOCAL_SIDE_METADATA_OFFSET: usize =
-        metadata_defaults::LAST_LOCAL_SIDE_METADATA_OFFSET;
+    const LAST_LOCAL_SIDE_METADATA_OFFSET: usize = vm_metadata::LAST_LOCAL_SIDE_METADATA_OFFSET;
 
     #[inline(always)]
     fn copy(
@@ -326,7 +351,10 @@ impl VMObjectModel {
             let num_elements = Self::get_array_length(object);
             unsafe {
                 let log_element_size = (rvm_type + LOG_ELEMENT_SIZE_FIELD_OFFSET).load::<usize>();
-                // println!("log_element_size(0x{:x}, 0x{:x}) -> 0x{:x} << 0x{:x}", object, rvm_type, num_elements, log_element_size);
+                // println!(
+                //     "log_element_size(0x{:x}, 0x{:x}) -> 0x{:x} << 0x{:x}",
+                //     object, rvm_type, num_elements, log_element_size
+                // );
                 ARRAY_HEADER_SIZE + (num_elements << log_element_size)
             }
         };
