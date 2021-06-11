@@ -14,7 +14,7 @@ const FORWARDING_BITS_OFFSET: isize = AVAILABLE_BITS_OFFSET << LOG_BITS_IN_BYTE;
 
 const fn side_metadata_size(metadata_spec: MetadataSpec) -> usize {
     if metadata_spec.is_global {
-        metadata_address_range_size(metadata_spec)
+        metadata_address_range_size(&metadata_spec)
     } else {
         metadata_bytes_per_chunk(metadata_spec.log_min_obj_size, metadata_spec.num_of_bits)
     }
