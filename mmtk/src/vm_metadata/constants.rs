@@ -1,9 +1,9 @@
 use std::usize;
 
-use mmtk::util::metadata::MetadataSpec;
-use mmtk::util::metadata::{
+use mmtk::util::metadata::side_metadata::{
     metadata_address_range_size, metadata_bytes_per_chunk, GLOBAL_SIDE_METADATA_BASE_ADDRESS,
 };
+use mmtk::util::metadata::MetadataSpec;
 
 use crate::java_header::AVAILABLE_BITS_OFFSET;
 pub(crate) use mmtk::util::constants::{

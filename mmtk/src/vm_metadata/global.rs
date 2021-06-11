@@ -12,9 +12,9 @@ pub(crate) fn load_metadata(
 ) -> usize {
     if metadata_spec.is_side_metadata {
         if let Some(order) = atomic_ordering {
-            mmtk_meta::load_atomic(metadata_spec, object.to_address(), order)
+            mmtk_meta::side_metadata::load_atomic(metadata_spec, object.to_address(), order)
         } else {
-            unsafe { mmtk_meta::load(metadata_spec, object.to_address()) }
+            unsafe { mmtk_meta::side_metadata::load(metadata_spec, object.to_address()) }
         }
     } else {
         debug_assert!(optional_mask.is_none() || metadata_spec.num_of_bits >= BITS_IN_BYTE,"optional_mask is only supported for 8X-bits in-header metadata. Problematic MetadataSpec: ({:?})", metadata_spec);
@@ -106,10 +106,10 @@ pub(crate) fn store_metadata(
 ) {
     if metadata_spec.is_side_metadata {
         if let Some(order) = atomic_ordering {
-            mmtk_meta::store_atomic(metadata_spec, object.to_address(), val, order);
+            mmtk_meta::side_metadata::store_atomic(metadata_spec, object.to_address(), val, order);
         } else {
             unsafe {
-                mmtk_meta::store(metadata_spec, object.to_address(), val);
+                mmtk_meta::side_metadata::store(metadata_spec, object.to_address(), val);
             }
         }
     } else {
@@ -275,7 +275,7 @@ pub(crate) fn compare_exchange_metadata(
     failure_order: Ordering,
 ) -> bool {
     if metadata_spec.is_side_metadata {
-        mmtk_meta::compare_exchange_atomic(
+        mmtk_meta::side_metadata::compare_exchange_atomic(
             metadata_spec,
             object.to_address(),
             old_metadata,
@@ -410,7 +410,7 @@ pub(crate) fn fetch_add_metadata(
     order: Ordering,
 ) -> usize {
     if metadata_spec.is_side_metadata {
-        mmtk_meta::fetch_add_atomic(metadata_spec, object.to_address(), val, order)
+        mmtk_meta::side_metadata::fetch_add_atomic(metadata_spec, object.to_address(), val, order)
     } else {
         #[allow(clippy::collapsible_else_if)]
         if metadata_spec.num_of_bits < 8 {
@@ -493,7 +493,7 @@ pub(crate) fn fetch_sub_metadata(
     order: Ordering,
 ) -> usize {
     if metadata_spec.is_side_metadata {
-        mmtk_meta::fetch_sub_atomic(metadata_spec, object.to_address(), val, order)
+        mmtk_meta::side_metadata::fetch_sub_atomic(metadata_spec, object.to_address(), val, order)
     } else {
         #[allow(clippy::collapsible_else_if)]
         if metadata_spec.num_of_bits < 8 {
