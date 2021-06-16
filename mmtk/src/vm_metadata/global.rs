@@ -4,6 +4,7 @@ use mmtk::util::{metadata as mmtk_meta, ObjectReference};
 
 use super::constants::*;
 
+#[inline(always)]
 pub(crate) fn load_metadata(
     metadata_spec: mmtk_meta::MetadataSpec,
     object: ObjectReference,
@@ -97,6 +98,7 @@ pub(crate) fn load_metadata(
     }
 }
 
+#[inline(always)]
 pub(crate) fn store_metadata(
     metadata_spec: mmtk_meta::MetadataSpec,
     object: ObjectReference,
@@ -265,6 +267,7 @@ pub(crate) fn store_metadata(
     }
 }
 
+#[inline(always)]
 pub(crate) fn compare_exchange_metadata(
     metadata_spec: mmtk_meta::MetadataSpec,
     object: ObjectReference,
@@ -403,6 +406,7 @@ pub(crate) fn compare_exchange_metadata(
     }
 }
 
+#[inline(always)]
 pub(crate) fn fetch_add_metadata(
     metadata_spec: mmtk_meta::MetadataSpec,
     object: ObjectReference,
@@ -486,6 +490,7 @@ pub(crate) fn fetch_add_metadata(
     }
 }
 
+#[inline(always)]
 pub(crate) fn fetch_sub_metadata(
     metadata_spec: mmtk_meta::MetadataSpec,
     object: ObjectReference,
