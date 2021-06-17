@@ -12,6 +12,11 @@ pub(crate) use mmtk::util::constants::{
 
 const FORWARDING_BITS_OFFSET: isize = AVAILABLE_BITS_OFFSET << LOG_BITS_IN_BYTE;
 
+/// Return the space size of the given metadata spec.
+/// As mmtk-jikesrvm only supports 32-bits:
+///  - For global metadata, the space size is the whole address range size, and
+///  - For local metadata, the space size is the size of metadata space needed per chunk.
+///
 const fn side_metadata_size(metadata_spec: MetadataSpec) -> usize {
     if metadata_spec.is_global {
         metadata_address_range_size(&metadata_spec)
@@ -20,19 +25,26 @@ const fn side_metadata_size(metadata_spec: MetadataSpec) -> usize {
     }
 }
 
-// We only support 32-bits in JikesRVM
 pub(crate) const LOG_BITS_IN_U16: usize = 4;
 
-// Global MetadataSpecs
+// Global MetadataSpecs - Start
+
+/// Global logging bit metadata spec
+/// 1 bit per object
 pub(crate) const LOGGING_SIDE_METADATA_SPEC: MetadataSpec = MetadataSpec {
     is_side_metadata: true,
     is_global: true,
     offset: GLOBAL_SIDE_METADATA_BASE_ADDRESS.as_isize(),
     num_of_bits: 1,
-    log_min_obj_size: 3,
+    log_min_obj_size: LOG_MIN_OBJECT_SIZE as usize,
 };
 
-// PolicySpecific MetadataSpecs
+// Global MetadataSpecs - End
+
+// PolicySpecific MetadataSpecs - Start
+
+/// PolicySpecific forwarding pointer metadata spec
+/// 1 word per object
 pub(crate) const FORWARDING_POINTER_METADATA_SPEC: MetadataSpec = MetadataSpec {
     is_side_metadata: false,
     is_global: false,
@@ -41,6 +53,8 @@ pub(crate) const FORWARDING_POINTER_METADATA_SPEC: MetadataSpec = MetadataSpec {
     log_min_obj_size: LOG_MIN_OBJECT_SIZE as usize,
 };
 
+/// PolicySpecific object forwarding status metadata spec
+/// 2 bits per object
 pub(crate) const FORWARDING_BITS_METADATA_SPEC: MetadataSpec = MetadataSpec {
     is_side_metadata: false,
     is_global: false,
@@ -49,6 +63,8 @@ pub(crate) const FORWARDING_BITS_METADATA_SPEC: MetadataSpec = MetadataSpec {
     log_min_obj_size: LOG_MIN_OBJECT_SIZE as usize,
 };
 
+/// PolicySpecific mark bit metadata spec
+/// 1 bit per object
 pub(crate) const MARKING_METADATA_SPEC: MetadataSpec = MetadataSpec {
     is_side_metadata: false,
     is_global: false,
@@ -57,6 +73,8 @@ pub(crate) const MARKING_METADATA_SPEC: MetadataSpec = MetadataSpec {
     log_min_obj_size: LOG_MIN_OBJECT_SIZE as usize,
 };
 
+/// PolicySpecific mark-and-nursery bits metadata spec
+/// 2-bits per object
 pub(crate) const LOS_METADATA_SPEC: MetadataSpec = MetadataSpec {
     is_side_metadata: false,
     is_global: false,
@@ -73,6 +91,8 @@ pub(crate) const UNLOGGED_SIDE_METADATA_SPEC: MetadataSpec = MetadataSpec {
     num_of_bits: 1,
     log_min_obj_size: LOG_MIN_OBJECT_SIZE as usize,
 };
+
+// PolicySpecific MetadataSpecs - End
 
 pub(crate) const LAST_GLOBAL_SIDE_METADATA_OFFSET: usize =
     GLOBAL_SIDE_METADATA_BASE_ADDRESS.as_usize() + side_metadata_size(LOGGING_SIDE_METADATA_SPEC);
