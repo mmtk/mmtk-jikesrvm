@@ -58,13 +58,4 @@ pub(crate) const LOS_METADATA_SPEC: MetadataSpec = MetadataSpec::InHeader(Header
     num_of_bits: 2,
 });
 
-// TODO: This is not used now, but probably needs to be double checked before being used.
-pub(crate) const UNLOGGED_SIDE_METADATA_SPEC: MetadataSpec =
-    MetadataSpec::OnSide(SideMetadataSpec {
-        is_global: false,
-        offset: 0,
-        log_num_of_bits: 0,
-        log_min_obj_size: LOG_MIN_OBJECT_SIZE as usize,
-    });
-
 // PolicySpecific MetadataSpecs - End

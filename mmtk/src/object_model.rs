@@ -5,7 +5,7 @@ use crate::unboxed_size_constants::*;
 use crate::vm_metadata;
 use mmtk::util::alloc::fill_alignment_gap;
 use mmtk::util::conversions;
-use mmtk::util::metadata::MetadataSpec;
+use mmtk::util::metadata::{HeaderMetadataSpec, MetadataSpec};
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::ObjectModel;
 use mmtk::AllocationSemantics;
@@ -97,7 +97,7 @@ impl VMObjectModel {
 impl ObjectModel<JikesRVM> for VMObjectModel {
     #[inline(always)]
     fn load_metadata(
-        metadata_spec: MetadataSpec,
+        metadata_spec: HeaderMetadataSpec,
         object: ObjectReference,
         mask: Option<usize>,
         atomic_ordering: Option<Ordering>,
@@ -107,7 +107,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 
     #[inline(always)]
     fn store_metadata(
-        metadata_spec: MetadataSpec,
+        metadata_spec: HeaderMetadataSpec,
         object: ObjectReference,
         val: usize,
         mask: Option<usize>,
@@ -118,7 +118,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 
     #[inline(always)]
     fn compare_exchange_metadata(
-        metadata_spec: MetadataSpec,
+        metadata_spec: HeaderMetadataSpec,
         object: ObjectReference,
         old_val: usize,
         new_val: usize,
@@ -139,7 +139,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 
     #[inline(always)]
     fn fetch_add_metadata(
-        metadata_spec: MetadataSpec,
+        metadata_spec: HeaderMetadataSpec,
         object: ObjectReference,
         val: usize,
         order: Ordering,
@@ -149,7 +149,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 
     #[inline(always)]
     fn fetch_sub_metadata(
-        metadata_spec: MetadataSpec,
+        metadata_spec: HeaderMetadataSpec,
         object: ObjectReference,
         val: usize,
         order: Ordering,
@@ -165,7 +165,6 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
     const LOCAL_FORWARDING_BITS_SPEC: MetadataSpec = vm_metadata::FORWARDING_BITS_METADATA_SPEC;
     const LOCAL_MARK_BIT_SPEC: MetadataSpec = vm_metadata::MARKING_METADATA_SPEC;
     const LOCAL_LOS_MARK_NURSERY_SPEC: MetadataSpec = vm_metadata::LOS_METADATA_SPEC;
-    const LOCAL_UNLOGGED_BIT_SPEC: MetadataSpec = vm_metadata::UNLOGGED_SIDE_METADATA_SPEC;
 
     #[inline(always)]
     fn copy(
