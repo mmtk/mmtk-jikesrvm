@@ -5,7 +5,7 @@ use crate::unboxed_size_constants::*;
 use crate::vm_metadata;
 use mmtk::util::alloc::fill_alignment_gap;
 use mmtk::util::conversions;
-use mmtk::util::metadata::{HeaderMetadataSpec, MetadataSpec};
+use mmtk::util::metadata::{header_metadata::HeaderMetadataSpec, MetadataSpec};
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::ObjectModel;
 use mmtk::AllocationSemantics;

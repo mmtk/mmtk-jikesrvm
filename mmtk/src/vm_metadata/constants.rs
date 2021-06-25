@@ -1,16 +1,12 @@
 use std::usize;
 
 use mmtk::util::metadata::side_metadata::{SideMetadataSpec, GLOBAL_SIDE_METADATA_BASE_ADDRESS};
-use mmtk::util::metadata::{HeaderMetadataSpec, MetadataSpec};
+use mmtk::util::metadata::{header_metadata::HeaderMetadataSpec, MetadataSpec};
 
 use crate::java_header::AVAILABLE_BITS_OFFSET;
-pub(crate) use mmtk::util::constants::{
-    BITS_IN_BYTE, LOG_BITS_IN_BYTE, LOG_BITS_IN_WORD, LOG_MIN_OBJECT_SIZE,
-};
+pub(crate) use mmtk::util::constants::{LOG_BITS_IN_BYTE, LOG_BITS_IN_WORD, LOG_MIN_OBJECT_SIZE};
 
 const FORWARDING_BITS_OFFSET: isize = AVAILABLE_BITS_OFFSET << LOG_BITS_IN_BYTE;
-
-pub(crate) const LOG_BITS_IN_U16: usize = 4;
 
 // Global MetadataSpecs - Start
 
