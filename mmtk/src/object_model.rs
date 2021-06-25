@@ -2,8 +2,10 @@ use libc::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::unboxed_size_constants::*;
+use crate::vm_metadata;
 use mmtk::util::alloc::fill_alignment_gap;
 use mmtk::util::conversions;
+use mmtk::util::metadata::{header_metadata::HeaderMetadataSpec, MetadataSpec};
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::ObjectModel;
 use mmtk::AllocationSemantics;
@@ -93,7 +95,76 @@ impl VMObjectModel {
 }
 
 impl ObjectModel<JikesRVM> for VMObjectModel {
-    const GC_BYTE_OFFSET: isize = AVAILABLE_BITS_OFFSET;
+    #[inline(always)]
+    fn load_metadata(
+        metadata_spec: HeaderMetadataSpec,
+        object: ObjectReference,
+        mask: Option<usize>,
+        atomic_ordering: Option<Ordering>,
+    ) -> usize {
+        vm_metadata::load_metadata(metadata_spec, object, mask, atomic_ordering)
+    }
+
+    #[inline(always)]
+    fn store_metadata(
+        metadata_spec: HeaderMetadataSpec,
+        object: ObjectReference,
+        val: usize,
+        mask: Option<usize>,
+        atomic_ordering: Option<Ordering>,
+    ) {
+        vm_metadata::store_metadata(metadata_spec, object, val, mask, atomic_ordering);
+    }
+
+    #[inline(always)]
+    fn compare_exchange_metadata(
+        metadata_spec: HeaderMetadataSpec,
+        object: ObjectReference,
+        old_val: usize,
+        new_val: usize,
+        mask: Option<usize>,
+        success_order: Ordering,
+        failure_order: Ordering,
+    ) -> bool {
+        vm_metadata::compare_exchange_metadata(
+            metadata_spec,
+            object,
+            old_val,
+            new_val,
+            mask,
+            success_order,
+            failure_order,
+        )
+    }
+
+    #[inline(always)]
+    fn fetch_add_metadata(
+        metadata_spec: HeaderMetadataSpec,
+        object: ObjectReference,
+        val: usize,
+        order: Ordering,
+    ) -> usize {
+        vm_metadata::fetch_add_metadata(metadata_spec, object, val, order)
+    }
+
+    #[inline(always)]
+    fn fetch_sub_metadata(
+        metadata_spec: HeaderMetadataSpec,
+        object: ObjectReference,
+        val: usize,
+        order: Ordering,
+    ) -> usize {
+        vm_metadata::fetch_sub_metadata(metadata_spec, object, val, order)
+    }
+
+    // For now we use the default const from mmtk-core
+    const GLOBAL_LOG_BIT_SPEC: MetadataSpec = vm_metadata::LOGGING_SIDE_METADATA_SPEC;
+
+    const LOCAL_FORWARDING_POINTER_SPEC: MetadataSpec =
+        vm_metadata::FORWARDING_POINTER_METADATA_SPEC;
+    const LOCAL_FORWARDING_BITS_SPEC: MetadataSpec = vm_metadata::FORWARDING_BITS_METADATA_SPEC;
+    const LOCAL_MARK_BIT_SPEC: MetadataSpec = vm_metadata::MARKING_METADATA_SPEC;
+    const LOCAL_LOS_MARK_NURSERY_SPEC: MetadataSpec = vm_metadata::LOS_METADATA_SPEC;
 
     #[inline(always)]
     fn copy(
@@ -280,7 +351,10 @@ impl VMObjectModel {
             let num_elements = Self::get_array_length(object);
             unsafe {
                 let log_element_size = (rvm_type + LOG_ELEMENT_SIZE_FIELD_OFFSET).load::<usize>();
-                // println!("log_element_size(0x{:x}, 0x{:x}) -> 0x{:x} << 0x{:x}", object, rvm_type, num_elements, log_element_size);
+                // println!(
+                //     "log_element_size(0x{:x}, 0x{:x}) -> 0x{:x} << 0x{:x}",
+                //     object, rvm_type, num_elements, log_element_size
+                // );
                 ARRAY_HEADER_SIZE + (num_elements << log_element_size)
             }
         };

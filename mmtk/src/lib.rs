@@ -37,6 +37,7 @@ pub mod scan_sanity;
 pub mod scan_statics;
 pub mod scanning;
 pub mod tib_layout_constants;
+pub(crate) mod vm_metadata;
 
 pub static mut JTOC_BASE: Address = Address::ZERO;
 
