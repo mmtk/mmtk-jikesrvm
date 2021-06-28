@@ -1,7 +1,7 @@
 0.5.0 (2021-06-28)
 ===
 
-* Updates to the rebased JikesRVM.
+* Updates to the JikesRVM upstream.
 * Updates `ObjectModel` to support the new metadata structure, where the bindings decide whether to put each per-object metadata on side or in object header.
 * Updates to mmtk-core 0.5.0.
 
