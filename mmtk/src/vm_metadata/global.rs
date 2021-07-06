@@ -5,7 +5,7 @@ use mmtk::util::{metadata as mmtk_meta, ObjectReference};
 /// This function implements the `load_metadata` method from the `ObjectModel` trait.
 #[inline(always)]
 pub(crate) fn load_metadata(
-    metadata_spec: mmtk_meta::header_metadata::HeaderMetadataSpec,
+    metadata_spec: &mmtk_meta::header_metadata::HeaderMetadataSpec,
     object: ObjectReference,
     optional_mask: Option<usize>,
     atomic_ordering: Option<Ordering>,
@@ -16,7 +16,7 @@ pub(crate) fn load_metadata(
 /// This function implements the `store_metadata` method from the `ObjectModel` trait.
 #[inline(always)]
 pub(crate) fn store_metadata(
-    metadata_spec: mmtk_meta::header_metadata::HeaderMetadataSpec,
+    metadata_spec: &mmtk_meta::header_metadata::HeaderMetadataSpec,
     object: ObjectReference,
     val: usize,
     optional_mask: Option<usize>,
@@ -34,7 +34,7 @@ pub(crate) fn store_metadata(
 /// This function implements the `compare_exchange_metadata` method from the `ObjectModel` trait.
 #[inline(always)]
 pub(crate) fn compare_exchange_metadata(
-    metadata_spec: mmtk_meta::header_metadata::HeaderMetadataSpec,
+    metadata_spec: &mmtk_meta::header_metadata::HeaderMetadataSpec,
     object: ObjectReference,
     old_metadata: usize,
     new_metadata: usize,
@@ -56,7 +56,7 @@ pub(crate) fn compare_exchange_metadata(
 /// This function implements the `fetch_add_metadata` method from the `ObjectModel` trait.
 #[inline(always)]
 pub(crate) fn fetch_add_metadata(
-    metadata_spec: mmtk_meta::header_metadata::HeaderMetadataSpec,
+    metadata_spec: &mmtk_meta::header_metadata::HeaderMetadataSpec,
     object: ObjectReference,
     val: usize,
     order: Ordering,
@@ -67,7 +67,7 @@ pub(crate) fn fetch_add_metadata(
 /// This function implements the `fetch_sub_metadata` method from the `ObjectModel` trait.
 #[inline(always)]
 pub(crate) fn fetch_sub_metadata(
-    metadata_spec: mmtk_meta::header_metadata::HeaderMetadataSpec,
+    metadata_spec: &mmtk_meta::header_metadata::HeaderMetadataSpec,
     object: ObjectReference,
     val: usize,
     order: Ordering,
