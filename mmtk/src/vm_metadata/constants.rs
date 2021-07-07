@@ -1,10 +1,8 @@
-use std::usize;
-
 use mmtk::util::metadata::side_metadata::GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS;
 use mmtk::vm::*;
 
 use crate::java_header::AVAILABLE_BITS_OFFSET;
-pub(crate) use mmtk::util::constants::{LOG_BITS_IN_BYTE, LOG_MIN_OBJECT_SIZE};
+pub(crate) use mmtk::util::constants::LOG_BITS_IN_BYTE;
 
 const FORWARDING_BITS_OFFSET: isize = AVAILABLE_BITS_OFFSET << LOG_BITS_IN_BYTE;
 
@@ -12,10 +10,8 @@ const FORWARDING_BITS_OFFSET: isize = AVAILABLE_BITS_OFFSET << LOG_BITS_IN_BYTE;
 
 /// Global logging bit metadata spec
 /// 1 bit per object
-pub(crate) const LOGGING_SIDE_METADATA_SPEC: VMGlobalLogBitSpec = VMGlobalLogBitSpec::side(
-    GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize(),
-    LOG_MIN_OBJECT_SIZE as usize,
-);
+pub(crate) const LOGGING_SIDE_METADATA_SPEC: VMGlobalLogBitSpec =
+    VMGlobalLogBitSpec::side(GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize());
 
 // Global MetadataSpecs - End
 
