@@ -9,8 +9,7 @@ const FORWARDING_BITS_OFFSET: isize = AVAILABLE_BITS_OFFSET << LOG_BITS_IN_BYTE;
 
 /// Global logging bit metadata spec
 /// 1 bit per object
-pub(crate) const LOGGING_SIDE_METADATA_SPEC: VMGlobalLogBitSpec =
-    VMGlobalLogBitSpec::side_first();
+pub(crate) const LOGGING_SIDE_METADATA_SPEC: VMGlobalLogBitSpec = VMGlobalLogBitSpec::side_first();
 
 // Global MetadataSpecs - End
 
