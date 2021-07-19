@@ -26,7 +26,7 @@ mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "1e7964656eb0988e3
 # mmtk = { path = "../repos/mmtk-core" }
 
 [features]
-default = ["mmtk/vm_space"]
+default = ["mmtk/vm_space", "mmtk/code_space", "mmtk/ro_space"]
 nogc = []
 semispace = []
 marksweep = []
