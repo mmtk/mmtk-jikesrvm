@@ -1,7 +1,8 @@
 set -xe
 
 # To JikesRVM folder
-cd repos/jikesrvm
+root_dir=$(dirname "$0")/../../
+cd $root_dir/repos/jikesrvm
 
 # RBaseBaseSemiSpaceAssertions
 ./bin/buildit localhost RBaseBaseSemiSpaceAssertions -j $JAVA_HOME --answer-yes --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src --m32

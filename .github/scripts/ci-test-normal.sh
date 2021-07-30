@@ -1,7 +1,8 @@
 set -xe
 
 # To JikesRVM folder
-cd repos/jikesrvm
+root_dir=$(dirname "$0")/../../
+cd $root_dir/repos/jikesrvm
 
 # Test BaseBase builds
 # Only run one test
