@@ -1,7 +1,7 @@
 set -xe
 
 # To JikesRVM folder
-root_dir=$(dirname "$0")/../../
+root_dir=$(dirname "$0")../../
 cd $root_dir/repos/jikesrvm
 
 # RBaseBaseSemiSpaceAssertions
