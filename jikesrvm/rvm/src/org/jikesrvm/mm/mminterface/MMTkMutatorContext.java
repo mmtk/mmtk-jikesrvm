@@ -134,17 +134,17 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address immixAllocator0PlanFat;
     @Entrypoint
-    byte immixAllocator0Hot;
+    Address immixAllocator0Hot;
     @Entrypoint
-    byte immixAllocator0Copy;
+    Address immixAllocator0Copy;
     @Entrypoint
     Address immixAllocator0LargeCursor;
     @Entrypoint
     Address immixAllocator0LargeLimit;
     @Entrypoint
-    byte immixAllocator0RequestForLarge;
+    Address immixAllocator0RequestForLarge;
     @Entrypoint
-    byte immixAllocator0OptionLineTag;
+    Address immixAllocator0OptionLineTag;
     @Entrypoint
     Address immixAllocator0OptionLineData;
 
