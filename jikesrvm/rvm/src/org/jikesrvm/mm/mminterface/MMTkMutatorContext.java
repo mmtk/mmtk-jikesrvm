@@ -120,6 +120,34 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address mallocAllocator0PlanFat;
 
+    // 1 x ImmixAllocator
+    @Entrypoint
+    Address immixAllocator0Tls;
+    @Entrypoint
+    Address immixAllocator0Cursor;
+    @Entrypoint
+    Address immixAllocator0Limit;
+    @Entrypoint
+    Address immixAllocator0Space;
+    @Entrypoint
+    Address immixAllocator0Plan;
+    @Entrypoint
+    Address immixAllocator0PlanFat;
+    @Entrypoint
+    byte immixAllocator0Hot;
+    @Entrypoint
+    byte immixAllocator0Copy;
+    @Entrypoint
+    Address immixAllocator0LargeCursor;
+    @Entrypoint
+    Address immixAllocator0LargeLimit;
+    @Entrypoint
+    byte immixAllocator0RequestForLarge;
+    @Entrypoint
+    byte immixAllocator0OptionLineTag;
+    @Entrypoint
+    Address immixAllocator0OptionLineData;
+
     // barrier
     @Entrypoint
     Address barrier;
@@ -149,6 +177,9 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     Address release_func;
     Address release_func_fat;
 
+    @Entrypoint
+    Address __mutatorDataEnd;
+
     // Mutator section ends
 
     // Number of allocators - these constants need to match the layout of the fields, also the constants in MMTk core.
@@ -170,16 +201,15 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     // Malloc allocator size. We do not need offsets for each field, as we don't need to implement fastpath for large object allocator.
     static final int MALLOC_ALLOCATOR_SIZE = 4 * BYTES_IN_WORD;
 
-    // The size of this mutator section
-    static final int MUTATOR_SIZE = MAX_BUMP_ALLOCATORS * BUMP_ALLOCATOR_SIZE
-        + MAX_LARGE_OBJECT_ALLOCATORS * LARGE_OBJECT_ALLOCATOR_SIZE
-        + MAX_MALLOC_ALLOCATORS * MALLOC_ALLOCATOR_SIZE
-        + 11 * BYTES_IN_WORD;
     // The base offset of this mutator section
     static final Offset MUTATOR_BASE_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "bumpAllocator0Tls", Address.class).getOffset();
     static final Offset BUMP_ALLOCATOR_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "bumpAllocator0Tls", Address.class).getOffset();
     static final Offset LARGE_OBJECT_ALLOCATOR_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "largeObjectAllocator0Tls", Address.class).getOffset();
     static final Offset MALLOC_ALLOCATOR_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "mallocAllocator0Tls", Address.class).getOffset();
+    static final Offset MUTATOR_DATA_END_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "__mutatorDataEnd", Address.class).getOffset();
+
+    // The size of this mutator section
+    static final int MUTATOR_SIZE = MUTATOR_DATA_END_OFFSET.toInt() - MUTATOR_BASE_OFFSET.toInt();
 
     // tag for allocator type
     public static final int TAG_BUMP_POINTER = 0;
