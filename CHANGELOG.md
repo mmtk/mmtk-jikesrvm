@@ -1,3 +1,9 @@
+0.6.0 (2021-08-10)
+===
+
+* Added the layout for ImmixAllocator for MutatorContext.
+* Updates to mmtk-core 0.6.0
+
 0.5.0 (2021-06-28)
 ===
 
