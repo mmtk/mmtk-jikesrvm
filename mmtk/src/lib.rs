@@ -1,7 +1,4 @@
-// llvm_asm! is going to be deprecated. We need to replace llvm_asm! with asm!
-// FIXME: We should remove this as soon as we can: https://github.com/mmtk/mmtk-jikesrvm/issues/85
-#![allow(deprecated)]
-#![feature(llvm_asm)]
+#![feature(asm)]
 #![feature(vec_into_raw_parts)]
 extern crate libc;
 extern crate mmtk;

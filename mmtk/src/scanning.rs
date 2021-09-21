@@ -264,8 +264,8 @@ impl VMScanning {
                 tls,
                 thread_usize,
                 process_edges,
-                process_code_locations,
-                new_roots_sufficient
+                process_code_locations as i32,
+                new_roots_sufficient as i32
             );
             debug!("Returned from JikesRVM thread roots");
         }

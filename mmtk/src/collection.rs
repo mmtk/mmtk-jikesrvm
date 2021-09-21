@@ -52,7 +52,7 @@ impl Collection<JikesRVM> for VMCollection {
         _m: &T,
     ) {
         unsafe {
-            jtoc_call!(PREPARE_MUTATOR_METHOD_OFFSET, tls_worker, tls_mutator);
+            jtoc_call!(PREPARE_MUTATOR_METHOD_OFFSET, std::mem::transmute::<VMWorkerThread, usize>(tls_worker), std::mem::transmute::<VMMutatorThread, usize>(tls_mutator));
         }
     }
 
