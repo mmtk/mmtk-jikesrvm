@@ -52,7 +52,12 @@ impl Collection<JikesRVM> for VMCollection {
         _m: &T,
     ) {
         unsafe {
-            jtoc_call!(PREPARE_MUTATOR_METHOD_OFFSET, std::mem::transmute::<VMWorkerThread, usize>(tls_worker), std::mem::transmute::<VMMutatorThread, usize>(tls_mutator));
+            jtoc_call!(
+                PREPARE_MUTATOR_METHOD_OFFSET,
+                // convert to primitive types, so they can be used in asm!
+                std::mem::transmute::<_, usize>(tls_worker),
+                std::mem::transmute::<_, usize>(tls_mutator)
+            );
         }
     }
 
