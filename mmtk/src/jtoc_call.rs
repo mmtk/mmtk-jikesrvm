@@ -58,27 +58,22 @@ macro_rules! jikesrvm_call_helper {
     // The clobber list of the old llvm_asm! is:
     // "ebx", "ecx", "edx", "esi", "memory", "mm0", "mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm7", "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7", "ymm0", "ymm1", "ymm2", "ymm3", "ymm4", "ymm5", "ymm6", "ymm7", "zmm0", "zmm1", "zmm2", "zmm3", "zmm4", "zmm5", "zmm6", "zmm7"
     // When we move to the new asm!, most of the registers are remained as clobbered, except:
-    // * esi: new asm! does not allow use esi as operand, we have to manually save/restore it: https://github.com/rust-lang/rust/blob/master/compiler/rustc_target/src/asm/x86.rs#L182
+    // * esi: new asm! does not allow use esi as operand (https://github.com/rust-lang/rust/blob/master/compiler/rustc_target/src/asm/x86.rs#L182), we have to manually save/restore it (following the pattern here: https://github.com/rust-lang/rust/pull/84658/files#diff-d7283132d97a993fad4e2d491ac883dbce4e17fe248cdf37fa3f9334e2a5a115)
     // * memory: llvm_asm! allows to specify "memory" as clobber if the asm modifies memory.
     //   asm! has a option nomem to specify the asm does not modify memory, otherwise the compiler assumes the asm will modify memory.
     // * xmm/ymm: Those are lower parts of zmm. We only need to mark zmm as clobbers.
 
     ($ret:ident, $rvm_thread:ident, $call_addr:ident) => (
-        let esi_val: usize = 0;
         asm!(
-            // Save the value in esi
-            "mov {0}, esi",
-            // Move TLS to esi
-            "mov esi, {1}",
+            // Exchange the value of TLS and esi (so esi now holds the TLS, and the TLS temp holds the esi value)
+            "xchg {0}, esi",
             // Call $call_addr which is in ebx
             "call ebx",
-            // Restore the esi_val to esi
+            // Restore esi from the TSL
             "mov esi, {0}",
 
-            // We just use esi_val as a scratch register.
-            inout(reg) esi_val => _,
-            // TLS. We will manually move it to esi. It would be best if we can use inout("esi") $rvm_thread => _, but asm! does not allow us to use esi as operand.
-            in(reg) $rvm_thread,
+            // TLS. We will manually exchange it with esi.
+            inout(reg) $rvm_thread => _,
             // Call address. We use ebx in asm.
             inout("ebx") $call_addr => _,
             // Return value in eax.
@@ -108,21 +103,16 @@ macro_rules! jikesrvm_call_helper {
     );
 
     ($ret:ident, $rvm_thread:ident, $call_addr:ident, $arg1:expr) => (
-        let esi_val: usize = 0;
         asm!(
-            // Save the value in esi
-            "mov {0}, esi",
-            // Move TLS to esi
-            "mov esi, {1}",
+            // Exchange the value of TLS and esi (so esi now holds the TLS, and the TLS temp holds the esi value)
+            "xchg {0}, esi",
             // Call $call_addr which is in ebx
             "call ebx",
             // Restore the esi_val to esi
             "mov esi, {0}",
 
-            // We just use esi_val as a scratch register.
-            inout(reg) esi_val => _,
-            // TLS. We will manually move it to esi. It would be best if we can use inout("esi") $rvm_thread => _, but asm! does not allow us to use esi as operand.
-            in(reg) $rvm_thread,
+            // TLS. We will manually exchange it with esi.
+            inout(reg) $rvm_thread => _,
             // Call address. We use ebx in asm.
             inout("ebx") $call_addr => _,
             // arg1 in eax, also return value in eax.
@@ -152,21 +142,16 @@ macro_rules! jikesrvm_call_helper {
     );
 
     ($ret:ident, $rvm_thread:ident, $call_addr:ident, $arg1:expr, $arg2:expr $(, $arg:expr)*) => (
-        let esi_val: usize = 0;
         asm!(
-            // Save the value in esi
-            "mov {0}, esi",
-            // Move TLS to esi
-            "mov esi, {1}",
+            // Exchange the value of TLS and esi (so esi now holds the TLS, and the TLS temp holds the esi value)
+            "xchg {0}, esi",
             // Call $call_addr which is in ebx
             "call ebx",
             // Restore the esi_val to esi
             "mov esi, {0}",
 
-            // We just use esi_val as a scratch register.
-            inout(reg) esi_val => _,
-            // TLS. We will manually move it to esi. It would be best if we can use inout("esi") $rvm_thread => _, but asm! does not allow us to use esi as operand.
-            in(reg) $rvm_thread,
+            // TLS. We will manually exchange it with esi.
+            inout(reg) $rvm_thread => _,
             // Call address. We use ebx in asm.
             inout("ebx") $call_addr => _,
             // arg1 in eax, also return value in eax.
