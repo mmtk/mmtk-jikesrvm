@@ -32,7 +32,6 @@ macro_rules! jikesrvm_call {
         let rvm_thread: usize = std::mem::transmute::<_, usize>($tls);
 
         $(
-            // llvm_asm!("push %ebx" : : "{ebx}"($arg) : "sp", "memory");
             asm!(
                 "push {}",
                 in(reg) $arg,
