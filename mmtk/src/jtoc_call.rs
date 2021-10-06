@@ -68,7 +68,7 @@ macro_rules! jikesrvm_call_helper {
             "xchg {0}, esi",
             // Call $call_addr which is in ebx
             "call ebx",
-            // Restore esi from the TSL
+            // Restore esi from the TLS
             "mov esi, {0}",
 
             // TLS. We will manually exchange it with esi.
@@ -96,8 +96,6 @@ macro_rules! jikesrvm_call_helper {
             out("zmm5") _,
             out("zmm6") _,
             out("zmm7") _,
-            // equivalent of "volatile" in llvm_asm!
-            options(nostack)
         );
     );
 
@@ -107,7 +105,7 @@ macro_rules! jikesrvm_call_helper {
             "xchg {0}, esi",
             // Call $call_addr which is in ebx
             "call ebx",
-            // Restore the esi_val to esi
+            // Restore esi from the TLS
             "mov esi, {0}",
 
             // TLS. We will manually exchange it with esi.
@@ -135,8 +133,6 @@ macro_rules! jikesrvm_call_helper {
             out("zmm5") _,
             out("zmm6") _,
             out("zmm7") _,
-            // equivalent of "volatile" in llvm_asm!
-            options(nostack)
         );
     );
 
@@ -146,7 +142,7 @@ macro_rules! jikesrvm_call_helper {
             "xchg {0}, esi",
             // Call $call_addr which is in ebx
             "call ebx",
-            // Restore the esi_val to esi
+            // Restore esi from the TLS
             "mov esi, {0}",
 
             // TLS. We will manually exchange it with esi.
@@ -175,8 +171,6 @@ macro_rules! jikesrvm_call_helper {
             out("zmm5") _,
             out("zmm6") _,
             out("zmm7") _,
-            // equivalent of "volatile" in llvm_asm!
-            options(nostack)
         );
     );
 }
