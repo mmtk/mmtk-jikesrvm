@@ -95,7 +95,10 @@ pub extern "C" fn start_worker(tls: VMWorkerThread, worker: *mut GCWorker<JikesR
 
 #[no_mangle]
 pub extern "C" fn enable_collection(tls: VMThread) {
-    memory_manager::enable_collection(&SINGLETON, tls)
+    // MMTk core renamed enable_collection() to initialize_collection(). The JikesRVM binding
+    // never uses the new enable_collection() API so we just expose this as enable_collection().
+    // Also this is used by JikesRVM for third party heaps in places where it uses JavaMMTK's enableCollection().
+    memory_manager::initialize_collection(&SINGLETON, tls)
 }
 
 #[no_mangle]
