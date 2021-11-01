@@ -1,3 +1,9 @@
+0.8.0 (2021-11-01)
+===
+
+* Refactors current uses of the `llvm_asm!` macro to the new `asm!` macro.
+* Updates to mmtk-core 0.8.0.
+
 0.7.0 (2021-09-22)
 ===
 
