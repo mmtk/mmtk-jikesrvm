@@ -28,6 +28,6 @@ mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "7e83822559c7758a1
 [features]
 default = ["mmtk/vm_space", "mmtk/code_space", "mmtk/ro_space"]
 mmtk_extreme_assertions = ["mmtk/extreme_assertions"]
-nogc = ["mmtk/nogc_common_plan"]
+nogc = []
 semispace = []
 marksweep = []
