@@ -83,10 +83,8 @@ fn process_chunk(
     let mut offset: usize = 0;
     let mut cursor: Address = chunk_start;
     unsafe {
-        while {
-            value = cursor.load::<u8>() as usize;
-            value != 0
-        } {
+        value = cursor.load::<u8>() as usize;
+        while value != 0 {
             /* establish the offset */
             if (value & LONGENCODING_MASK) != 0 {
                 offset = decode_long_encoding(cursor);
@@ -131,6 +129,8 @@ fn process_chunk(
                     }
                 }
             }
+
+            value = cursor.load::<u8>() as usize;
         }
     }
 }

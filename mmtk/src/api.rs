@@ -95,7 +95,10 @@ pub extern "C" fn start_worker(tls: VMWorkerThread, worker: *mut GCWorker<JikesR
 
 #[no_mangle]
 pub extern "C" fn enable_collection(tls: VMThread) {
-    memory_manager::enable_collection(&SINGLETON, tls)
+    // MMTk core renamed enable_collection() to initialize_collection(). The JikesRVM binding
+    // never uses the new enable_collection() API so we just expose this as enable_collection().
+    // Also this is used by JikesRVM for third party heaps in places where it uses JavaMMTK's enableCollection().
+    memory_manager::initialize_collection(&SINGLETON, tls)
 }
 
 #[no_mangle]
@@ -267,7 +270,8 @@ pub extern "C" fn alloc_slow_largeobject(
 pub extern "C" fn test_stack_alignment() {
     info!("Entering stack alignment test with no args passed");
     unsafe {
-        llvm_asm!("movaps %xmm1, (%esp)" : : : "sp", "%xmm1", "memory");
+        let _xmm: f32;
+        asm!("movaps {}, [esp]", lateout(xmm_reg) _xmm);
     }
     info!("Exiting stack alignment test");
 }
@@ -278,7 +282,8 @@ pub extern "C" fn test_stack_alignment1(a: usize, b: usize, c: usize, d: usize, 
     info!("Entering stack alignment test");
     info!("a:{}, b:{}, c:{}, d:{}, e:{}", a, b, c, d, e);
     unsafe {
-        llvm_asm!("movaps %xmm1, (%esp)" : : : "sp", "%xmm1", "memory");
+        let _xmm: f32;
+        asm!("movaps {}, [esp]", lateout(xmm_reg) _xmm);
     }
     let result = a + b * 2 + c * 3 + d * 4 + e * 5;
     info!("Exiting stack alignment test");
