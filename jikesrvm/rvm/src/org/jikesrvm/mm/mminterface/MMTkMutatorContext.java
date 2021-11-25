@@ -18,7 +18,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     // Mutator section starts
 
     // Allocators
-    // 5 x BumpAllocator (5 x 6 words)
+    // 6 x BumpAllocator (6 x 6 words)
 
     // Bump Allocator 0
     @Entrypoint
@@ -100,7 +100,23 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address bumpAllocator4PlanFat;
 
-    // 2 x LargeObjectAllocator (2 x 4 words)
+    // Bump Allocator 5
+    @Entrypoint
+    Address bumpAllocator5Tls;
+    @Entrypoint
+    Address bumpAllocator5Cursor;
+    @Entrypoint
+    Address bumpAllocator5Limit;
+    @Entrypoint
+    Address bumpAllocator5Space;
+    @Entrypoint
+    Address bumpAllocator5SpaceFat;
+    @Entrypoint
+    Address bumpAllocator5Plan;
+    @Entrypoint
+    Address bumpAllocator5PlanFat;
+
+    // 2 x LargeObjectAllocator (1 x 4 words)
     @Entrypoint
     Address largeObjectAllocator0Tls;
     @Entrypoint
@@ -192,7 +208,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     // Mutator section ends
 
     // Number of allocators - these constants need to match the layout of the fields, also the constants in MMTk core.
-    static final int MAX_BUMP_ALLOCATORS = 5;
+    static final int MAX_BUMP_ALLOCATORS = 6;
     static final int MAX_LARGE_OBJECT_ALLOCATORS = 2;
     static final int MAX_MALLOC_ALLOCATORS = 1;
     // Bump allocator size
