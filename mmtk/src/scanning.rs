@@ -172,6 +172,11 @@ impl Scanning<JikesRVM> for VMScanning {
         // FIXME: Really?
         cfg!(target_arch = "x86")
     }
+
+    fn prepare_for_roots_re_scanning() {
+        // I guess we do not need to do anything special. However I will leave it as unimplemented for now.
+        unimplemented!()
+    }
 }
 
 struct ObjectsClosure<'a, E: ProcessEdgesWork<VM = JikesRVM>>(
