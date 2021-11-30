@@ -148,6 +148,22 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address immixAllocator0OptionLineData;
 
+    // 1 x MarkCompactAllocator (same layout as bump allocator)
+    @Entrypoint
+    Address markCompactAllocator0Tls;
+    @Entrypoint
+    Address markCompactAllocator0Cursor;
+    @Entrypoint
+    Address markCompactAllocator0Limit;
+    @Entrypoint
+    Address markCompactAllocator0Space;
+    @Entrypoint
+    Address markCompactAllocator0SpaceFat;
+    @Entrypoint
+    Address markCompactAllocator0Plan;
+    @Entrypoint
+    Address markCompactAllocator0PlanFat;
+
     // barrier
     @Entrypoint
     Address barrier;
@@ -186,6 +202,8 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     static final int MAX_BUMP_ALLOCATORS = 5;
     static final int MAX_LARGE_OBJECT_ALLOCATORS = 1;
     static final int MAX_MALLOC_ALLOCATORS = 1;
+    static final int MAX_IMMIX_ALLOCATORS = 1;
+    static final int MAX_MARK_COMPACT_ALLOCATORS = 1;
     // Bump allocator size
     static final int BUMP_ALLOCATOR_SIZE = 7 * BYTES_IN_WORD;
     // Bump allocator field offsets
@@ -200,6 +218,10 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     static final int LARGE_OBJECT_ALLOCATOR_SIZE = 4 * BYTES_IN_WORD;
     // Malloc allocator size. We do not need offsets for each field, as we don't need to implement fastpath for large object allocator.
     static final int MALLOC_ALLOCATOR_SIZE = 4 * BYTES_IN_WORD;
+    // Immix allocator size
+    static final int IMMIX_ALLOCATOR_SIZE = 13 * BYTES_IN_WORD;
+    // Mark compact allocator size (the same as bump allocator)
+    static final int MARK_COMPACT_ALLOCATOR_SIZE = BUMP_ALLOCATOR_SIZE;
 
     // The base offset of this mutator section
     static final Offset MUTATOR_BASE_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "bumpAllocator0Tls", Address.class).getOffset();
@@ -215,6 +237,8 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     public static final int TAG_BUMP_POINTER = 0;
     public static final int TAG_LARGE_OBJECT = 1;
     public static final int TAG_MALLOC = 2;
+    public static final int TAG_IMMIX = 3;
+    public static final int TAG_MARK_COMPACT = 4;
 
     // tag for space type
     public static final int IMMORTAL_SPACE = 0;
