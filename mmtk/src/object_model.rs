@@ -177,7 +177,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         let rvm_type = Self::load_rvm_type(from);
 
         trace!("Is it a class?");
-        if unsafe { (rvm_type + IS_CLASS_TYPE_FIELD_OFFSET).load::<bool>() } {
+        if Self::is_class(rvm_type) {
             trace!("... yes");
             Self::copy_scalar(from, tib, rvm_type, copy, copy_context)
         } else {
@@ -230,6 +230,32 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         Self::bytes_used(object, rvm_type)
     }
 
+    fn get_size_when_copied(object: ObjectReference) -> usize {
+        let rvm_type = Self::load_rvm_type(object);
+
+        Self::bytes_required_when_copied(object, rvm_type)
+    }
+
+    fn get_align_when_copied(object: ObjectReference) -> usize {
+        let rvm_type = Self::load_rvm_type(object);
+
+        if Self::is_class(rvm_type) {
+            Self::get_alignment_class(rvm_type)
+        } else {
+            Self::get_alignment_array(rvm_type)
+        }
+    }
+
+    fn get_align_offset_when_copied(object: ObjectReference) -> isize {
+        let rvm_type = Self::load_rvm_type(object);
+
+        if Self::is_class(rvm_type) {
+            Self::get_offset_for_alignment_class(object, rvm_type)
+        } else {
+            Self::get_offset_for_alignment_array(object, rvm_type)
+        }
+    }
+
     fn get_type_descriptor(_reference: ObjectReference) -> &'static [i8] {
         unimplemented!()
     }
@@ -262,6 +288,10 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 }
 
 impl VMObjectModel {
+    fn is_class(rvm_type: Address) -> bool {
+        unsafe { (rvm_type + IS_CLASS_TYPE_FIELD_OFFSET).load::<bool>() }
+    }
+
     #[inline(always)]
     fn copy_scalar(
         from: ObjectReference,
@@ -316,12 +346,10 @@ impl VMObjectModel {
     #[inline(always)]
     fn bytes_required_when_copied(object: ObjectReference, rvm_type: Address) -> usize {
         trace!("VMObjectModel.bytes_required_when_copied");
-        unsafe {
-            if (rvm_type + IS_CLASS_TYPE_FIELD_OFFSET).load::<bool>() {
-                Self::bytes_required_when_copied_class(object, rvm_type)
-            } else {
-                Self::bytes_required_when_copied_array(object, rvm_type)
-            }
+        if Self::is_class(rvm_type) {
+            Self::bytes_required_when_copied_class(object, rvm_type)
+        } else {
+            Self::bytes_required_when_copied_array(object, rvm_type)
         }
     }
 
@@ -372,7 +400,7 @@ impl VMObjectModel {
     fn bytes_used(object: ObjectReference, rvm_type: Address) -> usize {
         trace!("VMObjectModel.bytes_used");
         unsafe {
-            let is_class = (rvm_type + IS_CLASS_TYPE_FIELD_OFFSET).load::<bool>();
+            let is_class = Self::is_class(rvm_type);
             let mut size = if is_class {
                 (rvm_type + INSTANCE_SIZE_FIELD_OFFSET).load::<usize>()
             } else {

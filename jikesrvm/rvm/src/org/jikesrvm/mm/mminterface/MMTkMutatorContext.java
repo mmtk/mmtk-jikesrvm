@@ -18,7 +18,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     // Mutator section starts
 
     // Allocators
-    // 5 x BumpAllocator (5 x 6 words)
+    // 6 x BumpAllocator (6 x 6 words)
 
     // Bump Allocator 0
     @Entrypoint
@@ -100,7 +100,23 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address bumpAllocator4PlanFat;
 
-    // 1 x LargeObjectAllocator (1 x 4 words)
+    // Bump Allocator 5
+    @Entrypoint
+    Address bumpAllocator5Tls;
+    @Entrypoint
+    Address bumpAllocator5Cursor;
+    @Entrypoint
+    Address bumpAllocator5Limit;
+    @Entrypoint
+    Address bumpAllocator5Space;
+    @Entrypoint
+    Address bumpAllocator5SpaceFat;
+    @Entrypoint
+    Address bumpAllocator5Plan;
+    @Entrypoint
+    Address bumpAllocator5PlanFat;
+
+    // 2 x LargeObjectAllocator (1 x 4 words)
     @Entrypoint
     Address largeObjectAllocator0Tls;
     @Entrypoint
@@ -109,6 +125,15 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     Address largeObjectAllocator0Plan;
     @Entrypoint
     Address largeObjectAllocator0PlanFat;
+
+    @Entrypoint
+    Address largeObjectAllocator1Tls;
+    @Entrypoint
+    Address largeObjectAllocator1Space;
+    @Entrypoint
+    Address largeObjectAllocator1Plan;
+    @Entrypoint
+    Address largeObjectAllocator1PlanFat;
 
     // 1 x MallocAllocator
     @Entrypoint
@@ -148,6 +173,22 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address immixAllocator0OptionLineData;
 
+    // 1 x MarkCompactAllocator (same layout as bump allocator)
+    @Entrypoint
+    Address markCompactAllocator0Tls;
+    @Entrypoint
+    Address markCompactAllocator0Cursor;
+    @Entrypoint
+    Address markCompactAllocator0Limit;
+    @Entrypoint
+    Address markCompactAllocator0Space;
+    @Entrypoint
+    Address markCompactAllocator0SpaceFat;
+    @Entrypoint
+    Address markCompactAllocator0Plan;
+    @Entrypoint
+    Address markCompactAllocator0PlanFat;
+
     // barrier
     @Entrypoint
     Address barrier;
@@ -183,9 +224,11 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     // Mutator section ends
 
     // Number of allocators - these constants need to match the layout of the fields, also the constants in MMTk core.
-    static final int MAX_BUMP_ALLOCATORS = 5;
-    static final int MAX_LARGE_OBJECT_ALLOCATORS = 1;
+    static final int MAX_BUMP_ALLOCATORS = 6;
+    static final int MAX_LARGE_OBJECT_ALLOCATORS = 2;
     static final int MAX_MALLOC_ALLOCATORS = 1;
+    static final int MAX_IMMIX_ALLOCATORS = 1;
+    static final int MAX_MARK_COMPACT_ALLOCATORS = 1;
     // Bump allocator size
     static final int BUMP_ALLOCATOR_SIZE = 7 * BYTES_IN_WORD;
     // Bump allocator field offsets
@@ -200,6 +243,10 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     static final int LARGE_OBJECT_ALLOCATOR_SIZE = 4 * BYTES_IN_WORD;
     // Malloc allocator size. We do not need offsets for each field, as we don't need to implement fastpath for large object allocator.
     static final int MALLOC_ALLOCATOR_SIZE = 4 * BYTES_IN_WORD;
+    // Immix allocator size
+    static final int IMMIX_ALLOCATOR_SIZE = 13 * BYTES_IN_WORD;
+    // Mark compact allocator size (the same as bump allocator)
+    static final int MARK_COMPACT_ALLOCATOR_SIZE = BUMP_ALLOCATOR_SIZE;
 
     // The base offset of this mutator section
     static final Offset MUTATOR_BASE_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "bumpAllocator0Tls", Address.class).getOffset();
@@ -215,6 +262,8 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     public static final int TAG_BUMP_POINTER = 0;
     public static final int TAG_LARGE_OBJECT = 1;
     public static final int TAG_MALLOC = 2;
+    public static final int TAG_IMMIX = 3;
+    public static final int TAG_MARK_COMPACT = 4;
 
     // tag for space type
     public static final int IMMORTAL_SPACE = 0;
