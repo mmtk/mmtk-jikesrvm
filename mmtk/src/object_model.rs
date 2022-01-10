@@ -5,11 +5,10 @@ use crate::unboxed_size_constants::*;
 use crate::vm_metadata;
 use mmtk::util::alloc::fill_alignment_gap;
 use mmtk::util::conversions;
+use mmtk::util::copy::*;
 use mmtk::util::metadata::header_metadata::HeaderMetadataSpec;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
-use mmtk::AllocationSemantics;
-use mmtk::CopyContext;
 
 use entrypoint::*;
 use java_header::*;
@@ -170,8 +169,8 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
     #[inline(always)]
     fn copy(
         from: ObjectReference,
-        allocator: AllocationSemantics,
-        copy_context: &mut impl CopyContext,
+        copy: CopySemantics,
+        copy_context: &mut GCWorkerCopyContext<JikesRVM>,
     ) -> ObjectReference {
         trace!("ObjectModel.copy");
         let tib = Self::load_tib(from);
@@ -180,10 +179,10 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         trace!("Is it a class?");
         if Self::is_class(rvm_type) {
             trace!("... yes");
-            Self::copy_scalar(from, tib, rvm_type, allocator, copy_context)
+            Self::copy_scalar(from, tib, rvm_type, copy, copy_context)
         } else {
             trace!("... no");
-            Self::copy_array(from, tib, rvm_type, allocator, copy_context)
+            Self::copy_array(from, tib, rvm_type, copy, copy_context)
         }
     }
 
@@ -296,17 +295,16 @@ impl VMObjectModel {
     #[inline(always)]
     fn copy_scalar(
         from: ObjectReference,
-        tib: Address,
+        _tib: Address,
         rvm_type: Address,
-        immut_allocator: AllocationSemantics,
-        copy_context: &mut impl CopyContext,
+        copy: CopySemantics,
+        copy_context: &mut GCWorkerCopyContext<JikesRVM>,
     ) -> ObjectReference {
         trace!("VMObjectModel.copy_scalar");
         let bytes = Self::bytes_required_when_copied_class(from, rvm_type);
         let align = Self::get_alignment_class(rvm_type);
         let offset = Self::get_offset_for_alignment_class(from, rvm_type);
-        let allocator = copy_context.copy_check_allocator(from, bytes, align, immut_allocator);
-        let region = copy_context.alloc_copy(from, bytes, align, offset, allocator);
+        let region = copy_context.alloc_copy(from, bytes, align, offset, copy);
 
         let to_obj = Self::move_object(
             region,
@@ -315,24 +313,23 @@ impl VMObjectModel {
             bytes,
             rvm_type,
         );
-        copy_context.post_copy(to_obj, tib, bytes, allocator);
+        copy_context.post_copy(to_obj, bytes, copy);
         to_obj
     }
 
     #[inline(always)]
     fn copy_array(
         from: ObjectReference,
-        tib: Address,
+        _tib: Address,
         rvm_type: Address,
-        immut_allocator: AllocationSemantics,
-        copy_context: &mut impl CopyContext,
+        copy: CopySemantics,
+        copy_context: &mut GCWorkerCopyContext<JikesRVM>,
     ) -> ObjectReference {
         trace!("VMObjectModel.copy_array");
         let bytes = Self::bytes_required_when_copied_array(from, rvm_type);
         let align = Self::get_alignment_array(rvm_type);
         let offset = Self::get_offset_for_alignment_array(from, rvm_type);
-        let allocator = copy_context.copy_check_allocator(from, bytes, align, immut_allocator);
-        let region = copy_context.alloc_copy(from, bytes, align, offset, allocator);
+        let region = copy_context.alloc_copy(from, bytes, align, offset, copy);
 
         let to_obj = Self::move_object(
             region,
@@ -341,7 +338,7 @@ impl VMObjectModel {
             bytes,
             rvm_type,
         );
-        copy_context.post_copy(to_obj, tib, bytes, allocator);
+        copy_context.post_copy(to_obj, bytes, copy);
         // XXX: Do not sync icache/dcache because we do not support PowerPC
         to_obj
     }
