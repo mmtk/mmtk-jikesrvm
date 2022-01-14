@@ -52,7 +52,7 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
          * If the reference is dead, we're done with it. Let it (and
          * possibly its referent) be garbage-collected.
          */
-        if !reference.is_live() {
+        if !reference.is_live::<JikesRVM>() {
             VMReferenceGlue::clear_referent(reference); // Too much paranoia ...
             if TRACE_UNREACHABLE {
                 trace!(" UNREACHABLE reference: {:?}", reference);
@@ -88,7 +88,7 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
             trace!(" => {:?}", new_reference);
         }
 
-        if old_referent.is_live() {
+        if old_referent.is_live::<JikesRVM>() {
             if cfg!(feature = "debug") {
                 // FIXME
                 /*if (!DebugUtil.validRef(oldReferent)) {
@@ -115,7 +115,7 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
                     DebugUtil.dumpRef(oldReferent);
                     VM.sysFail("Invalid reference");
                 }*/
-                debug_assert!(new_reference.is_live());
+                debug_assert!(new_reference.is_live::<JikesRVM>());
             }
 
             /*

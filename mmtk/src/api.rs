@@ -83,7 +83,7 @@ pub extern "C" fn post_alloc(
 #[no_mangle]
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
 pub extern "C" fn will_never_move(object: ObjectReference) -> i32 {
-    !object.is_movable() as i32
+    !object.is_movable::<JikesRVM>() as i32
 }
 
 #[no_mangle]
@@ -130,13 +130,13 @@ pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
 #[no_mangle]
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
 pub extern "C" fn is_live_object(object: ObjectReference) -> i32 {
-    object.is_live() as i32
+    object.is_live::<JikesRVM>() as i32
 }
 
 #[no_mangle]
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
 pub extern "C" fn is_mapped_object(object: ObjectReference) -> i32 {
-    memory_manager::is_mapped_object(object) as i32
+    memory_manager::is_mapped_object::<JikesRVM>(object) as i32
 }
 
 #[no_mangle]
