@@ -35,9 +35,9 @@ impl Collection<JikesRVM> for VMCollection {
         }
     }
 
-    fn spawn_worker_thread(tls: VMThread, ctx: Option<&GCWorker<JikesRVM>>) {
+    fn spawn_worker_thread(tls: VMThread, ctx: Option<Box<GCWorker<JikesRVM>>>) {
         let ctx_ptr = if let Some(r) = ctx {
-            r as *const GCWorker<JikesRVM> as *mut GCWorker<JikesRVM>
+            Box::into_raw(r)
         } else {
             std::ptr::null_mut()
         };
