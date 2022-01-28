@@ -90,7 +90,8 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> i32 {
 // We trust the worker pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn start_worker(tls: VMWorkerThread, worker: *mut GCWorker<JikesRVM>) {
-    memory_manager::start_worker::<JikesRVM>(tls, unsafe { worker.as_mut().unwrap() }, &SINGLETON)
+    let mut worker = unsafe { Box::from_raw(worker) };
+    memory_manager::start_worker::<JikesRVM>(tls, &mut worker, &SINGLETON)
 }
 
 #[no_mangle]
