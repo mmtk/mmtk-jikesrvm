@@ -37,8 +37,12 @@ pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
 }
 
 #[no_mangle]
-pub extern "C" fn start_control_collector(tls: VMWorkerThread) {
-    memory_manager::start_control_collector(&SINGLETON, tls);
+pub extern "C" fn start_control_collector(
+    tls: VMWorkerThread,
+    gc_controller: *mut GCController<JikesRVM>,
+) {
+    let mut gc_controller = unsafe { Box::from_raw(gc_controller) };
+    memory_manager::start_control_collector(&SINGLETON, tls, &mut gc_controller);
 }
 
 #[no_mangle]
@@ -91,7 +95,7 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> i32 {
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn start_worker(tls: VMWorkerThread, worker: *mut GCWorker<JikesRVM>) {
     let mut worker = unsafe { Box::from_raw(worker) };
-    memory_manager::start_worker::<JikesRVM>(tls, &mut worker, &SINGLETON)
+    memory_manager::start_worker::<JikesRVM>(&SINGLETON, tls, &mut worker)
 }
 
 #[no_mangle]
