@@ -1,5 +1,6 @@
 use entrypoint::*;
 use mmtk::scheduler::*;
+use mmtk::util::alloc::MmtkAllocationError;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::Address;
 use mmtk::vm::Collection;
@@ -61,7 +62,7 @@ impl Collection<JikesRVM> for VMCollection {
         }
     }
 
-    fn out_of_memory(tls: VMThread) {
+    fn out_of_memory(tls: VMThread, _err_kind: MmtkAllocationError) {
         unsafe {
             jtoc_call!(OUT_OF_MEMORY_METHOD_OFFSET, tls);
         }
