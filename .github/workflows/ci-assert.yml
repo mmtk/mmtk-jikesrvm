@@ -12,12 +12,10 @@ jobs:
       # Checkout repos and submodules
       - uses: actions/checkout@v2
         with:
-          # CI_ACCESS_TOKEN is a secret set with the repo
-          token: ${{ secrets.CI_ACCESS_TOKEN }}
           submodules: true
 
       - name: Setup Rust Toolchain
-        run: echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV        
+        run: echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV
       - name: Setup Environments
         run: ./.github/scripts/ci-setup.sh
 
