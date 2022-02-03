@@ -40,10 +40,12 @@ public final class CollectorThread extends SystemThread {
 
   @Entrypoint
   private Address workerInstance = Address.zero();
+  private boolean isController;
 
-  public void setWorker(Address worker) {
+  public void setWorker(Address worker, boolean isController) {
     rvmThread.assertIsRustMMTkCollector();
-    workerInstance = worker;
+    this.workerInstance = worker;
+    this.isController = isController;
   }
 
   /** used by collector threads to hold state during stack scanning */
@@ -97,8 +99,8 @@ public final class CollectorThread extends SystemThread {
   @Unpreemptible
   public void run() {
     if (VM.BuildWithRustMMTk) {
-      if (workerInstance.EQ(Address.zero())) {
-        sysCall.sysStartControlCollector(Magic.objectAsAddress(rvmThread));
+      if (this.isController) {
+        sysCall.sysStartControlCollector(Magic.objectAsAddress(rvmThread), workerInstance);
       } else {
         sysCall.sysStartWorker(Magic.objectAsAddress(rvmThread), workerInstance);
       }
