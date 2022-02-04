@@ -3,7 +3,7 @@ use mmtk::scheduler::*;
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::Address;
-use mmtk::vm::Collection;
+use mmtk::vm::{Collection, GCThreadContext};
 use mmtk::MutatorContext;
 use JikesRVM;
 use JTOC_BASE;
@@ -36,14 +36,18 @@ impl Collection<JikesRVM> for VMCollection {
         }
     }
 
-    fn spawn_worker_thread(tls: VMThread, ctx: Option<Box<GCWorker<JikesRVM>>>) {
-        let ctx_ptr = if let Some(r) = ctx {
-            Box::into_raw(r)
-        } else {
-            std::ptr::null_mut()
+    fn spawn_gc_thread(tls: VMThread, ctx: GCThreadContext<JikesRVM>) {
+        let (ctx_ptr, is_controller) = match ctx {
+            GCThreadContext::Controller(c) => (Box::into_raw(c) as *mut libc::c_void, 1),
+            GCThreadContext::Worker(c) => (Box::into_raw(c) as *mut libc::c_void, 0),
         };
         unsafe {
-            jtoc_call!(SPAWN_COLLECTOR_THREAD_METHOD_OFFSET, tls, ctx_ptr);
+            jtoc_call!(
+                SPAWN_COLLECTOR_THREAD_METHOD_OFFSET,
+                tls,
+                ctx_ptr,
+                is_controller
+            );
         }
     }
 
