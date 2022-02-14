@@ -1,3 +1,7 @@
+0.10.0 (2022-02-14)
+===
+* Updates to mmtk-core 0.10.0.
+
 0.9.0 (2021-12-16)
 ===
 * Updates to mmtk-core 0.9.0.
