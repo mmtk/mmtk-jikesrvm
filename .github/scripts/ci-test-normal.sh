@@ -22,7 +22,7 @@ python scripts/testMMTk.py -j $JAVA_HOME -g RBaseBaseSemiSpace -a "Xms75M Xmx75M
 ./dist/RFastAdaptiveNoGC_x86_64_m32-linux/rvm -Xms3G -Xmx3G -jar benchmarks/dacapo-2006-10-MR2.jar luindex
 ./dist/RFastAdaptiveNoGC_x86_64_m32-linux/rvm -Xms3G -Xmx3G -jar benchmarks/dacapo-2006-10-MR2.jar pmd
 
-RVM_OPTIONS='-X:gc:threads=16'
+export MMTK_THREADS=16
 
 # RFastAdaptiveSemiSpace
 ./bin/buildit localhost RFastAdaptiveSemiSpace -j $JAVA_HOME --answer-yes --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs --use-external-source=../../jikesrvm/rvm/src --m32
