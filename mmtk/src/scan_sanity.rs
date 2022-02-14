@@ -1,6 +1,7 @@
 use entrypoint::*;
 use mmtk::util::OpaquePointer;
 use mmtk::TraceLocal;
+use std::arch::asm;
 
 pub fn scan_boot_image_sanity<T: TraceLocal>(_trace: &mut T, tls: OpaquePointer) {
     trace!("scan_boot_image_sanity");
