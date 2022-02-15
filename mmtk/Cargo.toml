@@ -11,6 +11,12 @@ crate-type = ["cdylib"]
 [profile.release]
 lto = true
 
+# Metadata for the JikesRVM repository
+[package.metadata.jikesrvm]
+# Our CI matches the following line and extract mmtk/jikesrvm. If this line is updated, please check ci yaml files and make sure it works.
+jikesrvm_repo = "https://github.com/mmtk/jikesrvm.git"
+jikesrvm_version = "a82f918fc16cd4b6e30de019759f8d659c3064b5"
+
 [dependencies]
 libc = "0.2"
 lazy_static = "1.1"
