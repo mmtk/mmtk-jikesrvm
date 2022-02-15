@@ -6,24 +6,18 @@ on:
       - master
 
 jobs:
-  test:
-    runs-on: ubuntu-18.04
-    timeout-minutes: 60
-    steps:
-      # Checkout repos and submodules
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
-
-      - name: Setup Rust Toolchain
-        run: echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV
-      - name: Setup Environments
-        run: ./.github/scripts/ci-setup.sh
-
-      # Run the tests
-      - name: Dacapo Tests
-        run: ./.github/scripts/ci-test-normal.sh
-
-      # Style check
-      - name: Style checks
-        run: ./.github/scripts/ci-style.sh
+  test_normal:
+    uses: ./.github/workflows/tests.yml
+    with:
+      test_normal: true
+      binding_ref: ${{ github.sha }}
+  test_assertions:
+    uses: ./.github/workflows/tests.yml
+    with:
+      test_assertions: true
+      binding_ref: ${{ github.sha }}
+   style_check:
+    uses: ./.github/workflows/tests.yml
+    with:
+      style_check: true
+      binding_ref: ${{ github.sha }}
