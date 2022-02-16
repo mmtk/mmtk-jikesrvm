@@ -137,8 +137,7 @@ fn process_chunk(
 
 fn decode_long_encoding(cursor: Address) -> usize {
     unsafe {
-        let mut value: usize;
-        value = cursor.load::<u8>() as usize & 0x000000fc;
+        let mut value: usize = cursor.load::<u8>() as usize & 0x000000fc;
         value |= (((cursor + 1isize).load::<u8>() as usize) << BITS_IN_BYTE) & 0x0000ff00;
         value |= (((cursor + 2isize).load::<u8>() as usize) << (2 * BITS_IN_BYTE)) & 0x00ff0000;
         value |= (((cursor + 3isize).load::<u8>() as usize) << (3 * BITS_IN_BYTE)) & 0xff000000;

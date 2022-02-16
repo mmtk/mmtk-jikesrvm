@@ -275,6 +275,7 @@ pub extern "C" fn alloc_slow_largeobject(
 
 #[no_mangle]
 pub extern "C" fn test_stack_alignment() {
+    use std::arch::asm;
     info!("Entering stack alignment test with no args passed");
     unsafe {
         let _xmm: f32;
@@ -286,6 +287,7 @@ pub extern "C" fn test_stack_alignment() {
 #[allow(clippy::many_single_char_names)]
 #[no_mangle]
 pub extern "C" fn test_stack_alignment1(a: usize, b: usize, c: usize, d: usize, e: usize) -> usize {
+    use std::arch::asm;
     info!("Entering stack alignment test");
     info!("a:{}, b:{}, c:{}, d:{}, e:{}", a, b, c, d, e);
     unsafe {
