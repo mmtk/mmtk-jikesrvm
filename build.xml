@@ -44,6 +44,7 @@
             <contains string="${rust.args}" substring="release"/>
         </condition>
         <echo message="Build Rust MMTk ${mmtk-binding.dir} to ${mmtk-binding.build}"/>
+        <echo message="toolchain: ${rust-toolchain}"/>
         <exec executable="/usr/bin/as" failonerror="true">
             <arg line="--32 -o ${build.base}/${target.obj-prefix}glue${target.obj-ext} -I ${mmtk-binding.dir}/src ${mmtk-binding.dir}/src/glue.asm"/>
         </exec>
