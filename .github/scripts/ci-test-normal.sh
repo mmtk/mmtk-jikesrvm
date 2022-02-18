@@ -1,5 +1,7 @@
 set -xe
 
+. $(dirname "$0")/common.sh
+
 # To JikesRVM folder
 cd $JIKESRVM_PATH
 
