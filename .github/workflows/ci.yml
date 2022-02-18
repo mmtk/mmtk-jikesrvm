@@ -6,19 +6,20 @@ on:
       - master
 
 jobs:
-  runs-on: ubuntu-18.04
-  steps:
-    # Checkout repos and submodules
-    - uses: actions/checkout@v2
-    - name: Setup Environments
-      run: |
-        ./.github/scripts/ci-checkout.sh
-        ./.github/scripts/ci-setup.sh
+  test:
+    runs-on: ubuntu-18.04
+    steps:
+      # Checkout repos and submodules
+      - uses: actions/checkout@v2
+      - name: Setup Environments
+        run: |
+          ./.github/scripts/ci-checkout.sh
+          ./.github/scripts/ci-setup.sh
 
-    # Run the tests
-    - name: Dacapo Tests
-      run: ./.github/scripts/ci-test-normal.sh
+      # Run the tests
+      - name: Dacapo Tests
+        run: ./.github/scripts/ci-test-normal.sh
 
-    # Style check
-    - name: Style checks
-      run: ./.github/scripts/ci-style.sh
+      # Style check
+      - name: Style checks
+        run: ./.github/scripts/ci-style.sh
