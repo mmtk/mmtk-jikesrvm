@@ -41,22 +41,59 @@ $ ssh-add
 
 ### Getting Sources (for MMTk and JikesRVM)
 
-You will need the correct revisions of MMTk and JikesRVM.
-Both are checked in as git submodules under `repos`.
-You would simply need to run the following lines under the root directory of `mmtk-jikesrvm` to fetch submodules' sources for MMTk and JikesRVM:
+To work on JikesRVM binding, we expect you have a directory structure like below. This section gives instructions on how to check out
+those repositories with the correct version.
 
-```console
-$ git submodule init
-$ git submodule update
+```
+Your working directory/
+├─ mmtk-jikesrvm/
+│  ├─ jikesrvm/
+│  ├─ mmtk/
+├─ jikesrvm/
+├─ mmtk-core/ (optional)
 ```
 
-Alternatively, you could fetch the sources by yourself (make sure you have the right VM/MMTk revisions that match the `mmtk-jikesrvm` revision.
-If you clone the MMTk core in a folder other than `repos/mmtk-core`, you would need to modify `mmtk/Cargo.toml` to point the `mmtk` dependency to your MMTk core folder.
+#### Checkout Binding
 
-* JikesRVM: [https://github.com/mmtk/jikesrvm](https://github.com/mmtk/jikesrvm)
-* MMTk Core: [https://github.com/mmtk/mmtk-core](https://github.com/mmtk/mmtk-core)
+First clone this binding repo:
 
-The rest of this instruction assumes you have done the `git submodule init/update` and have both repositories under `repos`.
+```console
+$ git clone https://github.com/mmtk/mmtk-jikesrvm.git
+```
+
+The binding repo mainly consists of two folders, `mmtk` and `jikesrvm`.
+* `mmtk` is logically a part of MMTk. It exposes APIs from `mmtk-core` and implements the `VMBinding` trait from `mmtk-core`.
+* `jikesrvm` is logically a part of JikesRVM. When we build JikesRVM, we copy this folder to the JikesRVM repo (which overwrite the same files,
+  if any, in the JikesRVM repo) and treat it as if it is a part of the JikesRVM project.
+
+#### Checkout JikesRVM
+
+You would need our JikesRVM fork which includes the support for a third party heap (like MMTk). We assume you put `jikesrvm` as a sibling of `mmtk-jikesrvm`.
+[`Cargo.toml`](mmtk/Cargo.toml) defines the version of JikesRVM that works with the version of `mmtk-jikesrvm`.
+
+Assuming your current working directory is the parent folder of `mmtk-jikesrvm`, you can checkout out JikesRVM and the correct version using:
+```console
+$ git clone https://github.com/mmtk/jikesrvm.git
+$ git -C jikesrvm checkout `sed -n 's/^jikesrvm_version.=."\(.*\)"$/\1/p' < mmtk-jikesrvm/mmtk/Cargo.toml`
+```
+
+#### Checkout MMTk core (optional)
+
+The MMTk-JikesRVM binding points to a specific version of `mmtk-core` as defined in [`Cargo.toml`](mmtk/Cargo.toml). When you build the binding,
+cargo will fetch the specified version of `mmtk-core`. If you would like to use
+a different version or a local `mmtk-core` repo, you can checkout `mmtk-core` to a separate repo and modify the `mmtk` dependency in `Cargo.toml`.
+
+For example, you can check out `mmtk-core` as a sibling of `mmtk-jikesrvm`.
+
+```console
+$ git clone https://github.com/mmtk/mmtk-core.git
+```
+
+And change the `mmtk` dependency in `Cargo.toml` (this assumes you put `mmtk-core` as a sibling of `mmtk-jikesrvm`):
+
+```toml
+mmtk = { path = "../../mmtk-core" }
+```
 
 ## Build
 
@@ -65,12 +102,12 @@ We recommend using the `buildit` script for the JikesRVM build.
 
 ```console
 $ cd repos/jikesrvm
-$ ./bin/buildit localhost RBaseBaseSemiSpace --use-third-party-heap=../../ --use-third-party-build-configs=../../jikesrvm/build/configs/ --use-external-source=../../jikesrvm/rvm/src --m32
+$ ./bin/buildit localhost RBaseBaseSemiSpace --use-third-party-heap=../mmtk-jikesrvm --use-third-party-build-configs=../mmtk-jikesrvm/jikesrvm/build/configs/ --use-external-source=../mmtk-jikesrvm/jikesrvm/rvm/src --m32
 ```
 
-The JikesRVM binary is under `repos/jikesrvm/dist/RBaseBaseSemiSpace_x86_64_m32-linux/rvm` and the MMTk shared library is `repos/jikesrvm/dist/RBaseBaseSemiSpace_x86_64_m32-linux/libmmtk.so`.
+The JikesRVM binary is under `jikesrvm/dist/RBaseBaseSemiSpace_x86_64_m32-linux/rvm` and the MMTk shared library is `jikesrvm/dist/RBaseBaseSemiSpace_x86_64_m32-linux/libmmtk.so`.
 
-You can build with other build configs, check `jikesrvm/build/configs`.
+You can build with other build configs, check `mmtk-jikesrvm/jikesrvm/build/configs`.
 
 ## Test
 
@@ -89,11 +126,11 @@ Run `rvm`:
 ```console
 $ LD_LIBRARY_PATH=dist/RBaseBaseSemiSpace_x86_64_m32-linux/ dist/RBaseBaseSemiSpace_x86_64_m32-linux/rvm -Xms75M -Xmx75M -jar benchmarks/dacapo-2006-10-MR2.jar fop
 ===== DaCapo fop starting =====
-ThreadId(1)[INFO:/root/mmtk-jikesrvm/repos/mmtk-core/src/plan/global.rs:112]   [POLL] copyspace0: Triggering collection
-ThreadId(1)[INFO:/root/mmtk-jikesrvm/repos/mmtk-core/src/plan/global.rs:112]   [POLL] copyspace1: Triggering collection
-ThreadId(1)[INFO:/root/mmtk-jikesrvm/repos/mmtk-core/src/plan/global.rs:112]   [POLL] copyspace0: Triggering collection
-ThreadId(1)[INFO:/root/mmtk-jikesrvm/repos/mmtk-core/src/plan/global.rs:112]   [POLL] immortal: Triggering collection
-ThreadId(1)[INFO:/root/mmtk-jikesrvm/repos/mmtk-core/src/plan/global.rs:112]   [POLL] copyspace0: Triggering collection
-ThreadId(1)[INFO:/root/mmtk-jikesrvm/repos/mmtk-core/src/plan/global.rs:112]   [POLL] copyspace1: Triggering collection
+ThreadId(1)[INFO:/root/mmtk-core/src/plan/global.rs:112]   [POLL] copyspace0: Triggering collection
+ThreadId(1)[INFO:/root/mmtk-core/src/plan/global.rs:112]   [POLL] copyspace1: Triggering collection
+ThreadId(1)[INFO:/root/mmtk-core/src/plan/global.rs:112]   [POLL] copyspace0: Triggering collection
+ThreadId(1)[INFO:/root/mmtk-core/src/plan/global.rs:112]   [POLL] immortal: Triggering collection
+ThreadId(1)[INFO:/root/mmtk-core/src/plan/global.rs:112]   [POLL] copyspace0: Triggering collection
+ThreadId(1)[INFO:/root/mmtk-core/src/plan/global.rs:112]   [POLL] copyspace1: Triggering collection
 ===== DaCapo fop PASSED in 3934 msec =====
 ```
