@@ -4,6 +4,7 @@ use mmtk::memory_manager;
 use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::MMTK;
+use std::arch::asm;
 use std::marker::PhantomData;
 use JTOC_BASE;
 

@@ -1,4 +1,3 @@
-#![feature(asm)]
 #![feature(vec_into_raw_parts)]
 extern crate libc;
 extern crate mmtk;
@@ -57,6 +56,7 @@ impl VMBinding for JikesRVM {
 impl JikesRVM {
     #[inline(always)]
     pub fn mm_entrypoint_test(input1: usize, input2: usize, input3: usize, input4: usize) -> usize {
+        use std::arch::asm;
         unsafe {
             jtoc_call!(
                 MM_ENTRYPOINT_TEST_METHOD_OFFSET,

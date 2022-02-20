@@ -8,6 +8,8 @@ use mmtk::MutatorContext;
 use JikesRVM;
 use JTOC_BASE;
 
+use std::arch::asm;
+
 pub static mut BOOT_THREAD: OpaquePointer = OpaquePointer::UNINITIALIZED;
 
 #[derive(Default)]

@@ -25,7 +25,7 @@ cd $JIKESRVM_PATH
 ./dist/RFastAdaptiveNoGC_x86_64_m32-linux/rvm -Xms3G -Xmx3G -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar luindex
 ./dist/RFastAdaptiveNoGC_x86_64_m32-linux/rvm -Xms3G -Xmx3G -jar $DACAPO_PATH/dacapo-2006-10-MR2.jar pmd
 
-RVM_OPTIONS='-X:gc:threads=16'
+export MMTK_THREADS=16
 
 # RFastAdaptiveSemiSpace
 ./bin/buildit localhost RFastAdaptiveSemiSpace -j $JAVA_HOME --answer-yes --use-third-party-heap=$BINDING_PATH/ --use-third-party-build-configs=$BINDING_PATH/jikesrvm/build/configs --use-external-source=$BINDING_PATH/jikesrvm/rvm/src --m32
