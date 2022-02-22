@@ -9,6 +9,8 @@ use mmtk::TraceLocal;
 use entrypoint::*;
 use JikesRVM;
 
+use std::arch::asm;
+
 pub struct VMReferenceGlue {}
 
 impl ReferenceGlue<JikesRVM> for VMReferenceGlue {

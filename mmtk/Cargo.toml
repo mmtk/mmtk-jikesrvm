@@ -1,6 +1,6 @@
 [package]
 name = "mmtk_jikesrvm"
-version = "0.9.0"
+version = "0.10.0"
 authors = [" <>"]
 
 [lib]
@@ -15,7 +15,7 @@ lto = true
 [package.metadata.jikesrvm]
 # Our CI matches the following line and extract mmtk/jikesrvm. If this line is updated, please check ci yaml files and make sure it works.
 jikesrvm_repo = "https://github.com/mmtk/jikesrvm.git"
-jikesrvm_version = "5eea4e7c611e9f5f4c654ebef51935901c07cf3f"
+jikesrvm_version = "b13031ee4d6ebcaf8330d7e4a8992b13c6332d61"
 
 [dependencies]
 libc = "0.2"
@@ -27,7 +27,7 @@ log = {version = "0.4", features = ["max_level_trace", "release_max_level_off"] 
 # - change branch/rev
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "c38365be73e83dfd8a41e901d4537e87e0eb0ffe" }
+mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "42262c296e164b5b1d05103e527ce5a9aee7cfd2" }
 # Uncomment the following to build locally - if you change the path locally, do not commit the change in a PR
 # mmtk = { path = "../repos/mmtk-core" }
 
