@@ -3,8 +3,8 @@ set -ex
 
 . $(dirname "$0")/common.sh
 
-JIKESRVM_URL=`sed -n 's/^jikesrvm_repo.=."\(.*\)"$/\1/p' $BINDING_PATH/mmtk/Cargo.toml`
-JIKESRVM_VERSION=`sed -n 's/^jikesrvm_version.=."\(.*\)"$/\1/p' $BINDING_PATH/mmtk/Cargo.toml`
+JIKESRVM_URL=`cargo read-manifest --manifest-path=$BINDING_PATH/mmtk/Cargo.toml | python -c 'import json,sys; print(json.load(sys.stdin)["metadata"]["jikesrvm"]["jikesrvm_repo"])'`
+JIKESRVM_VERSION=`cargo read-manifest --manifest-path=$BINDING_PATH/mmtk/Cargo.toml | python -c 'import json,sys; print(json.load(sys.stdin)["metadata"]["jikesrvm"]["jikesrvm_version"])'`
 
 rm -rf $JIKESRVM_PATH
 git clone $JIKESRVM_URL $JIKESRVM_PATH

@@ -48,9 +48,9 @@ those repositories with the correct version.
 Your working directory/
 ├─ mmtk-jikesrvm/
 │  ├─ jikesrvm/
-│  ├─ mmtk/
+│  └─ mmtk/
 ├─ jikesrvm/
-├─ mmtk-core/ (optional)
+└─ mmtk-core/ (optional)
 ```
 
 #### Checkout Binding
