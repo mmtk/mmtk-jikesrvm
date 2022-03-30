@@ -15,6 +15,7 @@ use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::ActivePlan;
+use mmtk::vm::EdgeVisitor;
 use mmtk::vm::Scanning;
 use mmtk::*;
 use object_model::VMObjectModel;
@@ -88,8 +89,8 @@ impl Scanning<JikesRVM> for VMScanning {
             );
         }
     }
-    fn scan_object<T: TransitiveClosure>(
-        trace: &mut T,
+    fn scan_object<EV: EdgeVisitor>(
+        edge_visitor: &mut EV,
         object: ObjectReference,
         tls: VMWorkerThread,
     ) {
@@ -112,7 +113,7 @@ impl Scanning<JikesRVM> for VMScanning {
             // object is a REFARRAY
             let length = VMObjectModel::get_array_length(object);
             for i in 0..length {
-                trace.process_edge(object.to_address() + (i << LOG_BYTES_IN_ADDRESS));
+                edge_visitor.visit_edge(object.to_address() + (i << LOG_BYTES_IN_ADDRESS));
             }
         } else {
             let len_ptr: usize = elt0_ptr - size_of::<isize>();
@@ -120,7 +121,7 @@ impl Scanning<JikesRVM> for VMScanning {
             let offsets = unsafe { slice::from_raw_parts(elt0_ptr as *const isize, len as usize) };
 
             for offset in offsets.iter() {
-                trace.process_edge(object.to_address() + *offset);
+                edge_visitor.visit_edge(object.to_address() + *offset);
             }
         }
     }
