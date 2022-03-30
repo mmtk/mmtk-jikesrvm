@@ -1,4 +1,3 @@
-#![feature(vec_into_raw_parts)]
 extern crate libc;
 extern crate mmtk;
 #[macro_use]
