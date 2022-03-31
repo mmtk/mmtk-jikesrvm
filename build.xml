@@ -4,10 +4,6 @@
     <property name="rvm-binding.tools" location="${config.third-party-heap}/jikesrvm/tools"/>
     <property name="mmtk-binding.dir" location="${config.third-party-heap}/mmtk"/>
     <property environment="env"/>
-    <!-- use nightly if RUSTUP_TOOLCHAIN is not set -->
-    <condition property="rust-toolchain" value="+${env.RUSTUP_TOOLCHAIN}" else="+nightly">
-        <isset property="env.RUSTUP_TOOLCHAIN"/>
-    </condition>
 
     <!-- Generate a few files that will be used by Rust mmtk -->
     <target name="gen-jtoc">
@@ -44,12 +40,13 @@
             <contains string="${rust.args}" substring="release"/>
         </condition>
         <echo message="Build Rust MMTk ${mmtk-binding.dir} to ${mmtk-binding.build}"/>
-        <echo message="toolchain: ${rust-toolchain}"/>
+        <exec executable="cargo"  dir="${mmtk-binding.dir}" failonerror="true">
+            <arg value="version"/>
+        </exec>
         <exec executable="/usr/bin/as" failonerror="true">
             <arg line="--32 -o ${build.base}/${target.obj-prefix}glue${target.obj-ext} -I ${mmtk-binding.dir}/src ${mmtk-binding.dir}/src/glue.asm"/>
         </exec>
         <exec executable="cargo" dir="${mmtk-binding.dir}" failonerror="true">
-            <arg value="${rust-toolchain}"/>
             <arg value="rustc"/>
             <arg value="--manifest-path=${mmtk-binding.dir}/Cargo.toml"/>
             <arg value="--target=i686-unknown-linux-gnu"/>
