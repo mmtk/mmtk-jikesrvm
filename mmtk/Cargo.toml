@@ -1,6 +1,6 @@
 [package]
 name = "mmtk_jikesrvm"
-version = "0.10.0"
+version = "0.11.0"
 authors = [" <>"]
 
 [lib]
@@ -27,7 +27,7 @@ log = {version = "0.4", features = ["max_level_trace", "release_max_level_off"] 
 # - change branch/rev
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "cacded40b7622e97dea56a83179aaa6af42920d0" }
+mmtk = { git = "https://github.com/qinsoon/mmtk-core.git", rev = "243005e4b18a44a3dcff908a8ed2f642c018a1f3" }
 # Uncomment the following to build locally - if you change the path locally, do not commit the change in a PR
 # mmtk = { path = "../repos/mmtk-core" }
 
