@@ -30,8 +30,8 @@ jobs:
       - name: Install MSRV
         run: cargo install cargo-msrv
       - name: Verify MSRV
-        run: cargo msrv --path mmtk --target i686-unknown-linux-gnu verify
+        run: cargo msrv --path mmtk verify -- cargo check --features semispace --target i686-unknown-linux-gnu
       # If the previous step fails, find MSRV
       - name: Find MSRV
         if: failure()
-        run: cargo msrv --path mmtk --target i686-unknown-linux-gnu
+        run: cargo msrv --path mmtk -- cargo check --features semispace --target i686-unknown-linux-gnu
