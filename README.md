@@ -19,12 +19,8 @@ MMTk/JikesRVM supports `linux-i686` and `linux-x86_64` (as a 32-bit program).
 
 If you use the set-up explained in [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env), make sure to do the following steps before continuing to the [Build](#build) section:
 
-1. Set the default Rust toolchain to the one specified in [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env), e.g. by running:
-
-```console
-$ # replace nightly-YYYY-MM-DD with the toolchain specified in mmtk-dev-env
-$ export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
-```
+1. Use a proper Rust toolchain. The minimal supported Rust version for MMTk-JikesRVM binding is 1.59.0 (for the stablization of inline assembly). Make sure your Rust version is higher than this. We test MMTk-JikesRVM
+binding with Rust 1.59.0 (as specified in [`rust-toolchain`](mmtk/rust-toolchain)).
 
 2. Set `openjdk-8-jdk` as the default JDK (openjdk-8-jdk is a build requirement of JikesRVM), e.g. by running:
 

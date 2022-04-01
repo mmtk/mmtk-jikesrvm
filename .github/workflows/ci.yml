@@ -20,6 +20,18 @@ jobs:
       - name: Dacapo Tests
         run: ./.github/scripts/ci-test-normal.sh
 
+      # Run these checks after build
+
       # Style check
       - name: Style checks
         run: ./.github/scripts/ci-style.sh
+
+      # Verify the MSRV defined in Cargo.toml
+      - name: Install MSRV
+        run: cargo install cargo-msrv
+      - name: Verify MSRV
+        run: cargo msrv --path mmtk verify -- cargo check --features semispace --target i686-unknown-linux-gnu
+      # If the previous step fails, find MSRV
+      - name: Find MSRV
+        if: failure()
+        run: cargo msrv --path mmtk -- cargo check --features semispace --target i686-unknown-linux-gnu
