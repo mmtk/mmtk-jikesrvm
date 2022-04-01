@@ -20,22 +20,12 @@ jobs:
       - name: Dacapo Tests
         run: ./.github/scripts/ci-test-normal.sh
 
+      # Run these checks after build
+
       # Style check
       - name: Style checks
         run: ./.github/scripts/ci-style.sh
 
-  msrv:
-    runs-on: ubuntu-18.04
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: i686-unknown-linux-gnu
-          override: true
-      - name: Install cargo-msrv
-        run: cargo install cargo-msrv
       # Verify the MSRV defined in Cargo.toml
       - name: Verify MSRV
         run: cargo msrv --path mmtk --target i686-unknown-linux-gnu verify
