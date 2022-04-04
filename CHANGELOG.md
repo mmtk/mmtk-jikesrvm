@@ -1,9 +1,20 @@
+0.11.0 (2022-04-01)
+===
+
+* The JikesRVM submodule is removed from the repo. We now record the VM version
+  in `[package.metadata.jikesrvm]` in the Cargo manifest `Cargo.toml`.
+* Sets `ObjectModel::OBJECT_REF_OFFSET_BEYOND_CELL` so MMTk can guarantee metadata is set properly
+  for object references.
+* Updates to mmtk-core 0.11.0.
+
 0.10.0 (2022-02-14)
 ===
+
 * Updates to mmtk-core 0.10.0.
 
 0.9.0 (2021-12-16)
 ===
+
 * Updates to mmtk-core 0.9.0.
 
 0.8.0 (2021-11-01)

@@ -45,7 +45,13 @@ pub(crate) extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = Jike
             W::new(buf, false, &SINGLETON),
         );
     }
-    let (ptr, _length, capacity) = Vec::with_capacity(W::CAPACITY).into_raw_parts();
+    let (ptr, _length, capacity) = {
+        // TODO: Use Vec::into_raw_parts() when the method is available.
+        use std::mem::ManuallyDrop;
+        let new_vec = Vec::with_capacity(W::CAPACITY);
+        let mut me = ManuallyDrop::new(new_vec);
+        (me.as_mut_ptr(), me.len(), me.capacity())
+    };
     debug_assert_eq!(capacity, W::CAPACITY);
     ptr
 }
