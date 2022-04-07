@@ -177,6 +177,9 @@ pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectR
 }
 
 #[no_mangle]
+// We trust the name/value pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+// For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
 pub extern "C" fn get_boolean_option(option: *const c_char) -> i32 {
     let option_str: &CStr = unsafe { CStr::from_ptr(option) };
     if option_str.to_str().unwrap() == "noReferenceTypes" {
