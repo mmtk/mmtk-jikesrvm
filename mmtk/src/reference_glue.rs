@@ -12,7 +12,7 @@ pub struct VMReferenceGlue {}
 impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
     fn set_referent(reff: ObjectReference, referent: ObjectReference) {
         unsafe {
-            (reff.to_address() + REFERENCE_REFERENT_FIELD_OFFSET).store(referent.value());
+            (reff.to_address() + REFERENCE_REFERENT_FIELD_OFFSET).store(referent);
         }
     }
 

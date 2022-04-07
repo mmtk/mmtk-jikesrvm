@@ -91,6 +91,8 @@ extern void add_weak_candidate(void* ref, void* referent);
 extern void add_soft_candidate(void* ref, void* referent);
 extern void add_phantom_candidate(void* ref, void* referent);
 
+extern bool get_boolean_option(char* option);
+
 /**
  * Finalization
  */
