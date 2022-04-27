@@ -15,12 +15,12 @@ use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::ActivePlan;
+use mmtk::vm::EdgeVisitor;
 use mmtk::vm::Scanning;
 use mmtk::*;
 use object_model::VMObjectModel;
 use std::marker::PhantomData;
 use std::mem;
-use std::ops::Drop;
 use JikesRVM;
 use JTOC_BASE;
 
@@ -58,15 +58,6 @@ pub(crate) extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = Jike
 
 impl Scanning<JikesRVM> for VMScanning {
     const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
-    fn scan_objects<W: ProcessEdgesWork<VM = JikesRVM>>(
-        objects: &[ObjectReference],
-        worker: &mut GCWorker<JikesRVM>,
-    ) {
-        let mut closure = ObjectsClosure::<W>(Vec::with_capacity(W::CAPACITY), worker, PhantomData);
-        for o in objects {
-            Self::scan_object_fields(*o, &mut closure);
-        }
-    }
     fn scan_thread_roots<W: ProcessEdgesWork<VM = JikesRVM>>() {
         unreachable!()
     }
@@ -94,10 +85,10 @@ impl Scanning<JikesRVM> for VMScanning {
             );
         }
     }
-    fn scan_object<T: TransitiveClosure>(
-        trace: &mut T,
-        object: ObjectReference,
+    fn scan_object<EV: EdgeVisitor>(
         tls: VMWorkerThread,
+        object: ObjectReference,
+        edge_visitor: &mut EV,
     ) {
         if DUMP_REF {
             let obj_ptr = object.value();
@@ -118,7 +109,7 @@ impl Scanning<JikesRVM> for VMScanning {
             // object is a REFARRAY
             let length = VMObjectModel::get_array_length(object);
             for i in 0..length {
-                trace.process_edge(object.to_address() + (i << LOG_BYTES_IN_ADDRESS));
+                edge_visitor.visit_edge(object.to_address() + (i << LOG_BYTES_IN_ADDRESS));
             }
         } else {
             let len_ptr: usize = elt0_ptr - size_of::<isize>();
@@ -126,7 +117,7 @@ impl Scanning<JikesRVM> for VMScanning {
             let offsets = unsafe { slice::from_raw_parts(elt0_ptr as *const isize, len as usize) };
 
             for offset in offsets.iter() {
-                trace.process_edge(object.to_address() + *offset);
+                edge_visitor.visit_edge(object.to_address() + *offset);
             }
         }
     }
@@ -186,72 +177,7 @@ impl Scanning<JikesRVM> for VMScanning {
     }
 }
 
-struct ObjectsClosure<'a, E: ProcessEdgesWork<VM = JikesRVM>>(
-    Vec<Address>,
-    &'a mut GCWorker<JikesRVM>,
-    PhantomData<E>,
-);
-
-impl<'a, E: ProcessEdgesWork<VM = JikesRVM>> ObjectsClosure<'a, E> {
-    #[inline]
-    fn process_edge(&mut self, slot: Address) {
-        if self.0.is_empty() {
-            self.0.reserve(E::CAPACITY);
-        }
-        self.0.push(slot);
-        if self.0.len() >= E::CAPACITY {
-            let mut new_edges = Vec::new();
-            mem::swap(&mut new_edges, &mut self.0);
-            self.1.add_work(
-                WorkBucketStage::Closure,
-                E::new(new_edges, false, &SINGLETON),
-            );
-        }
-    }
-}
-
-impl<'a, E: ProcessEdgesWork<VM = JikesRVM>> Drop for ObjectsClosure<'a, E> {
-    #[inline]
-    fn drop(&mut self) {
-        let mut new_edges = Vec::new();
-        mem::swap(&mut new_edges, &mut self.0);
-        self.1.add_work(
-            WorkBucketStage::Closure,
-            E::new(new_edges, false, &SINGLETON),
-        );
-    }
-}
-
 impl VMScanning {
-    fn scan_object_fields<E: ProcessEdgesWork<VM = JikesRVM>>(
-        object: ObjectReference,
-        closure: &mut ObjectsClosure<E>,
-    ) {
-        trace!("Getting reference array");
-        let elt0_ptr: usize = unsafe {
-            let rvm_type = VMObjectModel::load_rvm_type(object);
-            (rvm_type + REFERENCE_OFFSETS_FIELD_OFFSET).load::<usize>()
-        };
-        trace!("elt0_ptr: {}", elt0_ptr);
-        // In a primitive array this field points to a zero-length array.
-        // In a reference array this field is null.
-        // In a class with pointers, it contains the offsets of reference-containing instance fields
-        if elt0_ptr == 0 {
-            // object is a REFARRAY
-            let length = VMObjectModel::get_array_length(object);
-            for i in 0..length {
-                closure.process_edge(object.to_address() + (i << LOG_BYTES_IN_ADDRESS));
-            }
-        } else {
-            let len_ptr: usize = elt0_ptr - size_of::<isize>();
-            let len = unsafe { *(len_ptr as *const isize) };
-            let offsets = unsafe { slice::from_raw_parts(elt0_ptr as *const isize, len as usize) };
-
-            for offset in offsets.iter() {
-                closure.process_edge(object.to_address() + *offset);
-            }
-        }
-    }
     fn compute_thread_roots(
         process_edges: *mut extern "C" fn(ptr: *mut Address, length: usize) -> *mut Address,
         new_roots_sufficient: bool,
