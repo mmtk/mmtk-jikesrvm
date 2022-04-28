@@ -6,3 +6,5 @@ cd $cur
 ./ci-test-normal.sh
 cd $cur
 ./ci-test-assertions.sh
+cd $cur
+./ci-test-weak-ref.sh

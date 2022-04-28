@@ -7,6 +7,7 @@ use mmtk::memory_manager;
 use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
+use mmtk::vm::{ReferenceGlue, VMBinding};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use mmtk::MMTK;
@@ -159,17 +160,33 @@ pub extern "C" fn modify_check(object: ObjectReference) {
 
 #[no_mangle]
 pub extern "C" fn add_weak_candidate(reff: ObjectReference, referent: ObjectReference) {
-    memory_manager::add_weak_candidate(&SINGLETON, reff, referent)
+    <JikesRVM as VMBinding>::VMReferenceGlue::set_referent(reff, referent);
+    memory_manager::add_weak_candidate(&SINGLETON, reff)
 }
 
 #[no_mangle]
 pub extern "C" fn add_soft_candidate(reff: ObjectReference, referent: ObjectReference) {
-    memory_manager::add_soft_candidate(&SINGLETON, reff, referent)
+    <JikesRVM as VMBinding>::VMReferenceGlue::set_referent(reff, referent);
+    memory_manager::add_soft_candidate(&SINGLETON, reff)
 }
 
 #[no_mangle]
 pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectReference) {
-    memory_manager::add_phantom_candidate(&SINGLETON, reff, referent)
+    <JikesRVM as VMBinding>::VMReferenceGlue::set_referent(reff, referent);
+    memory_manager::add_phantom_candidate(&SINGLETON, reff)
+}
+
+#[no_mangle]
+// We trust the name/value pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+// For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
+pub extern "C" fn get_boolean_option(option: *const c_char) -> i32 {
+    let option_str: &CStr = unsafe { CStr::from_ptr(option) };
+    if option_str.to_str().unwrap() == "noReferenceTypes" {
+        *SINGLETON.get_options().no_reference_types as i32
+    } else {
+        unimplemented!()
+    }
 }
 
 #[no_mangle]

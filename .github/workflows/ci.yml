@@ -30,8 +30,23 @@ jobs:
       - name: Install MSRV
         run: cargo install cargo-msrv
       - name: Verify MSRV
+        id: verify-msrv
         run: cargo msrv --path mmtk verify -- cargo check --features semispace --target i686-unknown-linux-gnu
       # If the previous step fails, find MSRV
       - name: Find MSRV
-        if: failure()
+        if: ${{ steps.verify-msrv.outcome == 'failure' }}
         run: cargo msrv --path mmtk -- cargo check --features semispace --target i686-unknown-linux-gnu
+
+  test-weak-ref:
+    runs-on: ubuntu-18.04
+    steps:
+      # Checkout repos
+      - uses: actions/checkout@v2
+      - name: Setup Environments
+        run: |
+          ./.github/scripts/ci-checkout.sh
+          ./.github/scripts/ci-setup.sh
+
+      # Run the tests
+      - name: Dacapo Tests
+        run: ./.github/scripts/ci-test-weak-ref.sh
