@@ -1,3 +1,9 @@
+0.12.0 (2022-05-13)
+===
+
+* Adds weak reference support (It is disabled by default. Set MMTk option `no_reference_types` to `false` to enable it).
+* Updates to mmtk-core 0.12.0.
+
 0.11.0 (2022-04-01)
 ===
 
