@@ -1,9 +1,8 @@
 use entrypoint::*;
 use mmtk::util::OpaquePointer;
-use mmtk::TraceLocal;
 use std::arch::asm;
 
-pub fn scan_boot_image_sanity<T: TraceLocal>(_trace: &mut T, tls: OpaquePointer) {
+pub fn scan_boot_image_sanity(tls: OpaquePointer) {
     trace!("scan_boot_image_sanity");
     let boot_image_roots: [usize; 10000] = [0; 10000];
     let addr = &boot_image_roots as *const usize;
