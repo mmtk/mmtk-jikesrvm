@@ -10,6 +10,8 @@ use std::arch::asm;
 pub struct VMReferenceGlue {}
 
 impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
+    type FinalizableType = ObjectReference;
+
     fn set_referent(reff: ObjectReference, referent: ObjectReference) {
         unsafe {
             (reff.to_address() + REFERENCE_REFERENT_FIELD_OFFSET).store(referent);
