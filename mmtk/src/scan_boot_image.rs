@@ -1,14 +1,14 @@
+use crate::scanning::EDGES_BUFFER_CAPACITY;
 use crate::unboxed_size_constants::*;
-use crate::{JikesRVM, SINGLETON};
+use crate::JikesRVM;
 use entrypoint::*;
 use java_size_constants::*;
-use mmtk::memory_manager;
 use mmtk::scheduler::*;
 use mmtk::util::conversions;
 use mmtk::util::Address;
 use mmtk::util::OpaquePointer;
+use mmtk::vm::RootsWorkFactory;
 use mmtk::MMTK;
-use std::marker::PhantomData;
 use std::mem;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use JTOC_BASE;
@@ -23,10 +23,11 @@ const LONGENCODING_OFFSET_BYTES: usize = 4;
 static ROOTS: AtomicUsize = AtomicUsize::new(0);
 static REFS: AtomicUsize = AtomicUsize::new(0);
 
-pub fn scan_boot_image<W: ProcessEdgesWork<VM = JikesRVM>>(
+pub fn scan_boot_image(
     _tls: OpaquePointer,
     subwork_id: usize,
     total_subwork: usize,
+    factory: &dyn RootsWorkFactory,
 ) {
     unsafe {
         let boot_record = (JTOC_BASE + THE_BOOT_RECORD_FIELD_OFFSET).load::<Address>();
@@ -51,24 +52,18 @@ pub fn scan_boot_image<W: ProcessEdgesWork<VM = JikesRVM>>(
             trace!("Processing chunk at {:x}", cursor);
             process_chunk(cursor, image_start, map_start, map_end, |edge| {
                 edges.push(edge);
-                if edges.len() >= W::CAPACITY {
-                    let mut new_edges = Vec::with_capacity(W::CAPACITY);
-                    mem::swap(&mut new_edges, &mut edges);
-                    memory_manager::add_work_packet(
-                        &SINGLETON,
-                        WorkBucketStage::Closure,
-                        W::new(new_edges, true, &SINGLETON),
-                    );
+                if edges.len() >= EDGES_BUFFER_CAPACITY {
+                    let new_edges =
+                        mem::replace(&mut edges, Vec::with_capacity(EDGES_BUFFER_CAPACITY));
+                    factory.create_process_edge_roots_work(new_edges);
                 }
             });
             trace!("Chunk processed successfully");
             cursor += stride;
         }
-        memory_manager::add_work_packet(
-            &SINGLETON,
-            WorkBucketStage::Closure,
-            W::new(edges, true, &SINGLETON),
-        );
+        if !edges.is_empty() {
+            factory.create_process_edge_roots_work(edges);
+        }
     }
 }
 
@@ -145,16 +140,33 @@ fn decode_long_encoding(cursor: Address) -> usize {
     }
 }
 
-pub struct ScanBootImageRoots<E: ProcessEdgesWork<VM = JikesRVM>>(usize, usize, PhantomData<E>);
+pub struct ScanBootImageRoots {
+    factory: Box<dyn RootsWorkFactory>,
+    subwork_id: usize,
+    total_subwork: usize,
+}
 
-impl<E: ProcessEdgesWork<VM = JikesRVM>> ScanBootImageRoots<E> {
-    pub fn new(subwork_id: usize, total_subwork: usize) -> Self {
-        Self(subwork_id, total_subwork, PhantomData)
+impl ScanBootImageRoots {
+    pub fn new(
+        factory: Box<dyn RootsWorkFactory>,
+        subwork_id: usize,
+        total_subwork: usize,
+    ) -> Self {
+        Self {
+            factory,
+            subwork_id,
+            total_subwork,
+        }
     }
 }
 
-impl<E: ProcessEdgesWork<VM = JikesRVM>> GCWork<JikesRVM> for ScanBootImageRoots<E> {
+impl GCWork<JikesRVM> for ScanBootImageRoots {
     fn do_work(&mut self, _worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
-        scan_boot_image::<E>(OpaquePointer::UNINITIALIZED, self.0, self.1);
+        scan_boot_image(
+            OpaquePointer::UNINITIALIZED,
+            self.subwork_id,
+            self.total_subwork,
+            self.factory.as_ref(),
+        );
     }
 }

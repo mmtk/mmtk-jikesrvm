@@ -29,7 +29,7 @@ public class Entrypoints {
   // These are the changes made from our JikesRVM fork
   public static final NormalMethod scanThreadMethod =
           getMethod(org.jikesrvm.mm.mminterface.RustScanThread.class, "scanThread",
-                  "(Lorg/jikesrvm/scheduler/RVMThread;Lorg/vmmagic/unboxed/Address;ZZ)V");
+                  "(Lorg/jikesrvm/scheduler/RVMThread;Lorg/vmmagic/unboxed/Address;Lorg/vmmagic/unboxed/Address;ZZ)V");
   public static final NormalMethod scanBootImageMethod =
           getMethod(org.jikesrvm.mm.mminterface.RustScanning.class, "scanBootImage", "(Lorg/vmmagic/unboxed/Address;)V");
   public static final NormalMethod scheduleFinalizerMethod =

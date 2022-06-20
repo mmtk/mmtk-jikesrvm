@@ -1,9 +1,9 @@
 use entrypoint::*;
-use mmtk::scheduler::*;
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::Address;
 use mmtk::vm::{Collection, GCThreadContext};
+use mmtk::Mutator;
 use mmtk::MutatorContext;
 use JikesRVM;
 use JTOC_BASE;
@@ -18,7 +18,10 @@ pub struct VMCollection {}
 // FIXME: Shouldn't these all be unsafe because of tls?
 impl Collection<JikesRVM> for VMCollection {
     #[inline(always)]
-    fn stop_all_mutators<E: ProcessEdgesWork<VM = JikesRVM>>(tls: VMWorkerThread) {
+    fn stop_all_mutators<F>(tls: VMWorkerThread, _mutator_visitor: F)
+    where
+        F: FnMut(&'static mut Mutator<JikesRVM>),
+    {
         unsafe {
             jtoc_call!(BLOCK_ALL_MUTATORS_FOR_GC_METHOD_OFFSET, tls);
         }

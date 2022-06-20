@@ -1,11 +1,11 @@
-use crate::{JikesRVM, SINGLETON};
+use crate::scanning::EDGES_BUFFER_CAPACITY;
+use crate::JikesRVM;
 use entrypoint::*;
-use mmtk::memory_manager;
 use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
+use mmtk::vm::RootsWorkFactory;
 use mmtk::MMTK;
 use std::arch::asm;
-use std::marker::PhantomData;
 use JTOC_BASE;
 
 #[cfg(target_pointer_width = "32")]
@@ -15,8 +15,9 @@ const REF_SLOT_SIZE: usize = 2;
 
 const CHUNK_SIZE_MASK: usize = 0xFFFFFFFF - (REF_SLOT_SIZE - 1);
 
-pub fn scan_statics<W: ProcessEdgesWork<VM = JikesRVM>>(
+pub fn scan_statics(
     tls: VMWorkerThread,
+    factory: &dyn RootsWorkFactory,
     subwork_id: usize,
     total_subwork: usize,
 ) {
@@ -41,42 +42,53 @@ pub fn scan_statics<W: ProcessEdgesWork<VM = JikesRVM>>(
             (thread_ordinal + 1) * chunk_size
         };
 
-        let mut edges = Vec::with_capacity(W::CAPACITY);
+        let mut edges = Vec::with_capacity(EDGES_BUFFER_CAPACITY);
 
         let mut slot = start;
         while slot < end {
             let slot_offset = slot * 4;
             // TODO: check_reference?
             edges.push(slots + slot_offset);
-            if edges.len() >= W::CAPACITY {
-                memory_manager::add_work_packet(
-                    &SINGLETON,
-                    WorkBucketStage::Closure,
-                    W::new(edges, true, &SINGLETON),
-                );
-                edges = Vec::with_capacity(W::CAPACITY);
+            if edges.len() >= EDGES_BUFFER_CAPACITY {
+                factory.create_process_edge_roots_work(edges);
+                edges = Vec::with_capacity(EDGES_BUFFER_CAPACITY);
             }
             // trace.process_root_edge(slots + slot_offset, true);
             slot += REF_SLOT_SIZE;
         }
-        memory_manager::add_work_packet(
-            &SINGLETON,
-            WorkBucketStage::Closure,
-            W::new(edges, true, &SINGLETON),
-        );
+        if !edges.is_empty() {
+            factory.create_process_edge_roots_work(edges);
+        }
     }
 }
 
-pub struct ScanStaticRoots<E: ProcessEdgesWork<VM = JikesRVM>>(usize, usize, PhantomData<E>);
+pub struct ScanStaticRoots {
+    factory: Box<dyn RootsWorkFactory>,
+    subwork_id: usize,
+    total_subwork: usize,
+}
 
-impl<E: ProcessEdgesWork<VM = JikesRVM>> ScanStaticRoots<E> {
-    pub fn new(subwork_id: usize, total_subwork: usize) -> Self {
-        Self(subwork_id, total_subwork, PhantomData)
+impl ScanStaticRoots {
+    pub fn new(
+        factory: Box<dyn RootsWorkFactory>,
+        subwork_id: usize,
+        total_subwork: usize,
+    ) -> Self {
+        Self {
+            factory,
+            subwork_id,
+            total_subwork,
+        }
     }
 }
 
-impl<E: ProcessEdgesWork<VM = JikesRVM>> GCWork<JikesRVM> for ScanStaticRoots<E> {
+impl GCWork<JikesRVM> for ScanStaticRoots {
     fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
-        scan_statics::<E>(worker.tls, self.0, self.1);
+        scan_statics(
+            worker.tls,
+            self.factory.as_ref(),
+            self.subwork_id,
+            self.total_subwork,
+        );
     }
 }
