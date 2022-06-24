@@ -29,41 +29,20 @@ pub struct VMScanning {}
 
 const DUMP_REF: bool = false;
 
-/// This allows JikesRVM Java code to call the dynamic methods of RootsWorkFactory.
-/// Note that we cannot pass a `&dyn` directly, because it is not pointer-sized.
-pub(crate) struct ScopedDynamicFactoryInvoker<'f> {
-    pub factory: &'f dyn RootsWorkFactory,
-}
-
-impl<'f> ScopedDynamicFactoryInvoker<'f> {
-    pub(crate) fn new(factory: &'f dyn RootsWorkFactory) -> Self {
-        Self { factory }
-    }
-
-    pub(crate) fn invoke(&mut self, edges: Vec<Address>) {
-        self.factory.create_process_edge_roots_work(edges);
-    }
-
-    pub(crate) fn as_self_ptr(&self) -> *mut libc::c_void {
-        unsafe { std::mem::transmute(self) }
-    }
-}
-
 // The mmtk-core no longer exposes the capacity of work packets through the API.
 // This value is chosen by the mmtk-jikesrvm binding.  The Rust and the Java code agree upon this buffer size.
 // See the Java constant `RustScanThread.EDGES_BUFFER_CAPACITY`.
 pub(crate) const EDGES_BUFFER_CAPACITY: usize = 4096;
 
-extern "C" fn report_edges_and_renew_buffer(
+extern "C" fn report_edges_and_renew_buffer<F: RootsWorkFactory>(
     ptr: *mut Address,
     length: usize,
-    invoker_ptr: *mut libc::c_void,
+    factory: *mut F,
 ) -> *mut Address {
     if !ptr.is_null() {
         let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, EDGES_BUFFER_CAPACITY) };
-        let invoker: &mut ScopedDynamicFactoryInvoker<'static> =
-            unsafe { &mut *(invoker_ptr as *mut ScopedDynamicFactoryInvoker) };
-        invoker.invoke(buf);
+        let factory: &mut F = unsafe { &mut *factory };
+        factory.create_process_edge_roots_work(buf);
     }
     let (ptr, _, capacity) = {
         // TODO: Use Vec::into_raw_parts() when the method is available.
@@ -78,26 +57,26 @@ extern "C" fn report_edges_and_renew_buffer(
 
 impl Scanning<JikesRVM> for VMScanning {
     const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
-    fn scan_thread_roots(_tls: VMWorkerThread, _factory: Box<dyn RootsWorkFactory>) {
+    fn scan_thread_roots(_tls: VMWorkerThread, _factory: impl RootsWorkFactory) {
         unreachable!()
     }
     fn scan_thread_root(
         tls: VMWorkerThread,
         mutator: &'static mut Mutator<JikesRVM>,
-        factory: Box<dyn RootsWorkFactory>,
+        mut factory: impl RootsWorkFactory,
     ) {
-        Self::compute_thread_roots(factory.as_ref(), false, mutator.get_tls(), tls);
+        Self::compute_thread_roots(&mut factory, false, mutator.get_tls(), tls);
     }
-    fn scan_vm_specific_roots(_tls: VMWorkerThread, factory: Box<dyn RootsWorkFactory>) {
+    fn scan_vm_specific_roots(_tls: VMWorkerThread, factory: impl RootsWorkFactory) {
         let workers = memory_manager::num_of_workers(&SINGLETON);
         for i in 0..workers {
             memory_manager::add_work_packets(
                 &SINGLETON,
                 WorkBucketStage::Prepare,
                 vec![
-                    Box::new(ScanStaticRoots::new(factory.fork(), i, workers)) as _,
-                    // Box::new(ScanBootImageRoots::new(factory.fork(), i, workers)) as _,
-                    Box::new(ScanGlobalRoots::new(factory.fork(), i, workers)) as _,
+                    Box::new(ScanStaticRoots::new(factory.clone(), i, workers)) as _,
+                    // Box::new(ScanBootImageRoots::new(factory.clone(), i, workers)) as _,
+                    Box::new(ScanGlobalRoots::new(factory.clone(), i, workers)) as _,
                 ],
             );
         }
@@ -195,8 +174,8 @@ impl Scanning<JikesRVM> for VMScanning {
 }
 
 impl VMScanning {
-    fn compute_thread_roots(
-        factory: &dyn RootsWorkFactory,
+    fn compute_thread_roots<F: RootsWorkFactory>(
+        factory: &mut F,
         new_roots_sufficient: bool,
         mutator: VMMutatorThread,
         tls: VMWorkerThread,
@@ -214,13 +193,12 @@ impl VMScanning {
                 "Calling JikesRVM to compute thread roots, thread_usize={:x}",
                 thread_usize
             );
-            let invoker = ScopedDynamicFactoryInvoker::new(factory);
             jtoc_call!(
                 SCAN_THREAD_METHOD_OFFSET,
                 tls,
                 thread_usize,
-                report_edges_and_renew_buffer,
-                invoker.as_self_ptr(),
+                report_edges_and_renew_buffer::<F>,
+                factory as *mut F as *mut libc::c_void,
                 process_code_locations as i32,
                 new_roots_sufficient as i32
             );
@@ -294,18 +272,14 @@ impl VMScanning {
     }
 }
 
-pub struct ScanGlobalRoots {
-    factory: Box<dyn RootsWorkFactory>,
+pub struct ScanGlobalRoots<F: RootsWorkFactory> {
+    factory: F,
     subwork_id: usize,
     total_subwork: usize,
 }
 
-impl ScanGlobalRoots {
-    pub fn new(
-        factory: Box<dyn RootsWorkFactory>,
-        subwork_id: usize,
-        total_subwork: usize,
-    ) -> Self {
+impl<F: RootsWorkFactory> ScanGlobalRoots<F> {
+    pub fn new(factory: F, subwork_id: usize, total_subwork: usize) -> Self {
         Self {
             factory,
             subwork_id,
@@ -314,7 +288,7 @@ impl ScanGlobalRoots {
     }
 }
 
-impl GCWork<JikesRVM> for ScanGlobalRoots {
+impl<F: RootsWorkFactory> GCWork<JikesRVM> for ScanGlobalRoots<F> {
     fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
         let mut edges = Vec::with_capacity(EDGES_BUFFER_CAPACITY);
         VMScanning::scan_global_roots(worker.tls, self.subwork_id, self.total_subwork, |edge| {

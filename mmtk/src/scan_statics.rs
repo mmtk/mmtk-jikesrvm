@@ -17,7 +17,7 @@ const CHUNK_SIZE_MASK: usize = 0xFFFFFFFF - (REF_SLOT_SIZE - 1);
 
 pub fn scan_statics(
     tls: VMWorkerThread,
-    factory: &dyn RootsWorkFactory,
+    factory: &mut impl RootsWorkFactory,
     subwork_id: usize,
     total_subwork: usize,
 ) {
@@ -62,18 +62,14 @@ pub fn scan_statics(
     }
 }
 
-pub struct ScanStaticRoots {
-    factory: Box<dyn RootsWorkFactory>,
+pub struct ScanStaticRoots<F: RootsWorkFactory> {
+    factory: F,
     subwork_id: usize,
     total_subwork: usize,
 }
 
-impl ScanStaticRoots {
-    pub fn new(
-        factory: Box<dyn RootsWorkFactory>,
-        subwork_id: usize,
-        total_subwork: usize,
-    ) -> Self {
+impl<F: RootsWorkFactory> ScanStaticRoots<F> {
+    pub fn new(factory: F, subwork_id: usize, total_subwork: usize) -> Self {
         Self {
             factory,
             subwork_id,
@@ -82,11 +78,11 @@ impl ScanStaticRoots {
     }
 }
 
-impl GCWork<JikesRVM> for ScanStaticRoots {
+impl<F: RootsWorkFactory> GCWork<JikesRVM> for ScanStaticRoots<F> {
     fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
         scan_statics(
             worker.tls,
-            self.factory.as_ref(),
+            &mut self.factory,
             self.subwork_id,
             self.total_subwork,
         );

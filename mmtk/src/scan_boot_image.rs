@@ -25,9 +25,9 @@ static REFS: AtomicUsize = AtomicUsize::new(0);
 
 pub fn scan_boot_image(
     _tls: OpaquePointer,
+    factory: &mut impl RootsWorkFactory,
     subwork_id: usize,
     total_subwork: usize,
-    factory: &dyn RootsWorkFactory,
 ) {
     unsafe {
         let boot_record = (JTOC_BASE + THE_BOOT_RECORD_FIELD_OFFSET).load::<Address>();
@@ -140,18 +140,14 @@ fn decode_long_encoding(cursor: Address) -> usize {
     }
 }
 
-pub struct ScanBootImageRoots {
-    factory: Box<dyn RootsWorkFactory>,
+pub struct ScanBootImageRoots<F: RootsWorkFactory> {
+    factory: F,
     subwork_id: usize,
     total_subwork: usize,
 }
 
-impl ScanBootImageRoots {
-    pub fn new(
-        factory: Box<dyn RootsWorkFactory>,
-        subwork_id: usize,
-        total_subwork: usize,
-    ) -> Self {
+impl<F: RootsWorkFactory> ScanBootImageRoots<F> {
+    pub fn new(factory: F, subwork_id: usize, total_subwork: usize) -> Self {
         Self {
             factory,
             subwork_id,
@@ -160,13 +156,13 @@ impl ScanBootImageRoots {
     }
 }
 
-impl GCWork<JikesRVM> for ScanBootImageRoots {
+impl<F: RootsWorkFactory> GCWork<JikesRVM> for ScanBootImageRoots<F> {
     fn do_work(&mut self, _worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
         scan_boot_image(
             OpaquePointer::UNINITIALIZED,
+            &mut self.factory,
             self.subwork_id,
             self.total_subwork,
-            self.factory.as_ref(),
         );
     }
 }
