@@ -109,7 +109,8 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
   private GCMapIterator iterator;
   @Untraced
   private boolean processCodeLocations;
-  private Address process_edges;
+  private Address report_edges;
+  private Address report_edges_extra_data;
   @Untraced
   private RVMThread thread;
   private Address ip, fp, prevFp, initialIPLoc, topFrame;
@@ -121,7 +122,8 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
 
   private Address edges;
   private Word size = Word.zero();
-  // The buffer size of mmtk-core's `ProcessEdgesWork` work packet.
+  // The buffer size agreed between the Rust part and the Java part of the binding.
+  // See the constant EDGES_BUFFER_CAPACITY in scanning.rs.
   public static final Word EDGES_BUFFER_CAPACITY = Word.fromIntZeroExtend(4096);
 
   /***********************************************************************
@@ -133,13 +135,17 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
    * Scan a thread, placing the addresses of pointers into supplied buffers.
    *
    * @param thread The thread to be scanned
-   * @param trace The trace instance to use for reporting references.
+   * @param report_edges The native call-back function to use for reporting locations.
+   * @param report_edges_extra_data Extra data passed to the report_edges call-back.
    * @param processCodeLocations Should code locations be processed?
    * @param newRootsSufficient Is a partial stack scan sufficient, or must we do a full scan?
    */
   @Entrypoint
-  public static void scanThread(RVMThread thread, Address process_edges,
-                                boolean processCodeLocations, boolean newRootsSufficient) {
+  public static void scanThread(RVMThread thread,
+                                Address report_edges,
+                                Address report_edges_extra_data,
+                                boolean processCodeLocations,
+                                boolean newRootsSufficient) {
     if (DEFAULT_VERBOSITY >= 1) {
       VM.sysWriteln("scanning ",thread.getThreadSlot());
     }
@@ -152,7 +158,7 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
     Address fp = regs.getInnermostFramePointer();
     regs.clear();
     regs.setInnermost(ip,fp);
-    scanThread(thread, process_edges, processCodeLocations, gprs, Address.zero(), newRootsSufficient);
+    scanThread(thread, report_edges, report_edges_extra_data, processCodeLocations, gprs, Address.zero(), newRootsSufficient);
   }
 
   /**
@@ -161,7 +167,8 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
    * structure.
    *
    * @param thread The thread to be scanned
-   * @param trace The trace instance to use for reporting references.
+   * @param report_edges The native call-back function to use for reporting locations.
+   * @param report_edges_extra_data Extra data passed to the report_edges call-back.
    * @param processCodeLocations Should code locations be processed?
    * @param gprs The general purpose registers associated with the
    * stack being scanned (normally extracted from the thread).
@@ -169,9 +176,13 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
    * if this is to be inferred from the thread (normally the case).
    * @param newRootsSufficent Is a partial stack scan sufficient, or must we do a full scan?
    */
-  private static void scanThread(RVMThread thread, Address process_edges,
+  private static void scanThread(RVMThread thread,
+                                 Address report_edges,
+                                 Address report_edges_extra_data,
                                  boolean processCodeLocations,
-                                 Address gprs, Address topFrame, boolean newRootsSufficent) {
+                                 Address gprs,
+                                 Address topFrame,
+                                 boolean newRootsSufficent) {
     // figure out if the thread should be scanned at all; if not, exit
     if (thread.getExecStatus() == RVMThread.NEW || thread.getIsAboutToTerminate()) {
       return;
@@ -200,7 +211,7 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
     }
 
     /* scan the stack */
-    scanner.startScan(process_edges, processCodeLocations, thread, gprs, ip, fp, initialIPLoc, topFrame, sentinelFp);
+    scanner.startScan(report_edges, report_edges_extra_data, processCodeLocations, thread, gprs, ip, fp, initialIPLoc, topFrame, sentinelFp);
   }
 
   @Inline
@@ -218,7 +229,7 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
 
   private void flush() {
     if (!edges.isZero() && !size.isZero()) {
-      edges = sysCall.sysDynamicCall2(process_edges, edges.toWord(), size);
+      edges = sysCall.sysDynamicCall3(report_edges, edges.toWord(), size, report_edges_extra_data.toWord());
       size = Word.zero();
     }
   }
@@ -233,7 +244,8 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
    * The various state associated with stack scanning is captured by
    * instance variables of this type, which are initialized here.
    *
-   * @param trace The trace instance to use for reporting locations.
+   * @param report_edges The native call-back function to use for reporting locations.
+   * @param report_edges_extra_data Extra data passed to the report_edges call-back.
    * @param processCodeLocations whether to process parts of the thread
    *  that could point to code (e.g. exception registers).
    * @param thread Thread for the thread whose stack is being scanned
@@ -249,14 +261,16 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
    * if this is to be inferred from the thread (normally the case).
    * @param sentinelFp The frame pointer at which the stack scan should stop.
    */
-  private void startScan(Address process_edges,
+  private void startScan(Address report_edges,
+                         Address report_edges_extra_data,
                          boolean processCodeLocations,
                          RVMThread thread, Address gprs, Address ip,
                          Address fp, Address initialIPLoc, Address topFrame,
                          Address sentinelFp) {
-    this.process_edges = process_edges;
+    this.report_edges = report_edges;
+    this.report_edges_extra_data = report_edges_extra_data;
     this.size = Word.zero();
-    this.edges = sysCall.sysDynamicCall2(process_edges, Word.zero(), Word.zero());
+    this.edges = sysCall.sysDynamicCall3(report_edges, Word.zero(), Word.zero(), report_edges_extra_data.toWord());
 
     this.processCodeLocations = processCodeLocations;
     this.thread = thread;
