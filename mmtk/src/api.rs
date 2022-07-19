@@ -36,7 +36,7 @@ pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
 
     // set plan based on features.
     #[cfg(feature = "nogc")]
-    memory_maanger::process(&BUILDER, "plan", "NoGC");
+    memory_manager::process(&BUILDER, "plan", "NoGC");
     #[cfg(feature = "semispace")]
     memory_manager::process(&BUILDER, "plan", "SemiSpace");
     #[cfg(feature = "marksweep")]
