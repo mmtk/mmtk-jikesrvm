@@ -10,11 +10,12 @@ use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::{ReferenceGlue, VMBinding};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
-use mmtk::MMTK;
 use std::ffi::CStr;
+use std::sync::atomic::Ordering;
 use JikesRVM;
 use JTOC_BASE;
 use SINGLETON;
+use BUILDER;
 
 /// # Safety
 /// Caller needs to make sure the ptr is a valid vector pointer.
@@ -29,12 +30,22 @@ pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
         JTOC_BASE = Address::from_mut_ptr(jtoc);
         BOOT_THREAD = OpaquePointer::from_address(VMCollection::thread_from_id(1));
     }
-    // MMTk should not be used before gc_init, and gc_init is single threaded. It is fine we get a mutable reference from the singleton.
-    #[allow(clippy::cast_ref_to_mut)]
-    let singleton_mut =
-        unsafe { &mut *(&*SINGLETON as *const MMTK<JikesRVM> as *mut MMTK<JikesRVM>) };
-    memory_manager::gc_init(singleton_mut, heap_size);
-    debug_assert!(731 == JikesRVM::mm_entrypoint_test(21, 34, 9, 8));
+
+    // set heap size
+    memory_manager::process(&BUILDER, "heap_size", heap_size.to_string().as_str());
+
+    // set plan based on features.
+    #[cfg(feature = "nogc")]
+    memory_maanger::process(&BUILDER, "plan", "NoGC");
+    #[cfg(feature = "semispace")]
+    memory_manager::process(&BUILDER, "plan", "SemiSpace");
+    #[cfg(feature = "marksweep")]
+    memory_manager::process(&BUILDER, "plan", "MarkSweep");
+
+    // Make sure that we haven't initialized MMTk (by accident) yet
+    assert!(!crate::MMTK_INITIALIZED.load(Ordering::Relaxed));
+    // Make sure we initialize MMTk here
+    lazy_static::initialize(&SINGLETON);
 }
 
 #[no_mangle]
@@ -216,7 +227,7 @@ pub extern "C" fn process(name: *const c_char, value: *const c_char) -> i32 {
     let name_str: &CStr = unsafe { CStr::from_ptr(name) };
     let value_str: &CStr = unsafe { CStr::from_ptr(value) };
     memory_manager::process(
-        &SINGLETON,
+        &BUILDER,
         name_str.to_str().unwrap(),
         value_str.to_str().unwrap(),
     ) as i32
