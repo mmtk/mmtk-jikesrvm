@@ -8,8 +8,8 @@ extern crate log;
 use mmtk::plan::PlanConstraints;
 use mmtk::util::address::Address;
 use mmtk::vm::VMBinding;
-use mmtk::MMTK;
 use mmtk::MMTKBuilder;
+use mmtk::MMTK;
 
 use collection::BOOT_THREAD;
 use entrypoint::*;

@@ -13,9 +13,9 @@ use mmtk::Mutator;
 use std::ffi::CStr;
 use std::sync::atomic::Ordering;
 use JikesRVM;
+use BUILDER;
 use JTOC_BASE;
 use SINGLETON;
-use BUILDER;
 
 /// # Safety
 /// Caller needs to make sure the ptr is a valid vector pointer.
