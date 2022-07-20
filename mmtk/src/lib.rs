@@ -79,15 +79,17 @@ pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::MS_CONSTRAINTS;
 
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
+use std::sync::Mutex;
 
 pub static MMTK_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 lazy_static! {
-    pub static ref BUILDER: MMTKBuilder = MMTKBuilder::new();
+    pub static ref BUILDER: Mutex<MMTKBuilder> = Mutex::new(MMTKBuilder::new());
     pub static ref SINGLETON: MMTK<JikesRVM> = {
-        assert!(!MMTK_INITIALIZED.load(Ordering::Relaxed));
-        let ret = mmtk::memory_manager::gc_init(&BUILDER);
-        MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::Relaxed);
+        let builder = BUILDER.lock().unwrap();
+        assert!(!MMTK_INITIALIZED.load(Ordering::SeqCst));
+        let ret = mmtk::memory_manager::mmtk_init(&builder);
+        MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
         *ret
     };
 }

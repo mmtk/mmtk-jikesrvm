@@ -31,16 +31,24 @@ pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
         BOOT_THREAD = OpaquePointer::from_address(VMCollection::thread_from_id(1));
     }
 
-    // set heap size
-    memory_manager::process(&BUILDER, "heap_size", heap_size.to_string().as_str());
+    {
+        use mmtk::util::options::PlanSelector;
+        // set heap size
+        let mut builder = BUILDER.lock().unwrap();
+        builder.options.heap_size.set(heap_size);
 
-    // set plan based on features.
-    #[cfg(feature = "nogc")]
-    memory_manager::process(&BUILDER, "plan", "NoGC");
-    #[cfg(feature = "semispace")]
-    memory_manager::process(&BUILDER, "plan", "SemiSpace");
-    #[cfg(feature = "marksweep")]
-    memory_manager::process(&BUILDER, "plan", "MarkSweep");
+        // set plan based on features.
+        let plan = if cfg!(feature = "nogc") {
+            PlanSelector::NoGC
+        } else if cfg!(feature = "semispace") {
+            PlanSelector::SemiSpace
+        } else if cfg!(feature = "marksweep") {
+            PlanSelector::MarkSweep
+        } else {
+            panic!("No plan feature is enabled for JikesRVM. JikesRVM requires one plan feature to build.")
+        };
+        builder.options.plan.set(plan);
+    }
 
     // Make sure that we haven't initialized MMTk (by accident) yet
     assert!(!crate::MMTK_INITIALIZED.load(Ordering::Relaxed));
@@ -226,8 +234,9 @@ pub extern "C" fn harness_end(_tls: OpaquePointer) {
 pub extern "C" fn process(name: *const c_char, value: *const c_char) -> i32 {
     let name_str: &CStr = unsafe { CStr::from_ptr(name) };
     let value_str: &CStr = unsafe { CStr::from_ptr(value) };
+    let mut builder = BUILDER.lock().unwrap();
     memory_manager::process(
-        &BUILDER,
+        &mut builder,
         name_str.to_str().unwrap(),
         value_str.to_str().unwrap(),
     ) as i32
