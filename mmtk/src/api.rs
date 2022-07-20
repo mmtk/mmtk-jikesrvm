@@ -35,7 +35,8 @@ pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
         use mmtk::util::options::PlanSelector;
         // set heap size
         let mut builder = BUILDER.lock().unwrap();
-        builder.options.heap_size.set(heap_size);
+        let success = builder.options.heap_size.set(heap_size);
+        assert!(success, "Failed to set heap size to {}", heap_size);
 
         // set plan based on features.
         let plan = if cfg!(feature = "nogc") {
@@ -47,7 +48,8 @@ pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
         } else {
             panic!("No plan feature is enabled for JikesRVM. JikesRVM requires one plan feature to build.")
         };
-        builder.options.plan.set(plan);
+        let success = builder.options.plan.set(plan);
+        assert!(success, "Failed to set plan to {:?}", plan);
     }
 
     // Make sure that we haven't initialized MMTk (by accident) yet
