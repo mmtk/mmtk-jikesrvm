@@ -10,9 +10,10 @@ use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::{ReferenceGlue, VMBinding};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
-use mmtk::MMTK;
 use std::ffi::CStr;
+use std::sync::atomic::Ordering;
 use JikesRVM;
+use BUILDER;
 use JTOC_BASE;
 use SINGLETON;
 
@@ -29,12 +30,32 @@ pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
         JTOC_BASE = Address::from_mut_ptr(jtoc);
         BOOT_THREAD = OpaquePointer::from_address(VMCollection::thread_from_id(1));
     }
-    // MMTk should not be used before gc_init, and gc_init is single threaded. It is fine we get a mutable reference from the singleton.
-    #[allow(clippy::cast_ref_to_mut)]
-    let singleton_mut =
-        unsafe { &mut *(&*SINGLETON as *const MMTK<JikesRVM> as *mut MMTK<JikesRVM>) };
-    memory_manager::gc_init(singleton_mut, heap_size);
-    debug_assert!(731 == JikesRVM::mm_entrypoint_test(21, 34, 9, 8));
+
+    {
+        use mmtk::util::options::PlanSelector;
+        // set heap size
+        let mut builder = BUILDER.lock().unwrap();
+        let success = builder.options.heap_size.set(heap_size);
+        assert!(success, "Failed to set heap size to {}", heap_size);
+
+        // set plan based on features.
+        let plan = if cfg!(feature = "nogc") {
+            PlanSelector::NoGC
+        } else if cfg!(feature = "semispace") {
+            PlanSelector::SemiSpace
+        } else if cfg!(feature = "marksweep") {
+            PlanSelector::MarkSweep
+        } else {
+            panic!("No plan feature is enabled for JikesRVM. JikesRVM requires one plan feature to build.")
+        };
+        let success = builder.options.plan.set(plan);
+        assert!(success, "Failed to set plan to {:?}", plan);
+    }
+
+    // Make sure that we haven't initialized MMTk (by accident) yet
+    assert!(!crate::MMTK_INITIALIZED.load(Ordering::Relaxed));
+    // Make sure we initialize MMTk here
+    lazy_static::initialize(&SINGLETON);
 }
 
 #[no_mangle]
@@ -215,8 +236,9 @@ pub extern "C" fn harness_end(_tls: OpaquePointer) {
 pub extern "C" fn process(name: *const c_char, value: *const c_char) -> i32 {
     let name_str: &CStr = unsafe { CStr::from_ptr(name) };
     let value_str: &CStr = unsafe { CStr::from_ptr(value) };
+    let mut builder = BUILDER.lock().unwrap();
     memory_manager::process(
-        &SINGLETON,
+        &mut builder,
         name_str.to_str().unwrap(),
         value_str.to_str().unwrap(),
     ) as i32

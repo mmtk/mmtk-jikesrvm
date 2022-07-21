@@ -8,6 +8,7 @@ extern crate log;
 use mmtk::plan::PlanConstraints;
 use mmtk::util::address::Address;
 use mmtk::vm::VMBinding;
+use mmtk::MMTKBuilder;
 use mmtk::MMTK;
 
 use collection::BOOT_THREAD;
@@ -76,15 +77,19 @@ pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::SS_CONSTRAINTS;
 #[cfg(feature = "marksweep")]
 pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::MS_CONSTRAINTS;
 
-lazy_static! {
-    pub static ref SINGLETON: MMTK<JikesRVM> = {
-        #[cfg(feature = "nogc")]
-        std::env::set_var("MMTK_PLAN", "NoGC");
-        #[cfg(feature = "semispace")]
-        std::env::set_var("MMTK_PLAN", "SemiSpace");
-        #[cfg(feature = "marksweep")]
-        std::env::set_var("MMTK_PLAN", "MarkSweep");
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+use std::sync::Mutex;
 
-        MMTK::new()
+pub static MMTK_INITIALIZED: AtomicBool = AtomicBool::new(false);
+
+lazy_static! {
+    pub static ref BUILDER: Mutex<MMTKBuilder> = Mutex::new(MMTKBuilder::new());
+    pub static ref SINGLETON: MMTK<JikesRVM> = {
+        let builder = BUILDER.lock().unwrap();
+        assert!(!MMTK_INITIALIZED.load(Ordering::SeqCst));
+        let ret = mmtk::memory_manager::mmtk_init(&builder);
+        MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::SeqCst);
+        *ret
     };
 }
