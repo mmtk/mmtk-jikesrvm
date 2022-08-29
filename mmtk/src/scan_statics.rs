@@ -1,5 +1,6 @@
 use crate::scanning::EDGES_BUFFER_CAPACITY;
 use crate::JikesRVM;
+use crate::JikesRVMEdge;
 use entrypoint::*;
 use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
@@ -17,7 +18,7 @@ const CHUNK_SIZE_MASK: usize = 0xFFFFFFFF - (REF_SLOT_SIZE - 1);
 
 pub fn scan_statics(
     tls: VMWorkerThread,
-    factory: &mut impl RootsWorkFactory,
+    factory: &mut impl RootsWorkFactory<JikesRVMEdge>,
     subwork_id: usize,
     total_subwork: usize,
 ) {
@@ -62,13 +63,13 @@ pub fn scan_statics(
     }
 }
 
-pub struct ScanStaticRoots<F: RootsWorkFactory> {
+pub struct ScanStaticRoots<F: RootsWorkFactory<JikesRVMEdge>> {
     factory: F,
     subwork_id: usize,
     total_subwork: usize,
 }
 
-impl<F: RootsWorkFactory> ScanStaticRoots<F> {
+impl<F: RootsWorkFactory<JikesRVMEdge>> ScanStaticRoots<F> {
     pub fn new(factory: F, subwork_id: usize, total_subwork: usize) -> Self {
         Self {
             factory,
@@ -78,7 +79,7 @@ impl<F: RootsWorkFactory> ScanStaticRoots<F> {
     }
 }
 
-impl<F: RootsWorkFactory> GCWork<JikesRVM> for ScanStaticRoots<F> {
+impl<F: RootsWorkFactory<JikesRVMEdge>> GCWork<JikesRVM> for ScanStaticRoots<F> {
     fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
         scan_statics(
             worker.tls,
