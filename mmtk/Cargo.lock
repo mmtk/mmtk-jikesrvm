@@ -279,9 +279,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.127"
+version = "0.2.132"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "505e71a4706fa491e9b1b55f51b95d4037d0821ee40131190475f692b35b009b"
+checksum = "8371e4e5341c3a96db127eb2465ac681ced4c433e01dd0e938adbef26ba93ba5"
 
 [[package]]
 name = "libgit2-sys"
@@ -340,7 +340,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.14.0"
-source = "git+https://github.com/wks/mmtk-core.git?branch=edge-shape#24b7e47fc1647efec38f3d41e9419de619f70d99"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=76131c493be38e421f5fb157f9900f850584554f#76131c493be38e421f5fb157f9900f850584554f"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -363,7 +363,7 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.14.0"
-source = "git+https://github.com/wks/mmtk-core.git?branch=edge-shape#24b7e47fc1647efec38f3d41e9419de619f70d99"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=76131c493be38e421f5fb157f9900f850584554f#76131c493be38e421f5fb157f9900f850584554f"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -393,9 +393,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.13.0"
+version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18a6dbe30758c9f83eb00cbea4ac95966305f5a7772f3f42ebfc7fc7eddbd8e1"
+checksum = "074864da206b4973b84eb91683020dbefd6a8c3f0f38e054d93954e891935e4e"
 
 [[package]]
 name = "percent-encoding"
