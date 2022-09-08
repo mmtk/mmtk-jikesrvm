@@ -340,12 +340,13 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.14.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=76131c493be38e421f5fb157f9900f850584554f#76131c493be38e421f5fb157f9900f850584554f"
+source = "git+https://github.com/qinsoon/mmtk-core.git?rev=273b27bed3c077c9d920feea461b6ff63f3a6573#273b27bed3c077c9d920feea461b6ff63f3a6573"
 dependencies = [
  "atomic",
  "atomic-traits",
  "atomic_refcell",
  "built",
+ "cfg-if 1.0.0",
  "crossbeam",
  "downcast-rs",
  "enum-map",
@@ -363,7 +364,7 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.14.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=76131c493be38e421f5fb157f9900f850584554f#76131c493be38e421f5fb157f9900f850584554f"
+source = "git+https://github.com/qinsoon/mmtk-core.git?rev=273b27bed3c077c9d920feea461b6ff63f3a6573#273b27bed3c077c9d920feea461b6ff63f3a6573"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
