@@ -1,6 +1,7 @@
 use crate::scanning::EDGES_BUFFER_CAPACITY;
 use crate::unboxed_size_constants::*;
 use crate::JikesRVM;
+use crate::JikesRVMEdge;
 use entrypoint::*;
 use java_size_constants::*;
 use mmtk::scheduler::*;
@@ -25,7 +26,7 @@ static REFS: AtomicUsize = AtomicUsize::new(0);
 
 pub fn scan_boot_image(
     _tls: OpaquePointer,
-    factory: &mut impl RootsWorkFactory,
+    factory: &mut impl RootsWorkFactory<JikesRVMEdge>,
     subwork_id: usize,
     total_subwork: usize,
 ) {
@@ -140,13 +141,13 @@ fn decode_long_encoding(cursor: Address) -> usize {
     }
 }
 
-pub struct ScanBootImageRoots<F: RootsWorkFactory> {
+pub struct ScanBootImageRoots<F: RootsWorkFactory<JikesRVMEdge>> {
     factory: F,
     subwork_id: usize,
     total_subwork: usize,
 }
 
-impl<F: RootsWorkFactory> ScanBootImageRoots<F> {
+impl<F: RootsWorkFactory<JikesRVMEdge>> ScanBootImageRoots<F> {
     pub fn new(factory: F, subwork_id: usize, total_subwork: usize) -> Self {
         Self {
             factory,
@@ -156,7 +157,7 @@ impl<F: RootsWorkFactory> ScanBootImageRoots<F> {
     }
 }
 
-impl<F: RootsWorkFactory> GCWork<JikesRVM> for ScanBootImageRoots<F> {
+impl<F: RootsWorkFactory<JikesRVMEdge>> GCWork<JikesRVM> for ScanBootImageRoots<F> {
     fn do_work(&mut self, _worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
         scan_boot_image(
             OpaquePointer::UNINITIALIZED,

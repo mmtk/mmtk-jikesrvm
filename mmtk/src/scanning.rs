@@ -5,6 +5,7 @@ use std::slice;
 // use crate::scan_boot_image::ScanBootImageRoots;
 use crate::scan_statics::ScanStaticRoots;
 use crate::unboxed_size_constants::LOG_BYTES_IN_ADDRESS;
+use crate::JikesRVMEdge;
 use crate::SINGLETON;
 use active_plan::VMActivePlan;
 use entrypoint::*;
@@ -34,7 +35,7 @@ const DUMP_REF: bool = false;
 // See the Java constant `RustScanThread.EDGES_BUFFER_CAPACITY`.
 pub(crate) const EDGES_BUFFER_CAPACITY: usize = 4096;
 
-extern "C" fn report_edges_and_renew_buffer<F: RootsWorkFactory>(
+extern "C" fn report_edges_and_renew_buffer<F: RootsWorkFactory<JikesRVMEdge>>(
     ptr: *mut Address,
     length: usize,
     factory: *mut F,
@@ -57,17 +58,17 @@ extern "C" fn report_edges_and_renew_buffer<F: RootsWorkFactory>(
 
 impl Scanning<JikesRVM> for VMScanning {
     const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
-    fn scan_thread_roots(_tls: VMWorkerThread, _factory: impl RootsWorkFactory) {
+    fn scan_thread_roots(_tls: VMWorkerThread, _factory: impl RootsWorkFactory<JikesRVMEdge>) {
         unreachable!()
     }
     fn scan_thread_root(
         tls: VMWorkerThread,
         mutator: &'static mut Mutator<JikesRVM>,
-        mut factory: impl RootsWorkFactory,
+        mut factory: impl RootsWorkFactory<JikesRVMEdge>,
     ) {
         Self::compute_thread_roots(&mut factory, false, mutator.get_tls(), tls);
     }
-    fn scan_vm_specific_roots(_tls: VMWorkerThread, factory: impl RootsWorkFactory) {
+    fn scan_vm_specific_roots(_tls: VMWorkerThread, factory: impl RootsWorkFactory<JikesRVMEdge>) {
         let workers = memory_manager::num_of_workers(&SINGLETON);
         for i in 0..workers {
             memory_manager::add_work_packets(
@@ -81,7 +82,7 @@ impl Scanning<JikesRVM> for VMScanning {
             );
         }
     }
-    fn scan_object<EV: EdgeVisitor>(
+    fn scan_object<EV: EdgeVisitor<JikesRVMEdge>>(
         tls: VMWorkerThread,
         object: ObjectReference,
         edge_visitor: &mut EV,
@@ -174,7 +175,7 @@ impl Scanning<JikesRVM> for VMScanning {
 }
 
 impl VMScanning {
-    fn compute_thread_roots<F: RootsWorkFactory>(
+    fn compute_thread_roots<F: RootsWorkFactory<JikesRVMEdge>>(
         factory: &mut F,
         new_roots_sufficient: bool,
         mutator: VMMutatorThread,
@@ -272,13 +273,13 @@ impl VMScanning {
     }
 }
 
-pub struct ScanGlobalRoots<F: RootsWorkFactory> {
+pub struct ScanGlobalRoots<F: RootsWorkFactory<JikesRVMEdge>> {
     factory: F,
     subwork_id: usize,
     total_subwork: usize,
 }
 
-impl<F: RootsWorkFactory> ScanGlobalRoots<F> {
+impl<F: RootsWorkFactory<JikesRVMEdge>> ScanGlobalRoots<F> {
     pub fn new(factory: F, subwork_id: usize, total_subwork: usize) -> Self {
         Self {
             factory,
@@ -288,7 +289,7 @@ impl<F: RootsWorkFactory> ScanGlobalRoots<F> {
     }
 }
 
-impl<F: RootsWorkFactory> GCWork<JikesRVM> for ScanGlobalRoots<F> {
+impl<F: RootsWorkFactory<JikesRVMEdge>> GCWork<JikesRVM> for ScanGlobalRoots<F> {
     fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
         let mut edges = Vec::with_capacity(EDGES_BUFFER_CAPACITY);
         VMScanning::scan_global_roots(worker.tls, self.subwork_id, self.total_subwork, |edge| {

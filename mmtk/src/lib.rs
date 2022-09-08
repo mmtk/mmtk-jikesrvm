@@ -43,12 +43,20 @@ pub static mut JTOC_BASE: Address = Address::ZERO;
 #[derive(Default)]
 pub struct JikesRVM;
 
+/// The type of edges in JikesRVM.
+///
+/// TODO: We start with Address to ease the transition.
+/// We should switch to the equivalent `mmtk::vm::edge_shape::SimpleEdge` later.
+pub type JikesRVMEdge = Address;
+
 impl VMBinding for JikesRVM {
     type VMObjectModel = object_model::VMObjectModel;
     type VMScanning = scanning::VMScanning;
     type VMCollection = collection::VMCollection;
     type VMActivePlan = active_plan::VMActivePlan;
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
+
+    type VMEdge = JikesRVMEdge;
 
     const ALLOC_END_ALIGNMENT: usize = 4;
 }
