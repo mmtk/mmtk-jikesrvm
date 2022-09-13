@@ -57,6 +57,7 @@ impl VMBinding for JikesRVM {
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
 
     type VMEdge = JikesRVMEdge;
+    type VMMemorySlice = mmtk::vm::edge_shape::UnimplementedMemorySlice<JikesRVMEdge>;
 
     const ALLOC_END_ALIGNMENT: usize = 4;
 }
