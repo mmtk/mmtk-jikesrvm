@@ -7,7 +7,7 @@ extern crate log;
 
 use mmtk::plan::PlanConstraints;
 use mmtk::util::address::Address;
-use mmtk::util::constants::{LOG_BYTES_IN_LONG, LOG_BITS_IN_INT};
+use mmtk::util::constants::{LOG_BYTES_IN_LONG, LOG_BYTES_IN_INT};
 use mmtk::vm::VMBinding;
 use mmtk::MMTKBuilder;
 use mmtk::MMTK;
