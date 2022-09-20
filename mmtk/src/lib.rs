@@ -7,7 +7,7 @@ extern crate log;
 
 use mmtk::plan::PlanConstraints;
 use mmtk::util::address::Address;
-use mmtk::util::constants::{LOG_BYTES_IN_LONG, LOG_BYTES_IN_INT};
+use mmtk::util::constants::{LOG_BYTES_IN_INT, LOG_BYTES_IN_LONG};
 use mmtk::vm::VMBinding;
 use mmtk::MMTKBuilder;
 use mmtk::MMTK;
@@ -58,7 +58,7 @@ impl VMBinding for JikesRVM {
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
 
     type VMEdge = JikesRVMEdge;
-    
+
     #[cfg(target_arch = "x86")]
     // On Intel we align code to 16 bytes as recommended in the optimization manual.
     const MAX_ALIGNMENT_SHIFT: usize = 1 + LOG_BYTES_IN_LONG as usize - LOG_BYTES_IN_INT as usize;
