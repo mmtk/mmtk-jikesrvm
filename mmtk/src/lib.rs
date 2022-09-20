@@ -58,6 +58,7 @@ impl VMBinding for JikesRVM {
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
 
     type VMEdge = JikesRVMEdge;
+    type VMMemorySlice = mmtk::vm::edge_shape::UnimplementedMemorySlice<JikesRVMEdge>;
 
     #[cfg(target_arch = "x86")]
     // On Intel we align code to 16 bytes as recommended in the optimization manual.
