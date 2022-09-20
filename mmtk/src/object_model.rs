@@ -6,7 +6,6 @@ use crate::vm_metadata;
 use mmtk::util::alloc::fill_alignment_gap;
 use mmtk::util::conversions;
 use mmtk::util::copy::*;
-use mmtk::util::metadata::header_metadata::HeaderMetadataSpec;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
 
@@ -94,69 +93,6 @@ impl VMObjectModel {
 }
 
 impl ObjectModel<JikesRVM> for VMObjectModel {
-    #[inline(always)]
-    fn load_metadata(
-        metadata_spec: &HeaderMetadataSpec,
-        object: ObjectReference,
-        mask: Option<usize>,
-        atomic_ordering: Option<Ordering>,
-    ) -> usize {
-        vm_metadata::load_metadata(metadata_spec, object, mask, atomic_ordering)
-    }
-
-    #[inline(always)]
-    fn store_metadata(
-        metadata_spec: &HeaderMetadataSpec,
-        object: ObjectReference,
-        val: usize,
-        mask: Option<usize>,
-        atomic_ordering: Option<Ordering>,
-    ) {
-        vm_metadata::store_metadata(metadata_spec, object, val, mask, atomic_ordering);
-    }
-
-    #[inline(always)]
-    fn compare_exchange_metadata(
-        metadata_spec: &HeaderMetadataSpec,
-        object: ObjectReference,
-        old_val: usize,
-        new_val: usize,
-        mask: Option<usize>,
-        success_order: Ordering,
-        failure_order: Ordering,
-    ) -> bool {
-        vm_metadata::compare_exchange_metadata(
-            metadata_spec,
-            object,
-            old_val,
-            new_val,
-            mask,
-            success_order,
-            failure_order,
-        )
-    }
-
-    #[inline(always)]
-    fn fetch_add_metadata(
-        metadata_spec: &HeaderMetadataSpec,
-        object: ObjectReference,
-        val: usize,
-        order: Ordering,
-    ) -> usize {
-        vm_metadata::fetch_add_metadata(metadata_spec, object, val, order)
-    }
-
-    #[inline(always)]
-    fn fetch_sub_metadata(
-        metadata_spec: &HeaderMetadataSpec,
-        object: ObjectReference,
-        val: usize,
-        order: Ordering,
-    ) -> usize {
-        vm_metadata::fetch_sub_metadata(metadata_spec, object, val, order)
-    }
-
-    // For now we use the default const from mmtk-core
     const GLOBAL_LOG_BIT_SPEC: VMGlobalLogBitSpec = vm_metadata::LOGGING_SIDE_METADATA_SPEC;
 
     const LOCAL_FORWARDING_POINTER_SPEC: VMLocalForwardingPointerSpec =
