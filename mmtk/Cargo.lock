@@ -339,8 +339,8 @@ dependencies = [
 
 [[package]]
 name = "mmtk"
-version = "0.14.0"
-source = "git+https://github.com/qinsoon/mmtk-core.git?rev=273b27bed3c077c9d920feea461b6ff63f3a6573#273b27bed3c077c9d920feea461b6ff63f3a6573"
+version = "0.15.0"
+source = "git+https://github.com/qinsoon/mmtk-core.git?rev=69788880769cfbf7a8436893656c6940522c0f22#69788880769cfbf7a8436893656c6940522c0f22"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -355,6 +355,7 @@ dependencies = [
  "libc",
  "log",
  "mmtk-macros",
+ "num-traits",
  "num_cpus",
  "spin",
  "strum",
@@ -363,8 +364,8 @@ dependencies = [
 
 [[package]]
 name = "mmtk-macros"
-version = "0.14.0"
-source = "git+https://github.com/qinsoon/mmtk-core.git?rev=273b27bed3c077c9d920feea461b6ff63f3a6573#273b27bed3c077c9d920feea461b6ff63f3a6573"
+version = "0.15.0"
+source = "git+https://github.com/qinsoon/mmtk-core.git?rev=69788880769cfbf7a8436893656c6940522c0f22#69788880769cfbf7a8436893656c6940522c0f22"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -374,12 +375,21 @@ dependencies = [
 
 [[package]]
 name = "mmtk_jikesrvm"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "lazy_static",
  "libc",
  "log",
  "mmtk",
+]
+
+[[package]]
+name = "num-traits"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "578ede34cf02f8924ab9447f50c28075b4d3e5b269972345e7e0372b38c6cdcd"
+dependencies = [
+ "autocfg",
 ]
 
 [[package]]
