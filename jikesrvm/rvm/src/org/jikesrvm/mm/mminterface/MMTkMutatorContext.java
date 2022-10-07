@@ -290,8 +290,12 @@ public abstract class MMTkMutatorContext extends MutatorContext {
             return MMTkAllocator.IMMORTAL;
         else if (origAllocator == Plan.ALLOC_LOS)
             return MMTkAllocator.LOS;
-        else if (origAllocator == Plan.ALLOC_CODE || origAllocator == Plan.ALLOC_LARGE_CODE)
+        else if (origAllocator == Plan.ALLOC_CODE)
             return MMTkAllocator.CODE;
+        else if (origAllocator == Plan.ALLOC_LARGE_CODE)
+            return MMTkAllocator.LARGE_CODE;
+        else if (origAllocator == Plan.ALLOC_NON_MOVING)
+            return MMTkAllocator.NONMOVING;
         else {
             return MMTkAllocator.IMMORTAL;
         }

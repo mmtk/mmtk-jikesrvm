@@ -7,4 +7,6 @@ public class MMTkAllocator {
     public static final int LOS = 2;
     public static final int CODE = 3;
     public static final int READONLY = 4;
+    public static final int LARGE_CODE = 5;
+    public static final int NONMOVING = 6;
 }
