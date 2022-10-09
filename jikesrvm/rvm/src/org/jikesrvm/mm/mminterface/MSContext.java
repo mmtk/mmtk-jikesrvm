@@ -14,11 +14,15 @@ package org.jikesrvm.mm.mminterface;
 
 import org.vmmagic.pragma.*;
 import org.vmmagic.unboxed.*;
+import org.jikesrvm.VM;
 
 @Uninterruptible
 public class MSContext extends MMTkMutatorContext {
-    // DEFAULT: MallocAllocator #0 (MS)
-    // CODE/READONLY: BumpAllocator #0 (ImmortalSpace)
+    // DEFAULT: MallocAllocator #0 (MallocSpace)
+    // CODE: BumpAllocator #0 (ImmortalSpace)
+    // LARGECODE: BumpAllocator #1 (ImmortalSpace)
+    // Immortal: BumpAllocator #2 (ImmortalSpace)
+    // NonMomving: BumpAllocator #3 (ImmortalSpace)
     // LOS: LargeObjectAllocator #0 (LargeObjectSpace)
 
     @Inline
@@ -31,7 +35,18 @@ public class MSContext extends MMTkMutatorContext {
     }
     @Inline
     protected final int getAllocatorIndex(int allocator) {
-        return 0;
+        if (allocator == MMTkAllocator.DEFAULT || allocator == MMTkAllocator.CODE || allocator == MMTkAllocator.LOS) {
+            return 0;
+        } else if (allocator == MMTkAllocator.LARGE_CODE) {
+            return 1;
+        } else if (allocator == MMTkAllocator.IMMORTAL) {
+            return 2;
+        } else if (allocator == MMTkAllocator.NONMOVING) {
+            return 3;
+        } else {
+            VM.sysFail("Unexpected allocator", allocator);
+            return 0;
+        }
     }
     @Inline
     protected final int getSpaceTag(int allocator) {
