@@ -14,11 +14,15 @@ package org.jikesrvm.mm.mminterface;
 
 import org.vmmagic.pragma.*;
 import org.vmmagic.unboxed.*;
+import org.jikesrvm.VM;
 
 @Uninterruptible
 public class SSContext extends MMTkMutatorContext {
     // DEFAULT: BumpAllocator #0 (CopySpace)
-    // CODE/READONLY: BumpAllocator #1 (ImmortalSpace)
+    // CODE: BumpAllocator #1 (ImmortalSpace)
+    // LARGE_CODE: BumpAllocator #2 (ImmortalSpace)
+    // Immortal: BumpAllocator #3 (ImmortalSpace)
+    // NonMoving: BumpAllocator #4 (ImmortalSpace)
     // LOS: LargeObjectAllocator #0 (LargeObjectSpace)
 
     @Inline
@@ -31,11 +35,18 @@ public class SSContext extends MMTkMutatorContext {
     }
     @Inline
     protected final int getAllocatorIndex(int allocator) {
-        if (allocator == MMTkAllocator.DEFAULT) {
+        if (allocator == MMTkAllocator.DEFAULT || allocator == MMTkAllocator.LOS) {
             return 0;
-        } else if (allocator == MMTkAllocator.IMMORTAL || allocator == MMTkAllocator.CODE || allocator == MMTkAllocator.READONLY) {
+        } else if (allocator == MMTkAllocator.CODE) {
             return 1;
+        } else if (allocator == MMTkAllocator.LARGE_CODE) {
+            return 2;
+        } else if (allocator == MMTkAllocator.IMMORTAL) {
+            return 3;
+        } else if (allocator == MMTkAllocator.NONMOVING) {
+            return 4;
         } else {
+            VM.sysFail("Unexpected allocator", allocator);
             return 0;
         }
     }
