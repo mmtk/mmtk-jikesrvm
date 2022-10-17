@@ -18,7 +18,7 @@ import org.jikesrvm.VM;
 
 @Uninterruptible
 public class MSContext extends MMTkMutatorContext {
-    // DEFAULT: MallocAllocator #0 (MallocSpace)
+    // DEFAULT: FreeListAllocator #0 (MarkSweepSpace)
     // CODE: BumpAllocator #0 (ImmortalSpace)
     // LARGECODE: BumpAllocator #1 (ImmortalSpace)
     // Immortal: BumpAllocator #2 (ImmortalSpace)
@@ -28,7 +28,7 @@ public class MSContext extends MMTkMutatorContext {
     @Inline
     protected final int getAllocatorTag(int allocator) {
         if (allocator == MMTkAllocator.DEFAULT)
-            return MMTkMutatorContext.TAG_MALLOC;
+            return MMTkMutatorContext.TAG_FREE_LIST;
         else if (allocator == MMTkAllocator.LOS)
             return MMTkMutatorContext.TAG_LARGE_OBJECT;
         else return MMTkMutatorContext.TAG_BUMP_POINTER;
@@ -51,7 +51,7 @@ public class MSContext extends MMTkMutatorContext {
     @Inline
     protected final int getSpaceTag(int allocator) {
         if (allocator == MMTkAllocator.DEFAULT)
-            return MMTkMutatorContext.MALLOC_SPACE;
+            return MMTkMutatorContext.MARK_SWEEP_SPACE;
         else if (allocator == MMTkAllocator.LOS)
             return MMTkMutatorContext.LARGE_OBJECT_SPACE;
         else return MMTkMutatorContext.IMMORTAL_SPACE;

@@ -218,11 +218,13 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         object.to_address() + TIB_OFFSET
     }
 
-    const OBJECT_REF_OFFSET_BEYOND_CELL: Option<usize> =
+    const OBJECT_REF_MAYBE_OUTSIDE_ALLOCATION: bool = true;
+    const OBJECT_REF_OFFSET_LOWER_BOUND: isize = OBJECT_REF_OFFSET;
+    const OBJECT_REF_OFFSET_UPPER_BOUND: isize =
         if MOVES_OBJECTS && ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
-            Some(OBJECT_REF_OFFSET as usize + HASHCODE_BYTES)
+            OBJECT_REF_OFFSET + HASHCODE_BYTES as isize
         } else {
-            Some(OBJECT_REF_OFFSET as usize)
+            OBJECT_REF_OFFSET
         };
 
     fn dump_object(_object: ObjectReference) {

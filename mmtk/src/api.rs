@@ -68,7 +68,7 @@ pub extern "C" fn bind_mutator(tls: VMMutatorThread) -> *mut Mutator<JikesRVM> {
 // It is fine we turn the pointer back to box, as we turned a boxed value to the raw pointer in bind_mutator()
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn destroy_mutator(mutator: *mut Mutator<JikesRVM>) {
-    memory_manager::destroy_mutator(unsafe { Box::from_raw(mutator) })
+    memory_manager::destroy_mutator(unsafe { &mut *mutator })
 }
 
 #[no_mangle]
@@ -212,10 +212,17 @@ pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectR
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
 pub extern "C" fn get_boolean_option(option: *const c_char) -> i32 {
     let option_str: &CStr = unsafe { CStr::from_ptr(option) };
-    if option_str.to_str().unwrap() == "noReferenceTypes" {
-        *SINGLETON.get_options().no_reference_types as i32
-    } else {
-        unimplemented!()
+    match option_str.to_str() {
+        Ok(s) => {
+            if s == "noReferenceTypes" {
+                *SINGLETON.get_options().no_reference_types as i32
+            } else {
+                unimplemented!()
+            }
+        }
+        Err(e) => {
+            panic!("Invalid boolean option {:?}: {:?}", option_str, e);
+        }
     }
 }
 

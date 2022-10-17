@@ -173,6 +173,41 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address immixAllocator0OptionLineData;
 
+    // 2 x FreeListAllocator
+    @Entrypoint
+    Address freeListAllocator0Tls;
+    @Entrypoint
+    Address freeListAllocator0Space;
+    @Entrypoint
+    Address freeListAllocator0Plan;
+    @Entrypoint
+    Address freeListAllocator0PlanFat;
+    @Entrypoint
+    Address freeListAllocator0AvailableBlocks;
+    @Entrypoint
+    Address freeListAllocator0AvailableBlocksStress;
+    @Entrypoint
+    Address freeListAllocator0UnsweptBlocks;
+    @Entrypoint
+    Address freeListAllocator0ConsumedBlocks;
+
+    @Entrypoint
+    Address freeListAllocator1Tls;
+    @Entrypoint
+    Address freeListAllocator1Space;
+    @Entrypoint
+    Address freeListAllocator1Plan;
+    @Entrypoint
+    Address freeListAllocator1PlanFat;
+    @Entrypoint
+    Address freeListAllocator1AvailableBlocks;
+    @Entrypoint
+    Address freeListAllocator1AvailableBlocksStress;
+    @Entrypoint
+    Address freeListAllocator1UnsweptBlocks;
+    @Entrypoint
+    Address freeListAllocator1ConsumedBlocks;
+
     // 1 x MarkCompactAllocator (same layout as bump allocator)
     @Entrypoint
     Address markCompactAllocator0Tls;
@@ -228,6 +263,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     static final int MAX_LARGE_OBJECT_ALLOCATORS = 2;
     static final int MAX_MALLOC_ALLOCATORS = 1;
     static final int MAX_IMMIX_ALLOCATORS = 1;
+    static final int MAX_FREE_LIST_ALLOCATORS = 2;
     static final int MAX_MARK_COMPACT_ALLOCATORS = 1;
     // Bump allocator size
     static final int BUMP_ALLOCATOR_SIZE = 7 * BYTES_IN_WORD;
@@ -245,6 +281,8 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     static final int MALLOC_ALLOCATOR_SIZE = 4 * BYTES_IN_WORD;
     // Immix allocator size
     static final int IMMIX_ALLOCATOR_SIZE = 13 * BYTES_IN_WORD;
+    // Free list allocator size
+    static final int FREE_LIST_ALLOCATOR_SIZE = 8 * BYTES_IN_WORD;
     // Mark compact allocator size (the same as bump allocator)
     static final int MARK_COMPACT_ALLOCATOR_SIZE = BUMP_ALLOCATOR_SIZE;
 
@@ -256,7 +294,10 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     static final Offset MUTATOR_DATA_END_OFFSET = EntrypointHelper.getField(MMTkMutatorContext.class, "__mutatorDataEnd", Address.class).getOffset();
 
     // The size of this mutator section
-    static final int MUTATOR_SIZE = MUTATOR_DATA_END_OFFSET.toInt() - MUTATOR_BASE_OFFSET.toInt();
+    public static final int MUTATOR_SIZE = MUTATOR_DATA_END_OFFSET.toInt() - MUTATOR_BASE_OFFSET.toInt();
+
+    // The following tags do not need to match anything in MMTk core. We don't really call MMTk core to get an allocator selector.
+    // Instead we hard code the mapping for each plan.
 
     // tag for allocator type
     public static final int TAG_BUMP_POINTER = 0;
@@ -264,12 +305,14 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     public static final int TAG_MALLOC = 2;
     public static final int TAG_IMMIX = 3;
     public static final int TAG_MARK_COMPACT = 4;
+    public static final int TAG_FREE_LIST = 5;
 
     // tag for space type
     public static final int IMMORTAL_SPACE = 0;
     public static final int COPY_SPACE = 1;
     public static final int LARGE_OBJECT_SPACE = 2;
     public static final int MALLOC_SPACE = 3;
+    public static final int MARK_SWEEP_SPACE = 4;
 
     // The implementation of these methods are per plan, and they should match the allocatorMapping and spaceMapping in MMTk core for a plan.
     // The reason we need to reimplement them in the fastpath is that we need the compiler to see the code and be able to do constant propagation
@@ -313,7 +356,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
 
         if (ty == TAG_BUMP_POINTER) {
             return bumpAllocatorFastPath(bytes, align, offset, allocator, index);
-        } else if (ty == TAG_LARGE_OBJECT || ty == TAG_MALLOC) {
+        } else if (ty == TAG_LARGE_OBJECT || ty == TAG_MALLOC || ty == TAG_FREE_LIST) {
             // No fastpath for large object allocator. We just use the general slowpath.
             return slowPath(bytes, align, offset, allocator);
         } else {
@@ -398,5 +441,10 @@ public abstract class MMTkMutatorContext extends MutatorContext {
 
     public void collectionPhase(short phaseId, boolean primary) {
         VM.sysFail("unreachable");
+    }
+
+    public void deinitMutator() {
+        Address handle = Magic.objectAsAddress(this).plus(MUTATOR_BASE_OFFSET);
+        sysCall.sysDestroyMutator(handle);
     }
 }
