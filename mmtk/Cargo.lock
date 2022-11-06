@@ -340,7 +340,10 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.15.0"
+<<<<<<< Updated upstream
 source = "git+https://github.com/mmtk/mmtk-core.git?rev=53b6d57c2a96f6064e01e245ea0be05dd673cfad#53b6d57c2a96f6064e01e245ea0be05dd673cfad"
+=======
+>>>>>>> Stashed changes
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -365,7 +368,10 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.15.0"
+<<<<<<< Updated upstream
 source = "git+https://github.com/mmtk/mmtk-core.git?rev=53b6d57c2a96f6064e01e245ea0be05dd673cfad#53b6d57c2a96f6064e01e245ea0be05dd673cfad"
+=======
+>>>>>>> Stashed changes
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
