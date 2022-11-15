@@ -227,7 +227,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 
     #[inline(always)]
     fn address_to_ref(addr: Address) -> ObjectReference {
-        ObjectReference::from_raw_address(addr.shift::<u8>(-TIB_OFFSET))
+        ObjectReference::from_raw_address(addr + (-TIB_OFFSET))
     }
 
     fn dump_object(_object: ObjectReference) {
