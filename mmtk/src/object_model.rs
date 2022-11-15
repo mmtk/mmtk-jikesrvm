@@ -156,7 +156,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
             }
         }
 
-        unsafe { ObjectReference::from_raw_address(res + OBJECT_REF_OFFSET) }
+        ObjectReference::from_raw_address(res + OBJECT_REF_OFFSET)
     }
 
     fn get_current_size(object: ObjectReference) -> usize {
@@ -197,7 +197,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
     }
 
     #[inline(always)]
-    fn object_start_ref(object: ObjectReference) -> Address {
+    fn ref_to_object_start(object: ObjectReference) -> Address {
         trace!("ObjectModel.object_start_ref");
         // Easier to read if we do not collapse if here.
         #[allow(clippy::collapsible_if)]
@@ -207,7 +207,8 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
                     (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK
                 };
                 if hash_state == HASH_STATE_HASHED_AND_MOVED {
-                    return object.to_raw_address() + (-(OBJECT_REF_OFFSET + HASHCODE_BYTES as isize));
+                    return object.to_raw_address()
+                        + (-(OBJECT_REF_OFFSET + HASHCODE_BYTES as isize));
                 }
             }
         }
@@ -215,17 +216,19 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
     }
 
     #[inline(always)]
-    fn get_object_from_start_address(mut start: Address) -> ObjectReference {
-        use mmtk::vm::VMBinding;
-        while unsafe { start.load::<usize>() } == JikesRVM::ALIGNMENT_VALUE {
-            start += BYTES_IN_WORD;
-        }
-        ObjectReference::from_raw_address(start + OBJECT_REF_OFFSET)
+    fn ref_to_header(object: ObjectReference) -> Address {
+        object.to_raw_address()
     }
 
-    // fn ref_to_address(object: ObjectReference) -> Address {
-    //     object.to_raw_address() + TIB_OFFSET
-    // }
+    #[inline(always)]
+    fn ref_to_address(object: ObjectReference) -> Address {
+        object.to_raw_address() + TIB_OFFSET
+    }
+
+    #[inline(always)]
+    fn address_to_ref(addr: Address) -> ObjectReference {
+        ObjectReference::from_raw_address(addr.shift::<u8>(-TIB_OFFSET))
+    }
 
     fn dump_object(_object: ObjectReference) {
         unimplemented!()
@@ -251,13 +254,7 @@ impl VMObjectModel {
         let offset = Self::get_offset_for_alignment_class(from, rvm_type);
         let region = copy_context.alloc_copy(from, bytes, align, offset, copy);
 
-        let to_obj = Self::move_object(
-            region,
-            from,
-            ObjectReference::NULL,
-            bytes,
-            rvm_type,
-        );
+        let to_obj = Self::move_object(region, from, ObjectReference::NULL, bytes, rvm_type);
         copy_context.post_copy(to_obj, bytes, copy);
         to_obj
     }
@@ -276,13 +273,7 @@ impl VMObjectModel {
         let offset = Self::get_offset_for_alignment_array(from, rvm_type);
         let region = copy_context.alloc_copy(from, bytes, align, offset, copy);
 
-        let to_obj = Self::move_object(
-            region,
-            from,
-            ObjectReference::NULL,
-            bytes,
-            rvm_type,
-        );
+        let to_obj = Self::move_object(region, from, ObjectReference::NULL, bytes, rvm_type);
         copy_context.post_copy(to_obj, bytes, copy);
         // XXX: Do not sync icache/dcache because we do not support PowerPC
         to_obj
@@ -304,8 +295,9 @@ impl VMObjectModel {
         trace!("bytes_required_when_copied_class: instance size={}", size);
 
         if ADDRESS_BASED_HASHING {
-            let hash_state =
-                unsafe { (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK };
+            let hash_state = unsafe {
+                (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK
+            };
             if hash_state != HASH_STATE_UNHASHED {
                 size += HASHCODE_BYTES;
             }
@@ -331,8 +323,9 @@ impl VMObjectModel {
         };
 
         if ADDRESS_BASED_HASHING {
-            let hash_state =
-                unsafe { (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK };
+            let hash_state = unsafe {
+                (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK
+            };
             if hash_state != HASH_STATE_UNHASHED {
                 size += HASHCODE_BYTES;
             }
@@ -427,8 +420,8 @@ impl VMObjectModel {
             Self::aligned_32_copy(to_address, from_address, copy_bytes);
         }
 
-        if to_obj.to_raw_address().is_zero() {
-            to_obj = unsafe { ObjectReference::from_raw_address(to_address + obj_ref_offset) };
+        if to_obj.is_null() {
+            to_obj = ObjectReference::from_raw_address(to_address + obj_ref_offset);
         } else {
             debug_assert!(to_obj.to_raw_address() == to_address + obj_ref_offset);
         }
@@ -500,8 +493,9 @@ impl VMObjectModel {
         let mut offset = OBJECT_REF_OFFSET;
 
         if ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
-            let hash_state =
-                unsafe { (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK };
+            let hash_state = unsafe {
+                (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK
+            };
             if hash_state != HASH_STATE_UNHASHED {
                 offset += HASHCODE_BYTES as isize;
             }
@@ -516,13 +510,33 @@ impl VMObjectModel {
         let mut offset = SCALAR_HEADER_SIZE as isize;
 
         if ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
-            let hash_state =
-                unsafe { (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK };
+            let hash_state = unsafe {
+                (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK
+            };
             if hash_state != HASH_STATE_UNHASHED {
                 offset += HASHCODE_BYTES as isize;
             }
         }
 
         offset
+    }
+
+    #[inline(always)]
+    fn object_start_ref(object: ObjectReference) -> Address {
+        trace!("ObjectModel.object_start_ref");
+        // Easier to read if we do not collapse if here.
+        #[allow(clippy::collapsible_if)]
+        if MOVES_OBJECTS {
+            if ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
+                let hash_state = unsafe {
+                    (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK
+                };
+                if hash_state == HASH_STATE_HASHED_AND_MOVED {
+                    return object.to_raw_address()
+                        + (-(OBJECT_REF_OFFSET + HASHCODE_BYTES as isize));
+                }
+            }
+        }
+        object.to_raw_address() + (-OBJECT_REF_OFFSET)
     }
 }

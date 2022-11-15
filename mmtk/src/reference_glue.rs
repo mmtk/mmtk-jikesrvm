@@ -20,7 +20,9 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
 
     fn get_referent(object: ObjectReference) -> ObjectReference {
         debug_assert!(!object.is_null());
-        unsafe { (object.to_raw_address() + REFERENCE_REFERENT_FIELD_OFFSET).load::<ObjectReference>() }
+        unsafe {
+            (object.to_raw_address() + REFERENCE_REFERENT_FIELD_OFFSET).load::<ObjectReference>()
+        }
     }
 
     fn enqueue_references(references: &[ObjectReference], tls: VMWorkerThread) {
