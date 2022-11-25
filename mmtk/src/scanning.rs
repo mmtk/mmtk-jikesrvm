@@ -106,7 +106,7 @@ impl Scanning<JikesRVM> for VMScanning {
             // object is a REFARRAY
             let length = VMObjectModel::get_array_length(object);
             for i in 0..length {
-                edge_visitor.visit_edge(object.to_address() + (i << LOG_BYTES_IN_ADDRESS));
+                edge_visitor.visit_edge(object.to_raw_address() + (i << LOG_BYTES_IN_ADDRESS));
             }
         } else {
             let len_ptr: usize = elt0_ptr - size_of::<isize>();
@@ -114,7 +114,7 @@ impl Scanning<JikesRVM> for VMScanning {
             let offsets = unsafe { slice::from_raw_parts(elt0_ptr as *const isize, len as usize) };
 
             for offset in offsets.iter() {
-                edge_visitor.visit_edge(object.to_address() + *offset);
+                edge_visitor.visit_edge(object.to_raw_address() + *offset);
             }
         }
     }
