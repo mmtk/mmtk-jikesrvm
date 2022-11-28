@@ -14,13 +14,15 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
 
     fn set_referent(reff: ObjectReference, referent: ObjectReference) {
         unsafe {
-            (reff.to_address() + REFERENCE_REFERENT_FIELD_OFFSET).store(referent);
+            (reff.to_raw_address() + REFERENCE_REFERENT_FIELD_OFFSET).store(referent);
         }
     }
 
     fn get_referent(object: ObjectReference) -> ObjectReference {
         debug_assert!(!object.is_null());
-        unsafe { (object.to_address() + REFERENCE_REFERENT_FIELD_OFFSET).load::<ObjectReference>() }
+        unsafe {
+            (object.to_raw_address() + REFERENCE_REFERENT_FIELD_OFFSET).load::<ObjectReference>()
+        }
     }
 
     fn enqueue_references(references: &[ObjectReference], tls: VMWorkerThread) {
