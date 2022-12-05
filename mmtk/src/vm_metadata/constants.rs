@@ -27,8 +27,7 @@ pub(crate) const FORWARDING_BITS_METADATA_SPEC: VMLocalForwardingBitsSpec =
 
 /// PolicySpecific mark bit metadata spec
 /// 1 bit per object
-pub(crate) const MARKING_METADATA_SPEC: VMLocalMarkBitSpec =
-    VMLocalMarkBitSpec::in_header(FORWARDING_BITS_OFFSET);
+pub(crate) const MARKING_METADATA_SPEC: VMLocalMarkBitSpec = VMLocalMarkBitSpec::side_first();
 
 /// PolicySpecific mark-and-nursery bits metadata spec
 /// 2-bits per object

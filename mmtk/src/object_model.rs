@@ -225,6 +225,8 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         object.to_raw_address() + TIB_OFFSET
     }
 
+    const OBJECT_REF_OFFSET_LOWER_BOUND: isize = OBJECT_REF_OFFSET;
+
     #[inline(always)]
     fn address_to_ref(addr: Address) -> ObjectReference {
         ObjectReference::from_raw_address(addr + (-TIB_OFFSET))
