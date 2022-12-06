@@ -1,3 +1,10 @@
+0.16.0 (2022-12-06)
+===
+
+* Support MMTk's native mark sweep plan.
+* Use MMTk's large code and non moving semantics.
+* Update to mmtk-core 0.16.0.
+
 0.15.0 (2022-09-20)
 ===
 
