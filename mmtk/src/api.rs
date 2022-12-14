@@ -35,7 +35,7 @@ pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
         use mmtk::util::options::PlanSelector;
         // set heap size
         let mut builder = BUILDER.lock().unwrap();
-        let success = builder.options.heap_size.set(heap_size);
+        let success = builder.options.gc_trigger.set(mmtk::util::options::GCTriggerSelector::FixedHeapSize(heap_size));
         assert!(success, "Failed to set heap size to {}", heap_size);
 
         // set plan based on features.
