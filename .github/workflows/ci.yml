@@ -7,7 +7,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     steps:
       # Checkout repos and submodules
       - uses: actions/checkout@v2
@@ -38,7 +38,7 @@ jobs:
         run: cargo msrv --path mmtk -- cargo check --features semispace --target i686-unknown-linux-gnu
 
   test-weak-ref:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     steps:
       # Checkout repos
       - uses: actions/checkout@v2
