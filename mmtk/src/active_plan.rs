@@ -1,16 +1,17 @@
 use collection::VMCollection;
 use entrypoint::*;
 use mmtk::util::opaque_pointer::*;
-use mmtk::util::{Address, SynchronizedCounter};
+use mmtk::util::Address;
 use mmtk::vm::ActivePlan;
 use mmtk::Mutator;
 use mmtk::Plan;
 use std::mem;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use JikesRVM;
 use JTOC_BASE;
 use SINGLETON;
 
-static MUTATOR_COUNTER: SynchronizedCounter = SynchronizedCounter::new(0);
+static MUTATOR_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 #[derive(Default)]
 pub struct VMActivePlan {}
@@ -48,14 +49,14 @@ impl ActivePlan<JikesRVM> for VMActivePlan {
     }
 
     fn reset_mutator_iterator() {
-        MUTATOR_COUNTER.reset();
+        MUTATOR_COUNTER.store(0, Ordering::Relaxed);
     }
 
     fn get_next_mutator() -> Option<&'static mut Mutator<JikesRVM>> {
         // We don't need this in the loop for STW-GC
         let num_threads = unsafe { (JTOC_BASE + NUM_THREADS_FIELD_OFFSET).load::<usize>() };
         loop {
-            let idx = MUTATOR_COUNTER.increment();
+            let idx = MUTATOR_COUNTER.fetch_add(1, Ordering::Relaxed);
             if idx >= num_threads {
                 return None;
             } else {
