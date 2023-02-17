@@ -2,7 +2,7 @@
 name = "mmtk_jikesrvm"
 version = "0.16.0"
 authors = [" <>"]
-rust-version = "1.59.0"
+rust-version = "1.61.0"
 
 [lib]
 name = "mmtk_jikesrvm"
