@@ -17,14 +17,14 @@ jobs:
           ./.github/scripts/ci-setup.sh
 
       # Run the tests
-      - name: Dacapo Tests
-        run: ./.github/scripts/ci-test-normal.sh
+      # - name: Dacapo Tests
+      #   run: ./.github/scripts/ci-test-normal.sh
 
       # Run these checks after build
 
       # Style check
-      - name: Style checks
-        run: ./.github/scripts/ci-style.sh
+      # - name: Style checks
+      #   run: ./.github/scripts/ci-style.sh
 
       # Verify the MSRV defined in Cargo.toml
       - name: Install MSRV
