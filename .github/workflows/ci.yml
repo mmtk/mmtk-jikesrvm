@@ -23,21 +23,20 @@ jobs:
       # Run these checks after build
 
       # Style check
-      # - name: Style checks
-      #   run: ./.github/scripts/ci-style.sh
+      - name: Style checks
+        run: ./.github/scripts/ci-style.sh
 
       # Verify the MSRV defined in Cargo.toml
       - name: Install MSRV
         run: cargo install cargo-msrv
+      # Run cargo-msrv (force using i686 toolchain)
       - name: Verify MSRV
         id: verify-msrv
-        run: |
-          mv .cargo/config.toml .cargo/config.toml.bak
-          cargo msrv --log-level debug --log-target stdout --path mmtk --target i686-unknown-linux-gnu verify -- cargo check -j 1 --features semispace --target i686-unknown-linux-gnu --verbose
+        run: cargo msrv --path mmtk --target i686-unknown-linux-gnu verify -- cargo check --features semispace --target i686-unknown-linux-gnu
       # If the previous step fails, find MSRV
       - name: Find MSRV
         if: ${{ steps.verify-msrv.outcome == 'failure' }}
-        run: cargo msrv --path mmtk -- cargo check --features semispace
+        run: cargo msrv --path mmtk --target i686-unknown-linux-gnu -- cargo check --features semispace --target i686-unknown-linux-gnu
 
   test-weak-ref:
     runs-on: ubuntu-22.04
