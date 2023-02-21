@@ -31,7 +31,7 @@ jobs:
         run: cargo install cargo-msrv
       - name: Verify MSRV
         id: verify-msrv
-        run: cargo msrv --log-level debug --log-target stdout --path mmtk verify -- cargo check --features semispace --verbose
+        run: cargo msrv --log-level debug --log-target stdout --path mmtk verify -- cargo check -j 1 --features semispace --verbose
       # If the previous step fails, find MSRV
       - name: Find MSRV
         if: ${{ steps.verify-msrv.outcome == 'failure' }}
