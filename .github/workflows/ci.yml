@@ -29,13 +29,14 @@ jobs:
       # Verify the MSRV defined in Cargo.toml
       - name: Install MSRV
         run: cargo install cargo-msrv
+      # Run cargo-msrv (force using i686 toolchain)
       - name: Verify MSRV
         id: verify-msrv
-        run: cargo msrv --path mmtk verify -- cargo check --features semispace --target i686-unknown-linux-gnu
+        run: cargo msrv --path mmtk --target i686-unknown-linux-gnu verify -- cargo check --features semispace --target i686-unknown-linux-gnu
       # If the previous step fails, find MSRV
       - name: Find MSRV
         if: ${{ steps.verify-msrv.outcome == 'failure' }}
-        run: cargo msrv --path mmtk -- cargo check --features semispace --target i686-unknown-linux-gnu
+        run: cargo msrv --path mmtk --target i686-unknown-linux-gnu -- cargo check --features semispace --target i686-unknown-linux-gnu
 
   test-weak-ref:
     runs-on: ubuntu-22.04

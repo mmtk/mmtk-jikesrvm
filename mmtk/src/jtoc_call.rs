@@ -29,6 +29,10 @@ macro_rules! jikesrvm_call {
         // ret is mut, as asm! will write to it.
         let mut ret: usize;
         // Cast $tls from opaque pointer to a primitive type so we can use it in asm!
+        // We suppress the lint because we don't know the concrete type of $tls the macro user
+        // passed to the macro.  It can be just a `usize`, or something else that can be transmuted
+        // into `usize`.
+        #[allow(clippy::useless_transmute)]
         let rvm_thread: usize = std::mem::transmute::<_, usize>($tls);
 
         $(
