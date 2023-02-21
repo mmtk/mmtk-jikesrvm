@@ -33,7 +33,7 @@ jobs:
         id: verify-msrv
         run: |
           mv .cargo/config.toml .cargo/config.toml.bak
-          cargo msrv --log-level debug --log-target stdout --path mmtk verify -- cargo check -j 1 --features semispace --verbose
+          cargo msrv --log-level debug --log-target stdout --path mmtk --target i686-unknown-linux-gnu verify -- cargo check -j 1 --features semispace --target i686-unknown-linux-gnu --verbose
       # If the previous step fails, find MSRV
       - name: Find MSRV
         if: ${{ steps.verify-msrv.outcome == 'failure' }}
