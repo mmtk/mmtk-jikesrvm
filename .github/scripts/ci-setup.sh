@@ -11,7 +11,7 @@ rustup override set $RUSTUP_TOOLCHAIN
 
 # Download dacapo
 mkdir -p $DACAPO_PATH
-wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar -O $DACAPO_PATH/dacapo-2006-10-MR2.jar
+# wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/dacapo-2006-10-MR2.jar -O $DACAPO_PATH/dacapo-2006-10-MR2.jar
 
 # Install dependencies for JikesRVM
 sudo apt-get update -y
