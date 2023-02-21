@@ -16,4 +16,3 @@ wget https://downloads.sourceforge.net/project/dacapobench/archive/2006-10-MR2/d
 # Install dependencies for JikesRVM
 sudo apt-get update -y
 sudo apt-get install build-essential gcc-multilib gettext bison -y
-sudo apt-get install build-essential:i386 gcc-multilib:i386 gettext:i386 bison:i386 -y

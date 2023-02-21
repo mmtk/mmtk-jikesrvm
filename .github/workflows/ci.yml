@@ -31,11 +31,11 @@ jobs:
         run: cargo install cargo-msrv
       - name: Verify MSRV
         id: verify-msrv
-        run: cargo msrv --log-level debug --log-target stdout --target i686-unknown-linux-gnu --path mmtk verify -- cargo check --features semispace --target i686-unknown-linux-gnu --verbose
+        run: cargo msrv --log-level debug --log-target stdout --path mmtk verify -- cargo check --features semispace --verbose
       # If the previous step fails, find MSRV
       - name: Find MSRV
         if: ${{ steps.verify-msrv.outcome == 'failure' }}
-        run: cargo msrv --path mmtk --target i686-unknown-linux-gnu -- cargo check --features semispace --target i686-unknown-linux-gnu
+        run: cargo msrv --path mmtk -- cargo check --features semispace
 
   test-weak-ref:
     runs-on: ubuntu-22.04
