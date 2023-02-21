@@ -17,8 +17,8 @@ jobs:
           ./.github/scripts/ci-setup.sh
 
       # Run the tests
-      # - name: Dacapo Tests
-      #   run: ./.github/scripts/ci-test-normal.sh
+      - name: Dacapo Tests
+        run: ./.github/scripts/ci-test-normal.sh
 
       # Run these checks after build
 
