@@ -1,3 +1,10 @@
+0.17.0 (2023-02-17)
+===
+
+* Upgrade Rust toolchain to 1.66.1 and MSRV to 1.61.0.
+* Use `AtomicUsize` for the mutator counter.
+* Update to mmtk-core 0.17.0.
+
 0.16.0 (2022-12-06)
 ===
 
