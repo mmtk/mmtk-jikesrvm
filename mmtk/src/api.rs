@@ -56,6 +56,10 @@ pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
         };
         let success = builder.options.plan.set(plan);
         assert!(success, "Failed to set plan to {:?}", plan);
+
+        // set vm space
+        builder.options.vm_space_start.set(unsafe { Address::from_usize(0x6000_0000) });
+        builder.options.vm_space_size.set(0x800_0000);
     }
 
     // Make sure that we haven't initialized MMTk (by accident) yet
