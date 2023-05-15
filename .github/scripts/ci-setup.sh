@@ -19,4 +19,6 @@ sudo apt-get install build-essential gcc-multilib gettext bison -y
 
 sudo dpkg --add-architecture i386
 sudo apt-get update
+sudo apt-get install libgcc-s1:i386
+sudo apt-get install libc6-dev-i386
 sudo apt-get install zlib1g-dev:i386
