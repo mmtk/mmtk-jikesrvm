@@ -10,18 +10,22 @@ use JikesRVM;
 use JTOC_BASE;
 use SINGLETON;
 
-use std::marker::PhantomData;
+use std::sync::{Mutex, MutexGuard};
+
+lazy_static! {
+    static ref MUTATOR_LOCK: Mutex<()> = Mutex::new(());
+}
 
 struct JikesRVMMutatorIterator<'a> {
+    _guard: MutexGuard<'a, ()>,
     counter: usize,
-    _p: PhantomData<&'a ()>,
 }
 
 impl<'a> JikesRVMMutatorIterator<'a> {
-    fn new() -> Self {
+    fn new(guard: MutexGuard<'a, ()>) -> Self {
         Self {
+            _guard: guard,
             counter: 0,
-            _p: PhantomData,
         }
     }
 }
@@ -33,8 +37,8 @@ impl<'a> Iterator for JikesRVMMutatorIterator<'a> {
         // We don't need this in the loop for STW-GC
         let num_threads = unsafe { (JTOC_BASE + NUM_THREADS_FIELD_OFFSET).load::<usize>() };
         loop {
-            self.counter += 1;
             let idx = self.counter;
+            self.counter += 1;
             if idx >= num_threads {
                 return None;
             } else {
@@ -79,6 +83,7 @@ impl ActivePlan<JikesRVM> for VMActivePlan {
     }
 
     fn mutators<'a>() -> Box<dyn Iterator<Item = &'a mut Mutator<JikesRVM>> + 'a> {
-        Box::new(JikesRVMMutatorIterator::new())
+        let guard = MUTATOR_LOCK.lock().unwrap();
+        Box::new(JikesRVMMutatorIterator::new(guard))
     }
 }
