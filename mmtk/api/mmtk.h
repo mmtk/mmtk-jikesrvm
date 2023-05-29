@@ -28,7 +28,7 @@ extern void* alloc_slow_largeobject(MMTk_Mutator mutator, size_t size,
     size_t align, size_t offset, int allocator);
 
 extern void post_alloc(MMTk_Mutator mutator, void* refer, void* type_refer,
-    int bytes, int allocator);
+    size_t bytes, int allocator);
 
 extern bool is_live_object(void* obj);
 extern bool is_mapped_object(void* obj);
