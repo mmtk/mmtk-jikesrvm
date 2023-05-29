@@ -91,7 +91,7 @@ pub extern "C" fn alloc(
     mutator: *mut Mutator<JikesRVM>,
     size: usize,
     align: usize,
-    offset: isize,
+    offset: usize,
     allocator: AllocationSemantics,
 ) -> Address {
     memory_manager::alloc::<JikesRVM>(unsafe { &mut *mutator }, size, align, offset, allocator)
@@ -298,7 +298,7 @@ pub extern "C" fn alloc_slow_bump_monotone_immortal(
     allocator: *mut c_void,
     size: usize,
     align: usize,
-    offset: isize,
+    offset: usize,
 ) -> Address {
     unsafe { &mut *(allocator as *mut BumpAllocator<JikesRVM>) }.alloc_slow(size, align, offset)
 }
@@ -312,7 +312,7 @@ pub extern "C" fn alloc_slow_bump_monotone_copy(
     allocator: *mut c_void,
     size: usize,
     align: usize,
-    offset: isize,
+    offset: usize,
 ) -> Address {
     unsafe { &mut *(allocator as *mut BumpAllocator<JikesRVM>) }.alloc_slow(size, align, offset)
 }
@@ -322,7 +322,7 @@ pub extern "C" fn alloc_slow_bump_monotone_copy(
     _allocator: *mut c_void,
     _size: usize,
     _align: usize,
-    _offset: isize,
+    _offset: usize,
 ) -> Address {
     unimplemented!()
 }
@@ -332,7 +332,7 @@ pub extern "C" fn alloc_slow_largeobject(
     allocator: *mut c_void,
     size: usize,
     align: usize,
-    offset: isize,
+    offset: usize,
 ) -> Address {
     unsafe { &mut *(allocator as *mut LargeObjectAllocator<JikesRVM>) }
         .alloc_slow(size, align, offset)

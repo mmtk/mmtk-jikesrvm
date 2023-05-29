@@ -69,7 +69,7 @@ impl VMObjectModel {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn get_align_offset_when_copied(object: ObjectReference) -> isize {
+    pub(crate) fn get_align_offset_when_copied(object: ObjectReference) -> usize {
         trace!("ObjectModel.get_align_offset_when_copied");
         let rvm_type = Self::load_rvm_type(object);
 
@@ -182,7 +182,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         }
     }
 
-    fn get_align_offset_when_copied(object: ObjectReference) -> isize {
+    fn get_align_offset_when_copied(object: ObjectReference) -> usize {
         let rvm_type = Self::load_rvm_type(object);
 
         if Self::is_class(rvm_type) {
@@ -490,16 +490,17 @@ impl VMObjectModel {
     }
 
     #[inline(always)]
-    fn get_offset_for_alignment_array(object: ObjectReference, _rvm_type: Address) -> isize {
+    fn get_offset_for_alignment_array(object: ObjectReference, _rvm_type: Address) -> usize {
         trace!("VMObjectModel.get_offset_for_alignment_array");
-        let mut offset = OBJECT_REF_OFFSET;
+        debug_assert!(OBJECT_REF_OFFSET >= 0);
+        let mut offset = OBJECT_REF_OFFSET as usize;
 
         if ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
             let hash_state = unsafe {
                 (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK
             };
             if hash_state != HASH_STATE_UNHASHED {
-                offset += HASHCODE_BYTES as isize;
+                offset += HASHCODE_BYTES;
             }
         }
 
@@ -507,16 +508,16 @@ impl VMObjectModel {
     }
 
     #[inline(always)]
-    fn get_offset_for_alignment_class(object: ObjectReference, _rvm_type: Address) -> isize {
+    fn get_offset_for_alignment_class(object: ObjectReference, _rvm_type: Address) -> usize {
         trace!("VMObjectModel.get_offset_for_alignment_class");
-        let mut offset = SCALAR_HEADER_SIZE as isize;
+        let mut offset = SCALAR_HEADER_SIZE;
 
         if ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
             let hash_state = unsafe {
                 (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK
             };
             if hash_state != HASH_STATE_UNHASHED {
-                offset += HASHCODE_BYTES as isize;
+                offset += HASHCODE_BYTES
             }
         }
 
