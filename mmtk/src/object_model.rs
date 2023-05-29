@@ -492,7 +492,6 @@ impl VMObjectModel {
     #[inline(always)]
     fn get_offset_for_alignment_array(object: ObjectReference, _rvm_type: Address) -> usize {
         trace!("VMObjectModel.get_offset_for_alignment_array");
-        debug_assert!(OBJECT_REF_OFFSET >= 0);
         let mut offset = OBJECT_REF_OFFSET as usize;
 
         if ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
