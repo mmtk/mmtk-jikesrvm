@@ -60,7 +60,7 @@ impl Scanning<JikesRVM> for VMScanning {
     const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
     fn scan_roots_in_all_mutator_threads(
         _tls: VMWorkerThread,
-        _factory: impl RootsWorkFactory<JikesRVMEdge>
+        _factory: impl RootsWorkFactory<JikesRVMEdge>,
     ) {
         unreachable!()
     }
