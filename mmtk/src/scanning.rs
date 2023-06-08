@@ -58,10 +58,13 @@ extern "C" fn report_edges_and_renew_buffer<F: RootsWorkFactory<JikesRVMEdge>>(
 
 impl Scanning<JikesRVM> for VMScanning {
     const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
-    fn scan_thread_roots(_tls: VMWorkerThread, _factory: impl RootsWorkFactory<JikesRVMEdge>) {
+    fn scan_roots_in_all_mutator_threads(
+        _tls: VMWorkerThread,
+        _factory: impl RootsWorkFactory<JikesRVMEdge>,
+    ) {
         unreachable!()
     }
-    fn scan_thread_root(
+    fn scan_roots_in_mutator_thread(
         tls: VMWorkerThread,
         mutator: &'static mut Mutator<JikesRVM>,
         mut factory: impl RootsWorkFactory<JikesRVMEdge>,
