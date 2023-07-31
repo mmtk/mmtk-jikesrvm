@@ -46,7 +46,7 @@ pub fn scan_boot_image(
         trace!("cursor={:x}", cursor);
 
         ROOTS.store(0, Ordering::Relaxed);
-        ROOTS.store(0, Ordering::Relaxed);
+        REFS.store(0, Ordering::Relaxed);
 
         let mut edges = vec![];
         while cursor < map_end {
