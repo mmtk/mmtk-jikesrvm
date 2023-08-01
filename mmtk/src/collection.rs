@@ -2,9 +2,9 @@ use entrypoint::*;
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::Address;
+use mmtk::vm::ActivePlan;
 use mmtk::vm::{Collection, GCThreadContext};
 use mmtk::Mutator;
-use mmtk::MutatorContext;
 use JikesRVM;
 use JTOC_BASE;
 
@@ -18,12 +18,26 @@ pub struct VMCollection {}
 // FIXME: Shouldn't these all be unsafe because of tls?
 impl Collection<JikesRVM> for VMCollection {
     #[inline(always)]
-    fn stop_all_mutators<F>(tls: VMWorkerThread, _mutator_visitor: F)
+    fn stop_all_mutators<F>(tls: VMWorkerThread, mut mutator_visitor: F)
     where
         F: FnMut(&'static mut Mutator<JikesRVM>),
     {
         unsafe {
             jtoc_call!(BLOCK_ALL_MUTATORS_FOR_GC_METHOD_OFFSET, tls);
+        }
+
+        for mutator in crate::active_plan::VMActivePlan::mutators() {
+            // Prepare mutator
+            unsafe {
+                jtoc_call!(
+                    PREPARE_MUTATOR_METHOD_OFFSET,
+                    // convert to primitive types, so they can be used in asm!
+                    std::mem::transmute::<_, usize>(tls),
+                    std::mem::transmute::<_, usize>(mutator.mutator_tls)
+                );
+            }
+            // Tell MMTk the thread is ready for stack scanning
+            mutator_visitor(mutator);
         }
     }
 
@@ -52,21 +66,6 @@ impl Collection<JikesRVM> for VMCollection {
                 tls,
                 ctx_ptr,
                 is_controller
-            );
-        }
-    }
-
-    fn prepare_mutator<T: MutatorContext<JikesRVM>>(
-        tls_worker: VMWorkerThread,
-        tls_mutator: VMMutatorThread,
-        _m: &T,
-    ) {
-        unsafe {
-            jtoc_call!(
-                PREPARE_MUTATOR_METHOD_OFFSET,
-                // convert to primitive types, so they can be used in asm!
-                std::mem::transmute::<_, usize>(tls_worker),
-                std::mem::transmute::<_, usize>(tls_mutator)
             );
         }
     }
