@@ -399,7 +399,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.18.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=47ee126f91f25b911498b3d49c35f672f5e935f9#47ee126f91f25b911498b3d49c35f672f5e935f9"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=f780a11d4e9df58e06e3eb666c3fd7f41e0a9a41#f780a11d4e9df58e06e3eb666c3fd7f41e0a9a41"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -430,7 +430,7 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.18.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=47ee126f91f25b911498b3d49c35f672f5e935f9#47ee126f91f25b911498b3d49c35f672f5e935f9"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=f780a11d4e9df58e06e3eb666c3fd7f41e0a9a41#f780a11d4e9df58e06e3eb666c3fd7f41e0a9a41"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -737,9 +737,9 @@ dependencies = [
 
 [[package]]
 name = "sysinfo"
-version = "0.29.7"
+version = "0.29.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "165d6d8539689e3d3bc8b98ac59541e1f21c7de7c85d60dc80e43ae0ed2113db"
+checksum = "6b949f01f9c23823744b71e0060472ecbde578ef68cc2a9e46d114efd77c3034"
 dependencies = [
  "cfg-if",
  "core-foundation-sys",
