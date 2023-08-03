@@ -28,7 +28,7 @@ jobs:
 
       # Verify the MSRV defined in Cargo.toml
       - name: Install MSRV
-        run: cargo install cargo-msrv
+        run: cargo install cargo-msrv --locked
       # Run cargo-msrv (force using i686 toolchain)
       - name: Verify MSRV
         id: verify-msrv

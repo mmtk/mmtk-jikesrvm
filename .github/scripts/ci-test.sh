@@ -1,3 +1,5 @@
+set -e
+
 . $(dirname "$0")/common.sh
 
 cur=$(realpath $(dirname "$0"))
