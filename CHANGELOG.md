@@ -1,3 +1,16 @@
+0.19.0 (2023-08-18)
+===
+
+## What's Changed
+* Set VM space start and size through options by @qinsoon in https://github.com/mmtk/mmtk-jikesrvm/pull/139
+* Install the missing deps in CI tests by @qinsoon in https://github.com/mmtk/mmtk-jikesrvm/pull/140
+* Update to MMTk core PR #817 by @qinsoon in https://github.com/mmtk/mmtk-jikesrvm/pull/141
+* Update to mmtk-core PR #838 by @qinsoon in https://github.com/mmtk/mmtk-jikesrvm/pull/142
+* Rename ambiguous `scan_thread_root{,s}` functions by @k-sareen in https://github.com/mmtk/mmtk-jikesrvm/pull/143
+* Set `REFS` to 0 when starting the scan boot image by @k-sareen in https://github.com/mmtk/mmtk-jikesrvm/pull/144
+* Add set -e in ci-test.sh. Update MMTk by @qinsoon in https://github.com/mmtk/mmtk-jikesrvm/pull/146
+* Update to MMTk core PR #875 by @qinsoon in https://github.com/mmtk/mmtk-jikesrvm/pull/147
+
 0.18.0 (2023-04-03)
 ===
 
