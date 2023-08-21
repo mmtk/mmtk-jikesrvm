@@ -78,6 +78,8 @@ impl Collection<JikesRVM> for VMCollection {
 
     fn schedule_finalization(tls: VMWorkerThread) {
         unsafe {
+         //   jtoc_call!(SWIFT_METHOD_OFFSET, tls);
+
             jtoc_call!(SCHEDULE_FINALIZER_METHOD_OFFSET, tls);
         }
     }

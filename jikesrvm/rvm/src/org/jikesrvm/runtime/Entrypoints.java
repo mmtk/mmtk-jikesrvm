@@ -34,6 +34,10 @@ public class Entrypoints {
           getMethod(org.jikesrvm.mm.mminterface.RustScanning.class, "scanBootImage", "(Lorg/vmmagic/unboxed/Address;)V");
   public static final NormalMethod scheduleFinalizerMethod =
           getMethod(org.jikesrvm.scheduler.FinalizerThread.class, "schedule", "()V");
+  public static final NormalMethod swiftMethod = getMethod(org.jikesrvm.mm.mminterface.MemoryManager.class, "swift",
+      "()V");
+  public static final NormalMethod doFinalizableProcessorScanMethod = getMethod(
+      org.jikesrvm.mm.mminterface.MemoryManager.class, "doFinalizableProcessorScan", "(Lorg/vmmagic/unboxed/Address;Z)V");
 
   // The usual causes for getField/Method() to fail are:
   //  1. you misspelled the class name, member name, or member signature

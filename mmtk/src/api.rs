@@ -10,6 +10,7 @@ use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::{ReferenceGlue, VMBinding};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
+use mmtk::vm::ObjectTracerContext;
 use std::ffi::CStr;
 use std::sync::atomic::Ordering;
 use JikesRVM;
@@ -162,6 +163,9 @@ pub extern "C" fn free_bytes() -> usize {
     memory_manager::free_bytes(&SINGLETON)
 }
 
+// pub extern  "C" 
+
+
 #[no_mangle]
 pub extern "C" fn total_bytes() -> usize {
     memory_manager::total_bytes(&SINGLETON)
@@ -200,6 +204,17 @@ pub extern "C" fn is_mapped_address(address: Address) -> i32 {
 pub extern "C" fn modify_check(object: ObjectReference) {
     memory_manager::modify_check(&SINGLETON, object)
 }
+
+#[no_mangle]
+pub extern "C" fn hell_world() {
+    println!("[rust] hell world from mmtk/src/api.rs:hell_world")
+}
+
+#[no_mangle]
+pub extern "C" fn trans_trace_local(trace_local: ObjectReference, nursery: bool) {
+    println!("[rust] trans trace local from mmtk/src/api.rs:trans_trace_local")
+}
+
 
 #[no_mangle]
 pub extern "C" fn add_weak_candidate(reff: ObjectReference, referent: ObjectReference) {
@@ -277,11 +292,13 @@ pub extern "C" fn last_heap_address() -> Address {
 // finalization
 #[no_mangle]
 pub extern "C" fn add_finalizer(object: ObjectReference) {
+    // println!("[rust] am be called? mmtk/src/api.rs:add_finalizer");
     memory_manager::add_finalizer(&SINGLETON, object);
 }
 
 #[no_mangle]
 pub extern "C" fn get_finalized_object() -> ObjectReference {
+   //  println!("[rust] am be called? mmtk/src/api.rs:get_finalized_object");
     match memory_manager::get_finalized_object(&SINGLETON) {
         Some(obj) => obj,
         None => ObjectReference::NULL,

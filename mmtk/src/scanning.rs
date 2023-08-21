@@ -2,6 +2,7 @@ use std::arch::asm;
 use std::mem::size_of;
 use std::slice;
 
+use mmtk::vm::ObjectTracerContext;
 // use crate::scan_boot_image::ScanBootImageRoots;
 use crate::scan_statics::ScanStaticRoots;
 use crate::unboxed_size_constants::LOG_BYTES_IN_ADDRESS;
@@ -167,6 +168,19 @@ impl Scanning<JikesRVM> for VMScanning {
     fn prepare_for_roots_re_scanning() {
         // I guess we do not need to do anything special. However I will leave it as unimplemented for now.
         unimplemented!()
+    }
+
+    fn process_weak_refs(
+        _worker: &mut GCWorker<JikesRVM>,
+        _tracer_context: impl ObjectTracerContext<JikesRVM>,
+    ) -> bool {
+        let tls = _worker.tls;
+        _tracer_context.with_tracer(_worker,  |tracer| {
+            unsafe {
+                jtoc_call!(DO_FINALIZABLE_PROCESSOR_SCAN_METHOD_OFFSET, tls, tracer, 0);
+            }
+        });
+        false
     }
 }
 
