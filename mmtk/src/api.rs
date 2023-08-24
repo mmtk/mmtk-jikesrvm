@@ -307,7 +307,7 @@ pub extern "C" fn alloc_slow_bump_monotone_immortal(
 // FIXME: after we remove plan as build-time option, we should remove this conditional compilation as well.
 
 #[no_mangle]
-#[cfg(any(feature = "semispace"))]
+#[cfg(feature = "semispace")]
 pub extern "C" fn alloc_slow_bump_monotone_copy(
     allocator: *mut c_void,
     size: usize,
@@ -317,7 +317,7 @@ pub extern "C" fn alloc_slow_bump_monotone_copy(
     unsafe { &mut *(allocator as *mut BumpAllocator<JikesRVM>) }.alloc_slow(size, align, offset)
 }
 #[no_mangle]
-#[cfg(not(any(feature = "semispace")))]
+#[cfg(not(feature = "semispace"))]
 pub extern "C" fn alloc_slow_bump_monotone_copy(
     _allocator: *mut c_void,
     _size: usize,
