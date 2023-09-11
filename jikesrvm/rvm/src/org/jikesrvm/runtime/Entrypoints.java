@@ -37,7 +37,7 @@ public class Entrypoints {
   public static final NormalMethod swiftMethod = getMethod(org.jikesrvm.mm.mminterface.MemoryManager.class, "swift",
       "()V");
   public static final NormalMethod doFinalizableProcessorScanMethod = getMethod(
-      org.jikesrvm.mm.mminterface.MemoryManager.class, "doFinalizableProcessorScan", "(Lorg/vmmagic/unboxed/Address;Z)V");
+      org.jikesrvm.mm.mminterface.MemoryManager.class, "doFinalizableProcessorScan", "(Lorg/vmmagic/unboxed/Address;Lorg/vmmagic/unboxed/Address;Z)V");
 
   // The usual causes for getField/Method() to fail are:
   //  1. you misspelled the class name, member name, or member signature

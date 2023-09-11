@@ -88,7 +88,8 @@ extern void* last_heap_address();
  * Reference Processing
  */
 extern void hell_world();
-extern void trans_trace_local(void * trace, bool nursery);
+extern void* get_forwarded_object(void * object_reference);
+extern bool is_reachable(void * object_reference);
 extern void add_weak_candidate(void* ref, void* referent);
 extern void add_soft_candidate(void* ref, void* referent);
 extern void add_phantom_candidate(void* ref, void* referent);
