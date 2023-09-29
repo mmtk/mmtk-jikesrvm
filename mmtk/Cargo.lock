@@ -393,8 +393,8 @@ dependencies = [
 
 [[package]]
 name = "mmtk"
-version = "0.19.0"
-source = "git+https://github.com/udesou/mmtk-core.git?rev=a26101f4266b70a8249b59089523e12512a068df#a26101f4266b70a8249b59089523e12512a068df"
+version = "0.20.0"
+source = "git+https://github.com/qinsoon/mmtk-core.git?rev=8e22c02e2d6b165a5473c4a00370be13de2ab4a5#8e22c02e2d6b165a5473c4a00370be13de2ab4a5"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -427,8 +427,8 @@ dependencies = [
 
 [[package]]
 name = "mmtk-macros"
-version = "0.19.0"
-source = "git+https://github.com/udesou/mmtk-core.git?rev=a26101f4266b70a8249b59089523e12512a068df#a26101f4266b70a8249b59089523e12512a068df"
+version = "0.20.0"
+source = "git+https://github.com/qinsoon/mmtk-core.git?rev=8e22c02e2d6b165a5473c4a00370be13de2ab4a5#8e22c02e2d6b165a5473c4a00370be13de2ab4a5"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -438,7 +438,7 @@ dependencies = [
 
 [[package]]
 name = "mmtk_jikesrvm"
-version = "0.19.0"
+version = "0.20.0"
 dependencies = [
  "lazy_static",
  "libc",
