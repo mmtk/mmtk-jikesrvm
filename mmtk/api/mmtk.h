@@ -87,19 +87,14 @@ extern void* last_heap_address();
 /**
  * Reference Processing
  */
-extern void hell_world();
 extern void* get_forwarded_object(void * object_reference);
 extern bool is_reachable(void * object_reference);
-extern void add_weak_candidate(void* ref, void* referent);
-extern void add_soft_candidate(void* ref, void* referent);
-extern void add_phantom_candidate(void* ref, void* referent);
 
 extern bool get_boolean_option(char* option);
 
 /**
  * Finalization
  */
-extern void add_finalizer(void* obj);
 extern void* get_finalized_object();
 
 extern void harness_begin(void *tls);

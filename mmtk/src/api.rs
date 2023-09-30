@@ -216,29 +216,6 @@ pub extern "C" fn is_reachable(object: ObjectReference) -> i32 {
 
 
 #[no_mangle]
-pub extern "C" fn hell_world() {
-    println!("[rust] hell world from mmtk/src/api.rs:hell_world")
-}
-
-#[no_mangle]
-pub extern "C" fn add_weak_candidate(reff: ObjectReference, referent: ObjectReference) {
-    <JikesRVM as VMBinding>::VMReferenceGlue::set_referent(reff, referent);
-    memory_manager::add_weak_candidate(&SINGLETON, reff)
-}
-
-#[no_mangle]
-pub extern "C" fn add_soft_candidate(reff: ObjectReference, referent: ObjectReference) {
-    <JikesRVM as VMBinding>::VMReferenceGlue::set_referent(reff, referent);
-    memory_manager::add_soft_candidate(&SINGLETON, reff)
-}
-
-#[no_mangle]
-pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectReference) {
-    <JikesRVM as VMBinding>::VMReferenceGlue::set_referent(reff, referent);
-    memory_manager::add_phantom_candidate(&SINGLETON, reff)
-}
-
-#[no_mangle]
 // We trust the name/value pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
@@ -291,12 +268,6 @@ pub extern "C" fn starting_heap_address() -> Address {
 #[no_mangle]
 pub extern "C" fn last_heap_address() -> Address {
     memory_manager::last_heap_address()
-}
-
-// finalization
-#[no_mangle]
-pub extern "C" fn add_finalizer(object: ObjectReference) {
-    memory_manager::add_finalizer(&SINGLETON, object);
 }
 
 #[no_mangle]
