@@ -1,3 +1,14 @@
+0.20.0 (2023-09-29)
+===
+
+## What's Changed
+* Updating code to reflect API change by @udesou in https://github.com/mmtk/mmtk-jikesrvm/pull/149
+
+## New Contributors
+* @udesou made their first contribution in https://github.com/mmtk/mmtk-jikesrvm/pull/149
+
+**Full Changelog**: https://github.com/mmtk/mmtk-jikesrvm/compare/v0.19.0...v0.20.0
+
 0.19.0 (2023-08-18)
 ===
 
