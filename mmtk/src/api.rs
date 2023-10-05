@@ -7,7 +7,6 @@ use mmtk::memory_manager;
 use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
-use mmtk::vm::{ReferenceGlue, VMBinding};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use std::ffi::CStr;
@@ -202,7 +201,7 @@ pub extern "C" fn modify_check(object: ObjectReference) {
 }
 
 #[no_mangle]
-pub extern "C" fn get_forwarded_object(object: ObjectReference) -> ObjectReference{
+pub extern "C" fn get_forwarded_object(object: ObjectReference) -> ObjectReference {
     match object.get_forwarded_object() {
         Some(ref_obj) => ref_obj,
         None => ObjectReference::NULL,
@@ -213,7 +212,6 @@ pub extern "C" fn get_forwarded_object(object: ObjectReference) -> ObjectReferen
 pub extern "C" fn is_reachable(object: ObjectReference) -> i32 {
     object.is_reachable() as i32
 }
-
 
 #[no_mangle]
 // We trust the name/value pointer is valid.

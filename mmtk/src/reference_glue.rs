@@ -9,15 +9,15 @@ pub struct VMReferenceGlue {}
 impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
     type FinalizableType = ObjectReference;
 
-    fn set_referent(reff: ObjectReference, referent: ObjectReference) {
+    fn set_referent(_reff: ObjectReference, _referent: ObjectReference) {
         unimplemented!()
     }
 
-    fn get_referent(object: ObjectReference) -> ObjectReference {
+    fn get_referent(_object: ObjectReference) -> ObjectReference {
         unimplemented!()
     }
 
-    fn enqueue_references(references: &[ObjectReference], tls: VMWorkerThread) {
+    fn enqueue_references(_references: &[ObjectReference], _tls: VMWorkerThread) {
         unimplemented!()
     }
 }
