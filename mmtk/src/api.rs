@@ -198,7 +198,7 @@ pub extern "C" fn is_mapped_address(address: Address) -> i32 {
 
 #[no_mangle]
 pub extern "C" fn modify_check(_object: ObjectReference) {
-    // MMTk core no longe provides this method. We just use an empty impl.    
+    // MMTk core no longe provides this method. We just use an empty impl.
 }
 
 #[no_mangle]
