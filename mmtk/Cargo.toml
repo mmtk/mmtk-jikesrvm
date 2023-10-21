@@ -16,7 +16,7 @@ lto = true
 [package.metadata.jikesrvm]
 # Our CI matches the following line and extract mmtk/jikesrvm. If this line is updated, please check ci yaml files and make sure it works.
 jikesrvm_repo = "https://github.com/fepicture/jikesrvm.git"
-jikesrvm_version = "c17bcbbf1b9735d5b0f784a32aa2d10bbf350f8c"
+jikesrvm_version = "be1a05fd4e3ebbe5de5058a90a593bca3243d07c"
 
 [dependencies]
 libc = "0.2"

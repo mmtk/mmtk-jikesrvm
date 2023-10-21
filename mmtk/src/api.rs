@@ -7,6 +7,10 @@ use mmtk::memory_manager;
 use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
+
+#[cfg(not(feature = "binding_side_ref_proc"))]
+use mmtk::vm::{ReferenceGlue, VMBinding};
+
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use std::ffi::CStr;
@@ -200,6 +204,27 @@ pub extern "C" fn modify_check(object: ObjectReference) {
     memory_manager::modify_check(&SINGLETON, object)
 }
 
+#[cfg(not(feature = "binding_side_ref_proc"))]
+#[no_mangle]
+pub extern "C" fn add_weak_candidate(reff: ObjectReference, referent: ObjectReference) {
+    <JikesRVM as VMBinding>::VMReferenceGlue::set_referent(reff, referent);
+    memory_manager::add_weak_candidate(&SINGLETON, reff)
+}
+
+#[cfg(not(feature = "binding_side_ref_proc"))]
+#[no_mangle]
+pub extern "C" fn add_soft_candidate(reff: ObjectReference, referent: ObjectReference) {
+    <JikesRVM as VMBinding>::VMReferenceGlue::set_referent(reff, referent);
+    memory_manager::add_soft_candidate(&SINGLETON, reff)
+}
+
+#[cfg(not(feature = "binding_side_ref_proc"))]
+#[no_mangle]
+pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectReference) {
+    <JikesRVM as VMBinding>::VMReferenceGlue::set_referent(reff, referent);
+    memory_manager::add_phantom_candidate(&SINGLETON, reff)
+}
+
 #[no_mangle]
 pub extern "C" fn get_forwarded_object(object: ObjectReference) -> ObjectReference {
     match object.get_forwarded_object() {
@@ -266,6 +291,13 @@ pub extern "C" fn starting_heap_address() -> Address {
 #[no_mangle]
 pub extern "C" fn last_heap_address() -> Address {
     memory_manager::last_heap_address()
+}
+
+// finalization
+#[cfg(not(feature = "binding_side_ref_proc"))]
+#[no_mangle]
+pub extern "C" fn add_finalizer(object: ObjectReference) {
+    memory_manager::add_finalizer(&SINGLETON, object);
 }
 
 #[no_mangle]

@@ -34,10 +34,10 @@ public class Entrypoints {
           getMethod(org.jikesrvm.mm.mminterface.RustScanning.class, "scanBootImage", "(Lorg/vmmagic/unboxed/Address;)V");
   public static final NormalMethod scheduleFinalizerMethod =
           getMethod(org.jikesrvm.scheduler.FinalizerThread.class, "schedule", "()V");
-  public static final NormalMethod doReferenceProcessorDelegatorScanMethod = getMethod(
-      org.jikesrvm.mm.mminterface.MemoryManager.class, "doReferenceProcessorDelegatorScan", "(Lorg/vmmagic/unboxed/Address;Lorg/vmmagic/unboxed/Address;ZZ)Z");
-  public static final NormalMethod doReferenceProcessorDelegatorForwardMethod = getMethod(
-      org.jikesrvm.mm.mminterface.MemoryManager.class, "doReferenceProcessorDelegatorForward", "(Lorg/vmmagic/unboxed/Address;Lorg/vmmagic/unboxed/Address;Z)V");
+  public static final NormalMethod doReferenceProcessingHelperScanMethod = getMethod(
+      org.jikesrvm.mm.mminterface.MemoryManager.class, "doReferenceProcessingHelperScan", "(Lorg/vmmagic/unboxed/Address;Lorg/vmmagic/unboxed/Address;ZZ)Z");
+  public static final NormalMethod doReferenceProcessingHelperForwardMethod = getMethod(
+      org.jikesrvm.mm.mminterface.MemoryManager.class, "doReferenceProcessingHelperForward", "(Lorg/vmmagic/unboxed/Address;Lorg/vmmagic/unboxed/Address;Z)V");
 
 
   // The usual causes for getField/Method() to fail are:

@@ -207,7 +207,7 @@ where
 
     tracer_context.with_tracer(worker, |tracer| unsafe {
         jtoc_call!(
-            DO_REFERENCE_PROCESSOR_DELEGATOR_FORWARD_METHOD_OFFSET,
+            DO_REFERENCE_PROCESSING_HELPER_FORWARD_METHOD_OFFSET,
             tls,
             trace_object_callback_for_jikesrvm::<C::TracerType>,
             tracer as *mut _ as *mut libc::c_void,
@@ -229,20 +229,17 @@ where
 
     let need_retain = SINGLETON.get_plan().is_emergency_collection();
 
-    let mut scan_result = 0;
-
     tracer_context.with_tracer(worker, |tracer| unsafe {
-        scan_result = jtoc_call!(
-            DO_REFERENCE_PROCESSOR_DELEGATOR_SCAN_METHOD_OFFSET,
+        let scan_result = jtoc_call!(
+            DO_REFERENCE_PROCESSING_HELPER_SCAN_METHOD_OFFSET,
             tls,
             trace_object_callback_for_jikesrvm::<C::TracerType>,
             tracer as *mut _ as *mut libc::c_void,
             is_nursery as i32,
             need_retain as i32
         );
-    });
-
-    scan_result == 0
+        scan_result == 0
+    })
 }
 
 impl VMScanning {

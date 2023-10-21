@@ -3,6 +3,7 @@
     <property name="rvm-binding.source" location="${config.third-party-heap}/jikesrvm/rvm"/>
     <property name="rvm-binding.tools" location="${config.third-party-heap}/jikesrvm/tools"/>
     <property name="mmtk-binding.dir" location="${config.third-party-heap}/mmtk"/>
+    <property name="rust.binding_side_ref_proc" value="false"/>
     <property environment="env"/>
 
     <!-- Generate a few files that will be used by Rust mmtk -->
@@ -46,6 +47,11 @@
         <exec executable="/usr/bin/as" failonerror="true">
             <arg line="--32 -o ${build.base}/${target.obj-prefix}glue${target.obj-ext} -I ${mmtk-binding.dir}/src ${mmtk-binding.dir}/src/glue.asm"/>
         </exec>
+        <!-- When rust.binding_side_ref_proc is true, binding_side_ref_proc will be appended to the features.
+        If it’s false, the features will remain unchanged. -->
+        <condition property="rust.features" value="${rust.features},binding_side_ref_proc">
+            <equals arg1="${rust.binding_side_ref_proc}" arg2="true"/>
+        </condition>
         <exec executable="cargo" dir="${mmtk-binding.dir}" failonerror="true">
             <arg value="rustc"/>
             <arg value="--manifest-path=${mmtk-binding.dir}/Cargo.toml"/>
