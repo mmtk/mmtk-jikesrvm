@@ -21,6 +21,7 @@ use mmtk::vm::ActivePlan;
 use mmtk::vm::EdgeVisitor;
 use mmtk::vm::RootsWorkFactory;
 use mmtk::vm::Scanning;
+use mmtk::MMTK;
 use mmtk::*;
 use object_model::VMObjectModel;
 use std::mem;
@@ -227,7 +228,7 @@ where
         .generational()
         .map_or(false, |plan| plan.is_current_gc_nursery());
 
-    let need_retain = SINGLETON.get_plan().is_emergency_collection();
+    let need_retain = SINGLETON.is_emergency_collection();
 
     tracer_context.with_tracer(worker, |tracer| unsafe {
         let scan_result = jtoc_call!(
