@@ -32,9 +32,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address bumpAllocator0SpaceFat;
     @Entrypoint
-    Address bumpAllocator0Plan;
-    @Entrypoint
-    Address bumpAllocator0PlanFat;
+    Address bumpAllocator0Context;
 
     // Bump Allocator 1
     @Entrypoint
@@ -48,9 +46,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address bumpAllocator1SpaceFat;
     @Entrypoint
-    Address bumpAllocator1Plan;
-    @Entrypoint
-    Address bumpAllocator1PlanFat;
+    Address bumpAllocator1Context;
 
     // Bump Allocator 2
     @Entrypoint
@@ -64,9 +60,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address bumpAllocator2SpaceFat;
     @Entrypoint
-    Address bumpAllocator2Plan;
-    @Entrypoint
-    Address bumpAllocator2PlanFat;
+    Address bumpAllocator2Context;
 
     // Bump Allocator 3
     @Entrypoint
@@ -80,9 +74,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address bumpAllocator3SpaceFat;
     @Entrypoint
-    Address bumpAllocator3Plan;
-    @Entrypoint
-    Address bumpAllocator3PlanFat;
+    Address bumpAllocator3Context;
 
     // Bump Allocator 4
     @Entrypoint
@@ -96,9 +88,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address bumpAllocator4SpaceFat;
     @Entrypoint
-    Address bumpAllocator4Plan;
-    @Entrypoint
-    Address bumpAllocator4PlanFat;
+    Address bumpAllocator4Context;
 
     // Bump Allocator 5
     @Entrypoint
@@ -112,9 +102,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address bumpAllocator5SpaceFat;
     @Entrypoint
-    Address bumpAllocator5Plan;
-    @Entrypoint
-    Address bumpAllocator5PlanFat;
+    Address bumpAllocator5Context;
 
     // 2 x LargeObjectAllocator (1 x 4 words)
     @Entrypoint
@@ -122,18 +110,14 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address largeObjectAllocator0Space;
     @Entrypoint
-    Address largeObjectAllocator0Plan;
-    @Entrypoint
-    Address largeObjectAllocator0PlanFat;
+    Address largeObjectAllocator0Context;
 
     @Entrypoint
     Address largeObjectAllocator1Tls;
     @Entrypoint
     Address largeObjectAllocator1Space;
     @Entrypoint
-    Address largeObjectAllocator1Plan;
-    @Entrypoint
-    Address largeObjectAllocator1PlanFat;
+    Address largeObjectAllocator1Context;
 
     // 1 x MallocAllocator
     @Entrypoint
@@ -141,9 +125,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address mallocAllocator0Space;
     @Entrypoint
-    Address mallocAllocator0Plan;
-    @Entrypoint
-    Address mallocAllocator0PlanFat;
+    Address mallocAllocator0Context;
 
     // 1 x ImmixAllocator
     @Entrypoint
@@ -155,9 +137,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address immixAllocator0Space;
     @Entrypoint
-    Address immixAllocator0Plan;
-    @Entrypoint
-    Address immixAllocator0PlanFat;
+    Address immixAllocator0Context;
     @Entrypoint
     Address immixAllocator0Hot;
     @Entrypoint
@@ -179,9 +159,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address freeListAllocator0Space;
     @Entrypoint
-    Address freeListAllocator0Plan;
-    @Entrypoint
-    Address freeListAllocator0PlanFat;
+    Address freeListAllocator0Context;
     @Entrypoint
     Address freeListAllocator0AvailableBlocks;
     @Entrypoint
@@ -196,9 +174,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address freeListAllocator1Space;
     @Entrypoint
-    Address freeListAllocator1Plan;
-    @Entrypoint
-    Address freeListAllocator1PlanFat;
+    Address freeListAllocator1Context;
     @Entrypoint
     Address freeListAllocator1AvailableBlocks;
     @Entrypoint
@@ -220,9 +196,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address markCompactAllocator0SpaceFat;
     @Entrypoint
-    Address markCompactAllocator0Plan;
-    @Entrypoint
-    Address markCompactAllocator0PlanFat;
+    Address markCompactAllocator0Context;
 
     // barrier
     @Entrypoint
@@ -266,7 +240,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     static final int MAX_FREE_LIST_ALLOCATORS = 2;
     static final int MAX_MARK_COMPACT_ALLOCATORS = 1;
     // Bump allocator size
-    static final int BUMP_ALLOCATOR_SIZE = 7 * BYTES_IN_WORD;
+    static final int BUMP_ALLOCATOR_SIZE = 6 * BYTES_IN_WORD;
     // Bump allocator field offsets
     static final int BUMP_ALLOCATOR_TLS = 0;
     static final int BUMP_ALLOCATOR_CURSOR = BYTES_IN_WORD;
@@ -274,15 +248,14 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     static final int BUMP_ALLOCATOR_SPACE = BYTES_IN_WORD * 3;
     static final int BUMP_ALLOCATOR_SPACE_FAT = BYTES_IN_WORD * 4;
     static final int BUMP_ALLOCATOR_PLAN = BYTES_IN_WORD * 5;
-    static final int BUMP_ALLOCATOR_PLAN_FAT = BYTES_IN_WORD * 6;
     // Large object allocator size. We do not need offsets for each field, as we don't need to implement fastpath for large object allocator.
-    static final int LARGE_OBJECT_ALLOCATOR_SIZE = 4 * BYTES_IN_WORD;
+    static final int LARGE_OBJECT_ALLOCATOR_SIZE = 3 * BYTES_IN_WORD;
     // Malloc allocator size. We do not need offsets for each field, as we don't need to implement fastpath for large object allocator.
-    static final int MALLOC_ALLOCATOR_SIZE = 4 * BYTES_IN_WORD;
+    static final int MALLOC_ALLOCATOR_SIZE = 3 * BYTES_IN_WORD;
     // Immix allocator size
-    static final int IMMIX_ALLOCATOR_SIZE = 13 * BYTES_IN_WORD;
+    static final int IMMIX_ALLOCATOR_SIZE = 12 * BYTES_IN_WORD;
     // Free list allocator size
-    static final int FREE_LIST_ALLOCATOR_SIZE = 8 * BYTES_IN_WORD;
+    static final int FREE_LIST_ALLOCATOR_SIZE = 7 * BYTES_IN_WORD;
     // Mark compact allocator size (the same as bump allocator)
     static final int MARK_COMPACT_ALLOCATOR_SIZE = BUMP_ALLOCATOR_SIZE;
 

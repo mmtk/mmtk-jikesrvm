@@ -4,11 +4,9 @@ use mmtk::util::opaque_pointer::*;
 use mmtk::util::Address;
 use mmtk::vm::ActivePlan;
 use mmtk::Mutator;
-use mmtk::Plan;
 use std::mem;
 use JikesRVM;
 use JTOC_BASE;
-use SINGLETON;
 
 use std::sync::{Mutex, MutexGuard};
 
@@ -62,10 +60,6 @@ pub struct VMActivePlan {}
 impl ActivePlan<JikesRVM> for VMActivePlan {
     fn number_of_mutators() -> usize {
         Self::mutators().count()
-    }
-
-    fn global() -> &'static dyn Plan<VM = JikesRVM> {
-        SINGLETON.get_plan()
     }
 
     fn is_mutator(tls: VMThread) -> bool {
