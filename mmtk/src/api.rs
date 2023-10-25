@@ -7,7 +7,10 @@ use mmtk::memory_manager;
 use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
+
+#[cfg(not(feature = "binding_side_ref_proc"))]
 use mmtk::vm::{ReferenceGlue, VMBinding};
+
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use std::ffi::CStr;
@@ -201,22 +204,38 @@ pub extern "C" fn modify_check(_object: ObjectReference) {
     // MMTk core no longe provides this method. We just use an empty impl.
 }
 
+#[cfg(not(feature = "binding_side_ref_proc"))]
 #[no_mangle]
 pub extern "C" fn add_weak_candidate(reff: ObjectReference, referent: ObjectReference) {
     <JikesRVM as VMBinding>::VMReferenceGlue::set_referent(reff, referent);
     memory_manager::add_weak_candidate(&SINGLETON, reff)
 }
 
+#[cfg(not(feature = "binding_side_ref_proc"))]
 #[no_mangle]
 pub extern "C" fn add_soft_candidate(reff: ObjectReference, referent: ObjectReference) {
     <JikesRVM as VMBinding>::VMReferenceGlue::set_referent(reff, referent);
     memory_manager::add_soft_candidate(&SINGLETON, reff)
 }
 
+#[cfg(not(feature = "binding_side_ref_proc"))]
 #[no_mangle]
 pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectReference) {
     <JikesRVM as VMBinding>::VMReferenceGlue::set_referent(reff, referent);
     memory_manager::add_phantom_candidate(&SINGLETON, reff)
+}
+
+#[no_mangle]
+pub extern "C" fn get_forwarded_object(object: ObjectReference) -> ObjectReference {
+    match object.get_forwarded_object() {
+        Some(ref_obj) => ref_obj,
+        None => ObjectReference::NULL,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn is_reachable(object: ObjectReference) -> i32 {
+    object.is_reachable() as i32
 }
 
 #[no_mangle]
@@ -275,6 +294,7 @@ pub extern "C" fn last_heap_address() -> Address {
 }
 
 // finalization
+#[cfg(not(feature = "binding_side_ref_proc"))]
 #[no_mangle]
 pub extern "C" fn add_finalizer(object: ObjectReference) {
     memory_manager::add_finalizer(&SINGLETON, object);

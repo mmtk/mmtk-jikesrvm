@@ -2,6 +2,8 @@ use std::arch::asm;
 use std::mem::size_of;
 use std::slice;
 
+use mmtk::vm::ObjectTracer;
+use mmtk::vm::ObjectTracerContext;
 // use crate::scan_boot_image::ScanBootImageRoots;
 use crate::scan_statics::ScanStaticRoots;
 use crate::unboxed_size_constants::LOG_BYTES_IN_ADDRESS;
@@ -19,6 +21,7 @@ use mmtk::vm::ActivePlan;
 use mmtk::vm::EdgeVisitor;
 use mmtk::vm::RootsWorkFactory;
 use mmtk::vm::Scanning;
+use mmtk::MMTK;
 use mmtk::*;
 use object_model::VMObjectModel;
 use std::mem;
@@ -54,6 +57,14 @@ extern "C" fn report_edges_and_renew_buffer<F: RootsWorkFactory<JikesRVMEdge>>(
     };
     debug_assert_eq!(capacity, EDGES_BUFFER_CAPACITY);
     ptr
+}
+
+extern "C" fn trace_object_callback_for_jikesrvm<T: ObjectTracer>(
+    tracer_ptr: *mut libc::c_void,
+    object: ObjectReference,
+) -> ObjectReference {
+    let tracer: &mut T = unsafe { &mut *(tracer_ptr as *mut T) };
+    tracer.trace_object(object)
 }
 
 impl Scanning<JikesRVM> for VMScanning {
@@ -168,6 +179,68 @@ impl Scanning<JikesRVM> for VMScanning {
         // I guess we do not need to do anything special. However I will leave it as unimplemented for now.
         unimplemented!()
     }
+
+    fn process_weak_refs(
+        worker: &mut GCWorker<JikesRVM>,
+        tracer_context: impl ObjectTracerContext<JikesRVM>,
+    ) -> bool {
+        process_weak_refs_inner(worker, tracer_context)
+    }
+
+    fn forward_weak_refs(
+        worker: &mut GCWorker<JikesRVM>,
+        tracer_context: impl ObjectTracerContext<JikesRVM>,
+    ) {
+        forward_weak_refs_inner(worker, tracer_context)
+    }
+}
+
+fn forward_weak_refs_inner<C>(worker: &mut GCWorker<JikesRVM>, tracer_context: C)
+where
+    C: ObjectTracerContext<JikesRVM>,
+{
+    let tls = worker.tls;
+
+    let is_nursery = SINGLETON
+        .get_plan()
+        .generational()
+        .map_or(false, |plan| plan.is_current_gc_nursery());
+
+    tracer_context.with_tracer(worker, |tracer| unsafe {
+        jtoc_call!(
+            DO_REFERENCE_PROCESSING_HELPER_FORWARD_METHOD_OFFSET,
+            tls,
+            trace_object_callback_for_jikesrvm::<C::TracerType>,
+            tracer as *mut _ as *mut libc::c_void,
+            is_nursery as i32
+        );
+    });
+}
+
+fn process_weak_refs_inner<C>(worker: &mut GCWorker<JikesRVM>, tracer_context: C) -> bool
+where
+    C: ObjectTracerContext<JikesRVM>,
+{
+    let tls = worker.tls;
+
+    let is_nursery = SINGLETON
+        .get_plan()
+        .generational()
+        .map_or(false, |plan| plan.is_current_gc_nursery());
+
+    let need_retain = SINGLETON.is_emergency_collection();
+
+    tracer_context.with_tracer(worker, |tracer| unsafe {
+        let scan_result = jtoc_call!(
+            DO_REFERENCE_PROCESSING_HELPER_SCAN_METHOD_OFFSET,
+            tls,
+            trace_object_callback_for_jikesrvm::<C::TracerType>,
+            tracer as *mut _ as *mut libc::c_void,
+            is_nursery as i32,
+            need_retain as i32
+        );
+        scan_result == 0
+    })
 }
 
 impl VMScanning {

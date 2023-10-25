@@ -87,16 +87,23 @@ extern void* last_heap_address();
 /**
  * Reference Processing
  */
+#ifdef BINDING_SIDE_REF_PROC
+extern void* get_forwarded_object(void * object_reference);
+extern bool is_reachable(void * object_reference);
+#else
 extern void add_weak_candidate(void* ref, void* referent);
 extern void add_soft_candidate(void* ref, void* referent);
 extern void add_phantom_candidate(void* ref, void* referent);
+#endif
 
 extern bool get_boolean_option(char* option);
 
 /**
  * Finalization
  */
+#ifndef BINDING_SIDE_REF_PROC
 extern void add_finalizer(void* obj);
+#endif
 extern void* get_finalized_object();
 
 extern void harness_begin(void *tls);
