@@ -1,3 +1,15 @@
+0.21.0 (2023-11-03)
+===
+
+## What's Changed
+* Update to MMTk core PR #949 by @qinsoon in https://github.com/mmtk/mmtk-jikesrvm/pull/152
+* Refactor finalize/reference processor by @fepicture in https://github.com/mmtk/mmtk-jikesrvm/pull/150
+
+## New Contributors
+* @fepicture made their first contribution in https://github.com/mmtk/mmtk-jikesrvm/pull/150
+
+**Full Changelog**: https://github.com/mmtk/mmtk-jikesrvm/compare/v0.20.0...v0.21.0
+
 0.20.0 (2023-09-29)
 ===
 
