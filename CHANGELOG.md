@@ -1,3 +1,11 @@
+0.22.0 (2023-12-21)
+===
+
+## What's Changed
+* Update to mmtk-core PR #1028 by @qinsoon in https://github.com/mmtk/mmtk-jikesrvm/pull/155
+
+**Full Changelog**: https://github.com/mmtk/mmtk-jikesrvm/compare/v0.21.0...v0.22.0
+
 0.21.0 (2023-11-03)
 ===
 
