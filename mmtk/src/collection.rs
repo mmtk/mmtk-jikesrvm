@@ -56,16 +56,14 @@ impl Collection<JikesRVM> for VMCollection {
     }
 
     fn spawn_gc_thread(tls: VMThread, ctx: GCThreadContext<JikesRVM>) {
-        let (ctx_ptr, is_controller) = match ctx {
-            GCThreadContext::Controller(c) => (Box::into_raw(c) as *mut libc::c_void, 1),
-            GCThreadContext::Worker(c) => (Box::into_raw(c) as *mut libc::c_void, 0),
+        let ctx_ptr = match ctx {
+            GCThreadContext::Worker(c) => Box::into_raw(c),
         };
         unsafe {
             jtoc_call!(
                 SPAWN_COLLECTOR_THREAD_METHOD_OFFSET,
                 tls,
-                ctx_ptr,
-                is_controller
+                ctx_ptr
             );
         }
     }
