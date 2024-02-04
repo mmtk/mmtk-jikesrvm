@@ -60,11 +60,7 @@ impl Collection<JikesRVM> for VMCollection {
             GCThreadContext::Worker(c) => Box::into_raw(c),
         };
         unsafe {
-            jtoc_call!(
-                SPAWN_COLLECTOR_THREAD_METHOD_OFFSET,
-                tls,
-                ctx_ptr
-            );
+            jtoc_call!(SPAWN_COLLECTOR_THREAD_METHOD_OFFSET, tls, ctx_ptr);
         }
     }
 
