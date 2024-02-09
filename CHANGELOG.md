@@ -1,3 +1,11 @@
+0.23.0 (2024-02-09)
+===
+
+## What's Changed
+* Update mmtk-core to v0.23
+
+**Full Changelog**: https://github.com/mmtk/mmtk-jikesrvm/compare/v0.22.0...v0.23.0
+
 0.22.0 (2023-12-21)
 ===
 
