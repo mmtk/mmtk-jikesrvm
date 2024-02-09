@@ -1,6 +1,6 @@
 [package]
 name = "mmtk_jikesrvm"
-version = "0.22.0"
+version = "0.23.0"
 authors = [" <>"]
 rust-version = "1.70.0"
 
@@ -28,7 +28,7 @@ log = {version = "0.4", features = ["max_level_trace", "release_max_level_off"] 
 # - change branch/rev
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "79fb0bb1c1576911a7725d7ed72ba30cfcb22715" }
+mmtk = { git = "https://github.com/qinsoon/mmtk-core.git", rev = "b7126f8c18b0855ae81832d0ba12e24f0b9bbe52" }
 # Uncomment the following to build locally - if you change the path locally, do not commit the change in a PR
 # mmtk = { path = "../repos/mmtk-core" }
 
