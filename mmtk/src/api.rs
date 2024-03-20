@@ -120,31 +120,15 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> i32 {
 }
 
 #[no_mangle]
-// We trust the gc_collector pointer is valid.
-#[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn start_control_collector(
-    tls: VMWorkerThread,
-    gc_controller: *mut GCController<JikesRVM>,
-) {
-    let mut gc_controller = unsafe { Box::from_raw(gc_controller) };
-    let cstr = std::ffi::CString::new("MMTkController").unwrap();
-    unsafe {
-        libc::pthread_setname_np(libc::pthread_self(), cstr.as_ptr());
-    }
-
-    memory_manager::start_control_collector(&SINGLETON, tls, &mut gc_controller);
-}
-
-#[no_mangle]
 // We trust the worker pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn start_worker(tls: VMWorkerThread, worker: *mut GCWorker<JikesRVM>) {
-    let mut worker = unsafe { Box::from_raw(worker) };
+    let worker = unsafe { Box::from_raw(worker) };
     let cstr = std::ffi::CString::new(format!("MMTkWorker{}", worker.ordinal)).unwrap();
     unsafe {
         libc::pthread_setname_np(libc::pthread_self(), cstr.as_ptr());
     }
-    memory_manager::start_worker::<JikesRVM>(&SINGLETON, tls, &mut worker)
+    memory_manager::start_worker::<JikesRVM>(&SINGLETON, tls, worker)
 }
 
 #[no_mangle]
