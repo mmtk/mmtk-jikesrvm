@@ -19,6 +19,9 @@ jobs:
       # Run the tests
       - name: Dacapo Tests
         run: ./.github/scripts/ci-test-normal.sh
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
 
       # Run these checks after build
 
