@@ -139,9 +139,11 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address immixAllocator0Context;
     @Entrypoint
-    Address immixAllocator0Hot;
+    byte immixAllocator0Hot;
     @Entrypoint
-    Address immixAllocator0Copy;
+    byte immixAllocator0Copy;
+    byte immixAllocator0Pad0;
+    byte immixAllocator0Pad1;
     @Entrypoint
     Address immixAllocator0LargeCursor;
     @Entrypoint
@@ -253,7 +255,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     // Malloc allocator size. We do not need offsets for each field, as we don't need to implement fastpath for large object allocator.
     static final int MALLOC_ALLOCATOR_SIZE = 3 * BYTES_IN_WORD;
     // Immix allocator size
-    static final int IMMIX_ALLOCATOR_SIZE = 12 * BYTES_IN_WORD;
+    static final int IMMIX_ALLOCATOR_SIZE = 11 * BYTES_IN_WORD;
     // Free list allocator size
     static final int FREE_LIST_ALLOCATOR_SIZE = 7 * BYTES_IN_WORD;
     // Mark compact allocator size (the same as bump allocator)
@@ -419,5 +421,10 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     public void deinitMutator() {
         Address handle = Magic.objectAsAddress(this).plus(MUTATOR_BASE_OFFSET);
         sysCall.sysDestroyMutator(handle);
+    }
+
+    @Entrypoint
+    public static final int getInlinedMutatorSize() {
+        return MUTATOR_SIZE;
     }
 }

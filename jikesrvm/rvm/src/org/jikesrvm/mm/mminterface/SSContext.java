@@ -23,7 +23,7 @@ public class SSContext extends MMTkMutatorContext {
     // LARGE_CODE: BumpAllocator #2 (ImmortalSpace)
     // Immortal: BumpAllocator #3 (ImmortalSpace)
     // LOS: LargeObjectAllocator #0 (LargeObjectSpace)
-    // NonMoving: FreeListAllocator #1 (MarkSweepSpace)
+    // NonMoving: FreeListAllocator #0 (MarkSweepSpace)
 
     @Inline
     protected final int getAllocatorTag(int allocator) {
