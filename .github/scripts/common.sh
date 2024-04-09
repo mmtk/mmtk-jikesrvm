@@ -12,5 +12,3 @@ export RUSTUP_TOOLCHAIN=$RUSTUP_TOOLCHAIN
 # we run on other images/machines, we need to update this path.
 export JAVA_HOME=/usr/lib/jvm/temurin-8-jdk-amd64
 export PATH=/usr/lib/jvm/temurin-8-jdk-amd64/bin:$PATH
-
-export MMTK_THREADS=1
