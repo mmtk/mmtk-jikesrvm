@@ -95,7 +95,7 @@ impl Scanning<JikesRVM> for VMScanning {
         edge_visitor: &mut EV,
     ) {
         if DUMP_REF {
-            let obj_ptr = object.value();
+            let obj_ptr = object.to_raw_address().as_usize();
             unsafe {
                 jtoc_call!(DUMP_REF_METHOD_OFFSET, tls, obj_ptr);
             }
