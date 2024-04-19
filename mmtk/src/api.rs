@@ -20,6 +20,28 @@ use BUILDER;
 use JTOC_BASE;
 use SINGLETON;
 
+/// An `Option<ObjectReference>` encoded as a `usize`.  It guarantees that `None` is encoded as 0,
+/// and `Some(objref)` is encoded as the underlying `usize` of `objref` itself.  It is intended for
+/// passing values to or from C++ code.
+/// Notes: The Rust ABI currently doesn't guarantee the encoding of `None`.
+#[repr(transparent)]
+pub struct NullableObjectReference(usize);
+
+impl From<NullableObjectReference> for Option<ObjectReference> {
+    fn from(value: NullableObjectReference) -> Self {
+        ObjectReference::from_raw_address(unsafe { Address::from_usize(value.0) })
+    }
+}
+
+impl From<Option<ObjectReference>> for NullableObjectReference {
+    fn from(value: Option<ObjectReference>) -> Self {
+        let encoded = value
+            .map(|obj| obj.to_raw_address().as_usize())
+            .unwrap_or(0);
+        Self(encoded)
+    }
+}
+
 /// # Safety
 /// Caller needs to make sure the ptr is a valid vector pointer.
 #[no_mangle]
@@ -210,11 +232,8 @@ pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectR
 }
 
 #[no_mangle]
-pub extern "C" fn get_forwarded_object(object: ObjectReference) -> ObjectReference {
-    match object.get_forwarded_object::<JikesRVM>() {
-        Some(ref_obj) => ref_obj,
-        None => ObjectReference::NULL,
-    }
+pub extern "C" fn get_forwarded_object(object: ObjectReference) -> NullableObjectReference {
+    object.get_forwarded_object::<JikesRVM>().into()
 }
 
 #[no_mangle]
@@ -285,11 +304,8 @@ pub extern "C" fn add_finalizer(object: ObjectReference) {
 }
 
 #[no_mangle]
-pub extern "C" fn get_finalized_object() -> ObjectReference {
-    match memory_manager::get_finalized_object(&SINGLETON) {
-        Some(obj) => obj,
-        None => ObjectReference::NULL,
-    }
+pub extern "C" fn get_finalized_object() -> NullableObjectReference {
+    memory_manager::get_finalized_object(&SINGLETON).into()
 }
 
 // Allocation slow path

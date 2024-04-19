@@ -1,4 +1,5 @@
 use mmtk::util::opaque_pointer::*;
+use mmtk::util::Address;
 use mmtk::util::ObjectReference;
 use mmtk::vm::ReferenceGlue;
 
@@ -25,15 +26,14 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
         }
     }
 
-    fn get_referent(object: ObjectReference) -> ObjectReference {
+    fn get_referent(object: ObjectReference) -> Option<ObjectReference> {
         if cfg!(feature = "binding_side_ref_proc") {
             panic!();
         } else {
-            debug_assert!(!object.is_null());
-            unsafe {
-                (object.to_raw_address() + REFERENCE_REFERENT_FIELD_OFFSET)
-                    .load::<ObjectReference>()
-            }
+            let addr = unsafe {
+                (object.to_raw_address() + REFERENCE_REFERENT_FIELD_OFFSET).load::<Address>()
+            };
+            ObjectReference::from_raw_address(addr)
         }
     }
 
@@ -49,6 +49,17 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
                         std::mem::transmute::<_, usize>(*reff)
                     );
                 }
+            }
+        }
+    }
+
+    fn clear_referent(new_reference: ObjectReference) {
+        if cfg!(feature = "binding_side_ref_proc") {
+            panic!();
+        } else {
+            unsafe {
+                (new_reference.to_raw_address() + REFERENCE_REFERENT_FIELD_OFFSET)
+                    .store(Address::ZERO);
             }
         }
     }
