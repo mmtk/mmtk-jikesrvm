@@ -181,6 +181,9 @@ public class Entrypoints {
   public static final NormalMethod enqueueReferenceMethod =
           getMethod(org.jikesrvm.mm.mminterface.MemoryManager.class, "enqueueReference", "(Lorg/vmmagic/unboxed/Address;)V");
 
+  public static final NormalMethod getInlinedMutatorSizeMethod =
+          getMethod(org.jikesrvm.mm.mminterface.MMTkMutatorContext.class, "getInlinedMutatorSize", "()I");
+
   public static final RVMField numThreadsField =
           getField(org.jikesrvm.scheduler.RVMThread.class, "numThreads", int.class);
   public static final RVMField isCollectorField =

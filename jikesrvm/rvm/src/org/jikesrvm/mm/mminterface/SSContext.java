@@ -22,13 +22,15 @@ public class SSContext extends MMTkMutatorContext {
     // CODE: BumpAllocator #1 (ImmortalSpace)
     // LARGE_CODE: BumpAllocator #2 (ImmortalSpace)
     // Immortal: BumpAllocator #3 (ImmortalSpace)
-    // NonMoving: BumpAllocator #4 (ImmortalSpace)
     // LOS: LargeObjectAllocator #0 (LargeObjectSpace)
+    // NonMoving: FreeListAllocator #0 (MarkSweepSpace)
 
     @Inline
     protected final int getAllocatorTag(int allocator) {
         if (allocator == MMTkAllocator.LOS) {
             return MMTkMutatorContext.TAG_LARGE_OBJECT;
+        } else if (allocator == MMTkAllocator.NONMOVING) {
+            return MMTkMutatorContext.TAG_FREE_LIST;
         } else {
             return MMTkMutatorContext.TAG_BUMP_POINTER;
         }
@@ -44,7 +46,7 @@ public class SSContext extends MMTkMutatorContext {
         } else if (allocator == MMTkAllocator.IMMORTAL) {
             return 3;
         } else if (allocator == MMTkAllocator.NONMOVING) {
-            return 4;
+            return 0;
         } else {
             VM.sysFail("Unexpected allocator", allocator);
             return 0;
@@ -56,6 +58,8 @@ public class SSContext extends MMTkMutatorContext {
             return COPY_SPACE;
         } else if (allocator == MMTkAllocator.LOS) {
             return LARGE_OBJECT_SPACE;
+        } else if (allocator == MMTkAllocator.NONMOVING) {
+            return MARK_SWEEP_SPACE;
         } else {
             return IMMORTAL_SPACE;
         }

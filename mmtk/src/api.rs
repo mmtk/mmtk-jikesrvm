@@ -64,7 +64,7 @@ pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
         builder
             .options
             .vm_space_start
-            .set(unsafe { Address::from_usize(0x6000_0000) });
+            .set(unsafe { Address::from_usize(0x7000_0000) });
         builder.options.vm_space_size.set(0x800_0000);
     }
 
@@ -133,6 +133,14 @@ pub extern "C" fn start_worker(tls: VMWorkerThread, worker: *mut GCWorker<JikesR
 
 #[no_mangle]
 pub extern "C" fn enable_collection(tls: VMThread) {
+    {
+        use crate::entrypoint::*;
+        use std::arch::asm;
+        let java_inlined_mutator_size = unsafe { jtoc_call!(GET_INLINED_MUTATOR_SIZE_METHOD_OFFSET, tls) };
+        let rust_inlined_mutator_size = std::mem::size_of::<mmtk::Mutator<JikesRVM>>();
+        assert_eq!(java_inlined_mutator_size, rust_inlined_mutator_size);
+    }
+
     // MMTk core renamed enable_collection() to initialize_collection(). The JikesRVM binding
     // never uses the new enable_collection() API so we just expose this as enable_collection().
     // Also this is used by JikesRVM for third party heaps in places where it uses JavaMMTK's enableCollection().
