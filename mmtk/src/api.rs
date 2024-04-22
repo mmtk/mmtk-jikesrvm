@@ -64,7 +64,7 @@ pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
         builder
             .options
             .vm_space_start
-            .set(unsafe { Address::from_usize(0x6000_0000) });
+            .set(unsafe { Address::from_usize(0x7000_0000) });
         builder.options.vm_space_size.set(0x800_0000);
     }
 
