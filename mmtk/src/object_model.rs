@@ -431,7 +431,7 @@ impl VMObjectModel {
         // Do we need to copy the hash code?
         if hash_state == HASH_STATE_HASHED {
             unsafe {
-                let hash_code = from_obj.value() >> LOG_BYTES_IN_ADDRESS;
+                let hash_code = from_obj.to_raw_address().as_usize() >> LOG_BYTES_IN_ADDRESS;
                 if DYNAMIC_HASH_OFFSET {
                     (to_obj.to_raw_address()
                         + num_bytes
