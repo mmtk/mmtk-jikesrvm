@@ -5,7 +5,7 @@ use libc::c_char;
 use libc::c_void;
 use mmtk::memory_manager;
 use mmtk::scheduler::*;
-use mmtk::util::apiutils::NullableObjectReference;
+use mmtk::util::api_util::NullableObjectReference;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 
