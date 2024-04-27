@@ -21,6 +21,15 @@ use memory_manager_constants::*;
 use tib_layout_constants::*;
 use JikesRVM;
 
+/// Used as a parameter of `move_object` to specify where to move an object to.
+enum MoveTarget {
+    /// Move an object to the address returned from `alloc_copy`.
+    ToAddress(Address),
+    /// Move an object to an `ObjectReference` pointing to an object previously computed from
+    /// `get_reference_when_copied_to`.
+    ToObject(ObjectReference),
+}
+
 /** Should we gather stats on hash code state transitions for address-based hashing? */
 const HASH_STATS: bool = false;
 /** count number of Object.hashCode() operations */
@@ -131,7 +140,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 
         let bytes = if copy {
             let bytes = Self::bytes_required_when_copied(from, rvm_type);
-            Self::move_object(unsafe { Address::zero() }, from, to, bytes, rvm_type);
+            Self::move_object(from, MoveTarget::ToObject(to), bytes, rvm_type);
             bytes
         } else {
             Self::bytes_used(from, rvm_type)
@@ -156,7 +165,8 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
             }
         }
 
-        ObjectReference::from_raw_address(res + OBJECT_REF_OFFSET)
+        debug_assert!(!res.is_zero());
+        unsafe { ObjectReference::from_raw_address_unchecked(res + OBJECT_REF_OFFSET) }
     }
 
     fn get_current_size(object: ObjectReference) -> usize {
@@ -229,7 +239,8 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 
     #[inline(always)]
     fn address_to_ref(addr: Address) -> ObjectReference {
-        ObjectReference::from_raw_address(addr + (-TIB_OFFSET))
+        debug_assert!(!addr.is_zero());
+        unsafe { ObjectReference::from_raw_address_unchecked(addr + (-TIB_OFFSET)) }
     }
 
     fn dump_object(_object: ObjectReference) {
@@ -256,7 +267,7 @@ impl VMObjectModel {
         let offset = Self::get_offset_for_alignment_class(from, rvm_type);
         let region = copy_context.alloc_copy(from, bytes, align, offset, copy);
 
-        let to_obj = Self::move_object(region, from, ObjectReference::NULL, bytes, rvm_type);
+        let to_obj = Self::move_object(from, MoveTarget::ToAddress(region), bytes, rvm_type);
         copy_context.post_copy(to_obj, bytes, copy);
         to_obj
     }
@@ -275,7 +286,7 @@ impl VMObjectModel {
         let offset = Self::get_offset_for_alignment_array(from, rvm_type);
         let region = copy_context.alloc_copy(from, bytes, align, offset, copy);
 
-        let to_obj = Self::move_object(region, from, ObjectReference::NULL, bytes, rvm_type);
+        let to_obj = Self::move_object(from, MoveTarget::ToAddress(region), bytes, rvm_type);
         copy_context.post_copy(to_obj, bytes, copy);
         // XXX: Do not sync icache/dcache because we do not support PowerPC
         to_obj
@@ -371,16 +382,12 @@ impl VMObjectModel {
 
     #[inline(always)]
     fn move_object(
-        immut_to_address: Address,
         from_obj: ObjectReference,
-        immut_to_obj: ObjectReference,
+        mut to: MoveTarget,
         num_bytes: usize,
         _rvm_type: Address,
     ) -> ObjectReference {
         trace!("VMObjectModel.move_object");
-        let mut to_address = immut_to_address;
-        let mut to_obj = immut_to_obj;
-        debug_assert!(to_address.is_zero() || to_obj.to_raw_address().is_zero());
 
         // Default values
         let mut copy_bytes = num_bytes;
@@ -399,8 +406,8 @@ impl VMObjectModel {
 
                     if !DYNAMIC_HASH_OFFSET {
                         // The hashcode is the first word, so we copy to object one word higher
-                        if to_obj.to_raw_address().is_zero() {
-                            to_address += HASHCODE_BYTES;
+                        if let MoveTarget::ToAddress(ref mut addr) = to {
+                            *addr += HASHCODE_BYTES;
                         }
                     }
                 } else if !DYNAMIC_HASH_OFFSET && hash_state == HASH_STATE_HASHED_AND_MOVED {
@@ -410,9 +417,18 @@ impl VMObjectModel {
             }
         }
 
-        if !to_obj.to_raw_address().is_zero() {
-            to_address = to_obj.to_raw_address() + (-obj_ref_offset);
-        }
+        let (to_address, to_obj) = match to {
+            MoveTarget::ToAddress(addr) => {
+                let obj =
+                    unsafe { ObjectReference::from_raw_address_unchecked(addr + obj_ref_offset) };
+                (addr, obj)
+            }
+            MoveTarget::ToObject(obj) => {
+                let addr = obj.to_raw_address() + (-obj_ref_offset);
+                debug_assert!(obj.to_raw_address() == addr + obj_ref_offset);
+                (addr, obj)
+            }
+        };
 
         // Low memory word of source object
         let from_address = from_obj.to_raw_address() + (-obj_ref_offset);
@@ -420,12 +436,6 @@ impl VMObjectModel {
         // Do the copy
         unsafe {
             Self::aligned_32_copy(to_address, from_address, copy_bytes);
-        }
-
-        if to_obj.is_null() {
-            to_obj = ObjectReference::from_raw_address(to_address + obj_ref_offset);
-        } else {
-            debug_assert!(to_obj.to_raw_address() == to_address + obj_ref_offset);
         }
 
         // Do we need to copy the hash code?

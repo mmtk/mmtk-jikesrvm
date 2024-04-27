@@ -5,6 +5,7 @@ use libc::c_char;
 use libc::c_void;
 use mmtk::memory_manager;
 use mmtk::scheduler::*;
+use mmtk::util::api_util::NullableObjectReference;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 
@@ -210,11 +211,8 @@ pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectR
 }
 
 #[no_mangle]
-pub extern "C" fn get_forwarded_object(object: ObjectReference) -> ObjectReference {
-    match object.get_forwarded_object::<JikesRVM>() {
-        Some(ref_obj) => ref_obj,
-        None => ObjectReference::NULL,
-    }
+pub extern "C" fn get_forwarded_object(object: ObjectReference) -> NullableObjectReference {
+    object.get_forwarded_object::<JikesRVM>().into()
 }
 
 #[no_mangle]
@@ -285,11 +283,8 @@ pub extern "C" fn add_finalizer(object: ObjectReference) {
 }
 
 #[no_mangle]
-pub extern "C" fn get_finalized_object() -> ObjectReference {
-    match memory_manager::get_finalized_object(&SINGLETON) {
-        Some(obj) => obj,
-        None => ObjectReference::NULL,
-    }
+pub extern "C" fn get_finalized_object() -> NullableObjectReference {
+    memory_manager::get_finalized_object(&SINGLETON).into()
 }
 
 // Allocation slow path
