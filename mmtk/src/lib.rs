@@ -43,11 +43,11 @@ pub static mut JTOC_BASE: Address = Address::ZERO;
 #[derive(Default)]
 pub struct JikesRVM;
 
-/// The type of edges in JikesRVM.
+/// The type of slots in JikesRVM.
 ///
 /// TODO: We start with Address to ease the transition.
-/// We should switch to the equivalent `mmtk::vm::edge_shape::SimpleEdge` later.
-pub type JikesRVMEdge = Address;
+/// We should switch to the equivalent `mmtk::vm::slot::SimpleSlot` later.
+pub type JikesRVMSlot = Address;
 
 impl VMBinding for JikesRVM {
     type VMObjectModel = object_model::VMObjectModel;
@@ -56,8 +56,8 @@ impl VMBinding for JikesRVM {
     type VMActivePlan = active_plan::VMActivePlan;
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
 
-    type VMEdge = JikesRVMEdge;
-    type VMMemorySlice = mmtk::vm::edge_shape::UnimplementedMemorySlice<JikesRVMEdge>;
+    type VMSlot = JikesRVMSlot;
+    type VMMemorySlice = mmtk::vm::slot::UnimplementedMemorySlice<JikesRVMSlot>;
 
     #[cfg(target_arch = "x86")]
     // On Intel we align code to 16 bytes as recommended in the optimization manual.

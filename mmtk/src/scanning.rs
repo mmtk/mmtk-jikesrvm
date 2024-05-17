@@ -7,7 +7,7 @@ use mmtk::vm::ObjectTracerContext;
 // use crate::scan_boot_image::ScanBootImageRoots;
 use crate::scan_statics::ScanStaticRoots;
 use crate::unboxed_size_constants::LOG_BYTES_IN_ADDRESS;
-use crate::JikesRVMEdge;
+use crate::JikesRVMSlot;
 use crate::SINGLETON;
 use active_plan::VMActivePlan;
 use entrypoint::*;
@@ -18,9 +18,9 @@ use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::ActivePlan;
-use mmtk::vm::EdgeVisitor;
 use mmtk::vm::RootsWorkFactory;
 use mmtk::vm::Scanning;
+use mmtk::vm::SlotVisitor;
 use mmtk::MMTK;
 use mmtk::*;
 use object_model::VMObjectModel;
@@ -35,27 +35,27 @@ const DUMP_REF: bool = false;
 
 // The mmtk-core no longer exposes the capacity of work packets through the API.
 // This value is chosen by the mmtk-jikesrvm binding.  The Rust and the Java code agree upon this buffer size.
-// See the Java constant `RustScanThread.EDGES_BUFFER_CAPACITY`.
-pub(crate) const EDGES_BUFFER_CAPACITY: usize = 4096;
+// See the Java constant `RustScanThread.SLOTS_BUFFER_CAPACITY`.
+pub(crate) const SLOTS_BUFFER_CAPACITY: usize = 4096;
 
-extern "C" fn report_edges_and_renew_buffer<F: RootsWorkFactory<JikesRVMEdge>>(
+extern "C" fn report_slots_and_renew_buffer<F: RootsWorkFactory<JikesRVMSlot>>(
     ptr: *mut Address,
     length: usize,
     factory: *mut F,
 ) -> *mut Address {
     if !ptr.is_null() {
-        let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, EDGES_BUFFER_CAPACITY) };
+        let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, SLOTS_BUFFER_CAPACITY) };
         let factory: &mut F = unsafe { &mut *factory };
-        factory.create_process_edge_roots_work(buf);
+        factory.create_process_slot_roots_work(buf);
     }
     let (ptr, _, capacity) = {
         // TODO: Use Vec::into_raw_parts() when the method is available.
         use std::mem::ManuallyDrop;
-        let new_vec = Vec::with_capacity(EDGES_BUFFER_CAPACITY);
+        let new_vec = Vec::with_capacity(SLOTS_BUFFER_CAPACITY);
         let mut me = ManuallyDrop::new(new_vec);
         (me.as_mut_ptr(), me.len(), me.capacity())
     };
-    debug_assert_eq!(capacity, EDGES_BUFFER_CAPACITY);
+    debug_assert_eq!(capacity, SLOTS_BUFFER_CAPACITY);
     ptr
 }
 
@@ -71,11 +71,11 @@ impl Scanning<JikesRVM> for VMScanning {
     fn scan_roots_in_mutator_thread(
         tls: VMWorkerThread,
         mutator: &'static mut Mutator<JikesRVM>,
-        mut factory: impl RootsWorkFactory<JikesRVMEdge>,
+        mut factory: impl RootsWorkFactory<JikesRVMSlot>,
     ) {
         Self::compute_thread_roots(&mut factory, false, mutator.get_tls(), tls);
     }
-    fn scan_vm_specific_roots(_tls: VMWorkerThread, factory: impl RootsWorkFactory<JikesRVMEdge>) {
+    fn scan_vm_specific_roots(_tls: VMWorkerThread, factory: impl RootsWorkFactory<JikesRVMSlot>) {
         let workers = memory_manager::num_of_workers(&SINGLETON);
         for i in 0..workers {
             memory_manager::add_work_packets(
@@ -89,10 +89,10 @@ impl Scanning<JikesRVM> for VMScanning {
             );
         }
     }
-    fn scan_object<EV: EdgeVisitor<JikesRVMEdge>>(
+    fn scan_object<EV: SlotVisitor<JikesRVMSlot>>(
         tls: VMWorkerThread,
         object: ObjectReference,
-        edge_visitor: &mut EV,
+        slot_visitor: &mut EV,
     ) {
         if DUMP_REF {
             let obj_ptr = object.to_raw_address().as_usize();
@@ -113,7 +113,7 @@ impl Scanning<JikesRVM> for VMScanning {
             // object is a REFARRAY
             let length = VMObjectModel::get_array_length(object);
             for i in 0..length {
-                edge_visitor.visit_edge(object.to_raw_address() + (i << LOG_BYTES_IN_ADDRESS));
+                slot_visitor.visit_slot(object.to_raw_address() + (i << LOG_BYTES_IN_ADDRESS));
             }
         } else {
             let len_ptr: usize = elt0_ptr - size_of::<isize>();
@@ -121,7 +121,7 @@ impl Scanning<JikesRVM> for VMScanning {
             let offsets = unsafe { slice::from_raw_parts(elt0_ptr as *const isize, len as usize) };
 
             for offset in offsets.iter() {
-                edge_visitor.visit_edge(object.to_raw_address() + *offset);
+                slot_visitor.visit_slot(object.to_raw_address() + *offset);
             }
         }
     }
@@ -244,7 +244,7 @@ where
 }
 
 impl VMScanning {
-    fn compute_thread_roots<F: RootsWorkFactory<JikesRVMEdge>>(
+    fn compute_thread_roots<F: RootsWorkFactory<JikesRVMSlot>>(
         factory: &mut F,
         new_roots_sufficient: bool,
         mutator: VMMutatorThread,
@@ -267,7 +267,7 @@ impl VMScanning {
                 SCAN_THREAD_METHOD_OFFSET,
                 tls,
                 thread_usize,
-                report_edges_and_renew_buffer::<F>,
+                report_slots_and_renew_buffer::<F>,
                 factory as *mut F as *mut libc::c_void,
                 process_code_locations as i32,
                 new_roots_sufficient as i32
@@ -342,13 +342,13 @@ impl VMScanning {
     }
 }
 
-pub struct ScanGlobalRoots<F: RootsWorkFactory<JikesRVMEdge>> {
+pub struct ScanGlobalRoots<F: RootsWorkFactory<JikesRVMSlot>> {
     factory: F,
     subwork_id: usize,
     total_subwork: usize,
 }
 
-impl<F: RootsWorkFactory<JikesRVMEdge>> ScanGlobalRoots<F> {
+impl<F: RootsWorkFactory<JikesRVMSlot>> ScanGlobalRoots<F> {
     pub fn new(factory: F, subwork_id: usize, total_subwork: usize) -> Self {
         Self {
             factory,
@@ -358,18 +358,18 @@ impl<F: RootsWorkFactory<JikesRVMEdge>> ScanGlobalRoots<F> {
     }
 }
 
-impl<F: RootsWorkFactory<JikesRVMEdge>> GCWork<JikesRVM> for ScanGlobalRoots<F> {
+impl<F: RootsWorkFactory<JikesRVMSlot>> GCWork<JikesRVM> for ScanGlobalRoots<F> {
     fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
-        let mut edges = Vec::with_capacity(EDGES_BUFFER_CAPACITY);
-        VMScanning::scan_global_roots(worker.tls, self.subwork_id, self.total_subwork, |edge| {
-            edges.push(edge);
-            if edges.len() >= EDGES_BUFFER_CAPACITY {
-                let new_edges = mem::replace(&mut edges, Vec::with_capacity(EDGES_BUFFER_CAPACITY));
-                self.factory.create_process_edge_roots_work(new_edges);
+        let mut slots = Vec::with_capacity(SLOTS_BUFFER_CAPACITY);
+        VMScanning::scan_global_roots(worker.tls, self.subwork_id, self.total_subwork, |slot| {
+            slots.push(slot);
+            if slots.len() >= SLOTS_BUFFER_CAPACITY {
+                let new_slots = mem::replace(&mut slots, Vec::with_capacity(SLOTS_BUFFER_CAPACITY));
+                self.factory.create_process_slot_roots_work(new_slots);
             }
         });
-        if !edges.is_empty() {
-            self.factory.create_process_edge_roots_work(edges);
+        if !slots.is_empty() {
+            self.factory.create_process_slot_roots_work(slots);
         }
     }
 }

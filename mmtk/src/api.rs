@@ -1,4 +1,4 @@
-use crate::scanning::EDGES_BUFFER_CAPACITY;
+use crate::scanning::SLOTS_BUFFER_CAPACITY;
 use collection::VMCollection;
 use collection::BOOT_THREAD;
 use libc::c_char;
@@ -25,7 +25,7 @@ use SINGLETON;
 /// Caller needs to make sure the ptr is a valid vector pointer.
 #[no_mangle]
 pub unsafe extern "C" fn release_buffer(ptr: *mut Address) {
-    let _vec = Vec::<Address>::from_raw_parts(ptr, 0, EDGES_BUFFER_CAPACITY);
+    let _vec = Vec::<Address>::from_raw_parts(ptr, 0, SLOTS_BUFFER_CAPACITY);
 }
 
 #[no_mangle]
