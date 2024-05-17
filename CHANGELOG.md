@@ -1,9 +1,22 @@
+0.25.0 (2024-05-17)
+===
+
+## What's Changed
+* Remove coordinator thread by @wks in https://github.com/mmtk/mmtk-jikesrvm/pull/159
+* Use to_address for SFT access by @wks in https://github.com/mmtk/mmtk-jikesrvm/pull/166
+* Update JikesRVM's boot image address by @qinsoon in https://github.com/mmtk/mmtk-jikesrvm/pull/170
+* Remove NULL ObjectReference by @wks in https://github.com/mmtk/mmtk-jikesrvm/pull/169
+
+**Full Changelog**: https://github.com/mmtk/mmtk-jikesrvm/compare/v0.24.0...v0.25.0
+
 0.24.0 (2024-04-08)
 ===
 
 ## What's Changed
 * Update mmtk-core to v0.24.
 * Update Rust toolchain to 1.77.0.
+
+**Full Changelog**: https://github.com/mmtk/mmtk-jikesrvm/compare/v0.23.0...v0.24.0
 
 0.23.0 (2024-02-09)
 ===
