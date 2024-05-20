@@ -51,14 +51,14 @@ pub fn scan_statics(
             // TODO: check_reference?
             slot_list.push(slots + slot_offset);
             if slot_list.len() >= SLOTS_BUFFER_CAPACITY {
-                factory.create_process_slot_roots_work(slot_list);
+                factory.create_process_root_slots_work(slot_list);
                 slot_list = Vec::with_capacity(SLOTS_BUFFER_CAPACITY);
             }
             // trace.process_root_edge(slots + slot_offset, true);
             slot += REF_SLOT_SIZE;
         }
         if !slot_list.is_empty() {
-            factory.create_process_slot_roots_work(slot_list);
+            factory.create_process_root_slots_work(slot_list);
         }
     }
 }
