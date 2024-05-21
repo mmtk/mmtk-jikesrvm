@@ -46,7 +46,7 @@ extern "C" fn report_slots_and_renew_buffer<F: RootsWorkFactory<JikesRVMSlot>>(
     if !ptr.is_null() {
         let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, SLOTS_BUFFER_CAPACITY) };
         let factory: &mut F = unsafe { &mut *factory };
-        factory.create_process_root_slots_work(buf);
+        factory.create_process_roots_work(buf);
     }
     let (ptr, _, capacity) = {
         // TODO: Use Vec::into_raw_parts() when the method is available.
@@ -365,11 +365,11 @@ impl<F: RootsWorkFactory<JikesRVMSlot>> GCWork<JikesRVM> for ScanGlobalRoots<F> 
             slots.push(slot);
             if slots.len() >= SLOTS_BUFFER_CAPACITY {
                 let new_slots = mem::replace(&mut slots, Vec::with_capacity(SLOTS_BUFFER_CAPACITY));
-                self.factory.create_process_root_slots_work(new_slots);
+                self.factory.create_process_roots_work(new_slots);
             }
         });
         if !slots.is_empty() {
-            self.factory.create_process_root_slots_work(slots);
+            self.factory.create_process_roots_work(slots);
         }
     }
 }

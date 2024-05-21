@@ -56,14 +56,14 @@ pub fn scan_boot_image(
                 if slots.len() >= SLOTS_BUFFER_CAPACITY {
                     let new_slots =
                         mem::replace(&mut slots, Vec::with_capacity(SLOTS_BUFFER_CAPACITY));
-                    factory.create_process_root_slots_work(new_slots);
+                    factory.create_process_roots_work(new_slots);
                 }
             });
             trace!("Chunk processed successfully");
             cursor += stride;
         }
         if !slots.is_empty() {
-            factory.create_process_root_slots_work(slots);
+            factory.create_process_roots_work(slots);
         }
     }
 }
