@@ -123,8 +123,8 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
   private Address edges;
   private Word size = Word.zero();
   // The buffer size agreed between the Rust part and the Java part of the binding.
-  // See the constant EDGES_BUFFER_CAPACITY in scanning.rs.
-  public static final Word EDGES_BUFFER_CAPACITY = Word.fromIntZeroExtend(4096);
+  // See the constant SLOTS_BUFFER_CAPACITY in scanning.rs.
+  public static final Word SLOTS_BUFFER_CAPACITY = Word.fromIntZeroExtend(4096);
 
   /***********************************************************************
    *
@@ -222,7 +222,7 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
     if (VM.VerifyAssertions) VM._assert(!this.edges.isZero());
     this.edges.plus(cursor.toInt() << LOG_BYTES_IN_WORD).store(edge);
     // Flush if full
-    if (cursor.GE(EDGES_BUFFER_CAPACITY)) {
+    if (cursor.GE(SLOTS_BUFFER_CAPACITY)) {
       flush();
     }
   }

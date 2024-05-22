@@ -1,6 +1,6 @@
-use crate::scanning::EDGES_BUFFER_CAPACITY;
+use crate::scanning::SLOTS_BUFFER_CAPACITY;
 use crate::JikesRVM;
-use crate::JikesRVMEdge;
+use crate::JikesRVMSlot;
 use entrypoint::*;
 use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
@@ -18,7 +18,7 @@ const CHUNK_SIZE_MASK: usize = 0xFFFFFFFF - (REF_SLOT_SIZE - 1);
 
 pub fn scan_statics(
     tls: VMWorkerThread,
-    factory: &mut impl RootsWorkFactory<JikesRVMEdge>,
+    factory: &mut impl RootsWorkFactory<JikesRVMSlot>,
     subwork_id: usize,
     total_subwork: usize,
 ) {
@@ -43,33 +43,33 @@ pub fn scan_statics(
             (thread_ordinal + 1) * chunk_size
         };
 
-        let mut edges = Vec::with_capacity(EDGES_BUFFER_CAPACITY);
+        let mut slot_list = Vec::with_capacity(SLOTS_BUFFER_CAPACITY);
 
         let mut slot = start;
         while slot < end {
             let slot_offset = slot * 4;
             // TODO: check_reference?
-            edges.push(slots + slot_offset);
-            if edges.len() >= EDGES_BUFFER_CAPACITY {
-                factory.create_process_edge_roots_work(edges);
-                edges = Vec::with_capacity(EDGES_BUFFER_CAPACITY);
+            slot_list.push(slots + slot_offset);
+            if slot_list.len() >= SLOTS_BUFFER_CAPACITY {
+                factory.create_process_roots_work(slot_list);
+                slot_list = Vec::with_capacity(SLOTS_BUFFER_CAPACITY);
             }
             // trace.process_root_edge(slots + slot_offset, true);
             slot += REF_SLOT_SIZE;
         }
-        if !edges.is_empty() {
-            factory.create_process_edge_roots_work(edges);
+        if !slot_list.is_empty() {
+            factory.create_process_roots_work(slot_list);
         }
     }
 }
 
-pub struct ScanStaticRoots<F: RootsWorkFactory<JikesRVMEdge>> {
+pub struct ScanStaticRoots<F: RootsWorkFactory<JikesRVMSlot>> {
     factory: F,
     subwork_id: usize,
     total_subwork: usize,
 }
 
-impl<F: RootsWorkFactory<JikesRVMEdge>> ScanStaticRoots<F> {
+impl<F: RootsWorkFactory<JikesRVMSlot>> ScanStaticRoots<F> {
     pub fn new(factory: F, subwork_id: usize, total_subwork: usize) -> Self {
         Self {
             factory,
@@ -79,7 +79,7 @@ impl<F: RootsWorkFactory<JikesRVMEdge>> ScanStaticRoots<F> {
     }
 }
 
-impl<F: RootsWorkFactory<JikesRVMEdge>> GCWork<JikesRVM> for ScanStaticRoots<F> {
+impl<F: RootsWorkFactory<JikesRVMSlot>> GCWork<JikesRVM> for ScanStaticRoots<F> {
     fn do_work(&mut self, worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
         scan_statics(
             worker.tls,

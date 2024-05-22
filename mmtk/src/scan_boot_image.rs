@@ -1,7 +1,7 @@
-use crate::scanning::EDGES_BUFFER_CAPACITY;
+use crate::scanning::SLOTS_BUFFER_CAPACITY;
 use crate::unboxed_size_constants::*;
 use crate::JikesRVM;
-use crate::JikesRVMEdge;
+use crate::JikesRVMSlot;
 use entrypoint::*;
 use java_size_constants::*;
 use mmtk::scheduler::*;
@@ -26,7 +26,7 @@ static REFS: AtomicUsize = AtomicUsize::new(0);
 
 pub fn scan_boot_image(
     _tls: OpaquePointer,
-    factory: &mut impl RootsWorkFactory<JikesRVMEdge>,
+    factory: &mut impl RootsWorkFactory<JikesRVMSlot>,
     subwork_id: usize,
     total_subwork: usize,
 ) {
@@ -48,22 +48,22 @@ pub fn scan_boot_image(
         ROOTS.store(0, Ordering::Relaxed);
         REFS.store(0, Ordering::Relaxed);
 
-        let mut edges = vec![];
+        let mut slots = vec![];
         while cursor < map_end {
             trace!("Processing chunk at {:x}", cursor);
-            process_chunk(cursor, image_start, map_start, map_end, |edge| {
-                edges.push(edge);
-                if edges.len() >= EDGES_BUFFER_CAPACITY {
-                    let new_edges =
-                        mem::replace(&mut edges, Vec::with_capacity(EDGES_BUFFER_CAPACITY));
-                    factory.create_process_edge_roots_work(new_edges);
+            process_chunk(cursor, image_start, map_start, map_end, |slot| {
+                slots.push(slot);
+                if slots.len() >= SLOTS_BUFFER_CAPACITY {
+                    let new_slots =
+                        mem::replace(&mut slots, Vec::with_capacity(SLOTS_BUFFER_CAPACITY));
+                    factory.create_process_roots_work(new_slots);
                 }
             });
             trace!("Chunk processed successfully");
             cursor += stride;
         }
-        if !edges.is_empty() {
-            factory.create_process_edge_roots_work(edges);
+        if !slots.is_empty() {
+            factory.create_process_roots_work(slots);
         }
     }
 }
@@ -73,7 +73,7 @@ fn process_chunk(
     image_start: Address,
     _map_start: Address,
     map_end: Address,
-    mut report_edge: impl FnMut(Address),
+    mut report_slot: impl FnMut(Address),
 ) {
     let mut value: usize;
     let mut offset: usize = 0;
@@ -106,7 +106,7 @@ fn process_chunk(
                 if cfg!(feature = "debug") {
                     ROOTS.fetch_add(1, Ordering::Relaxed);
                 }
-                report_edge(slot);
+                report_slot(slot);
             }
             if runlength != 0 {
                 for _ in 0..runlength {
@@ -121,7 +121,7 @@ fn process_chunk(
                             ROOTS.fetch_add(1, Ordering::Relaxed);
                         }
                         // TODO: check_reference(slot) ?
-                        report_edge(slot);
+                        report_slot(slot);
                     }
                 }
             }
@@ -141,13 +141,13 @@ fn decode_long_encoding(cursor: Address) -> usize {
     }
 }
 
-pub struct ScanBootImageRoots<F: RootsWorkFactory<JikesRVMEdge>> {
+pub struct ScanBootImageRoots<F: RootsWorkFactory<JikesRVMSlot>> {
     factory: F,
     subwork_id: usize,
     total_subwork: usize,
 }
 
-impl<F: RootsWorkFactory<JikesRVMEdge>> ScanBootImageRoots<F> {
+impl<F: RootsWorkFactory<JikesRVMSlot>> ScanBootImageRoots<F> {
     pub fn new(factory: F, subwork_id: usize, total_subwork: usize) -> Self {
         Self {
             factory,
@@ -157,7 +157,7 @@ impl<F: RootsWorkFactory<JikesRVMEdge>> ScanBootImageRoots<F> {
     }
 }
 
-impl<F: RootsWorkFactory<JikesRVMEdge>> GCWork<JikesRVM> for ScanBootImageRoots<F> {
+impl<F: RootsWorkFactory<JikesRVMSlot>> GCWork<JikesRVM> for ScanBootImageRoots<F> {
     fn do_work(&mut self, _worker: &mut GCWorker<JikesRVM>, _mmtk: &'static MMTK<JikesRVM>) {
         scan_boot_image(
             OpaquePointer::UNINITIALIZED,
