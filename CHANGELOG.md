@@ -1,3 +1,12 @@
+0.26.0 (2024-07-01)
+===
+
+## What's Changed
+
+* Rename edge to slot by @wks in https://github.com/mmtk/mmtk-jikesrvm/pull/171
+
+**Full Changelog**: https://github.com/mmtk/mmtk-jikesrvm/compare/v0.25.0...v0.26.0
+
 0.25.0 (2024-05-17)
 ===
 
