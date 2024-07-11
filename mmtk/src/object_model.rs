@@ -230,18 +230,9 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         object.to_raw_address()
     }
 
-    #[inline(always)]
-    fn ref_to_address(object: ObjectReference) -> Address {
-        object.to_raw_address() + TIB_OFFSET
-    }
-
     const OBJECT_REF_OFFSET_LOWER_BOUND: isize = OBJECT_REF_OFFSET;
 
-    #[inline(always)]
-    fn address_to_ref(addr: Address) -> ObjectReference {
-        debug_assert!(!addr.is_zero());
-        unsafe { ObjectReference::from_raw_address_unchecked(addr + (-TIB_OFFSET)) }
-    }
+    const IN_OBJECT_ADDRESS_OFFSET: isize = TIB_OFFSET;
 
     fn dump_object(_object: ObjectReference) {
         unimplemented!()
