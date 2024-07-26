@@ -28,12 +28,12 @@ log = {version = "0.4", features = ["max_level_trace", "release_max_level_off"] 
 # - change branch/rev
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "a3a72f8e5795678eff06fdc1524f0b429a62ccc0" }
+mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "9a49d6a938f0c3143750e8415622dfe679b3ddb8" }
 # Uncomment the following to build locally - if you change the path locally, do not commit the change in a PR
 # mmtk = { path = "../repos/mmtk-core" }
 
 [features]
-default = ["mmtk/vm_space", "mmtk/code_space"]
+default = ["mmtk/vm_space", "mmtk/code_space", "mmtk/exec_permission_on_all_spaces"]
 mmtk_extreme_assertions = ["mmtk/extreme_assertions"]
 nogc = []
 semispace = []
