@@ -108,9 +108,9 @@ dependencies = [
 
 [[package]]
 name = "bytemuck"
-version = "1.16.1"
+version = "1.16.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b236fc92302c97ed75b38da1f4917b5cdda4984745740f153a5d3059e48d725e"
+checksum = "102087e286b4677862ea56cf8fc58bb2cdfa8725c40ffb80fe3a008eb7f2fc83"
 dependencies = [
  "bytemuck_derive",
 ]
@@ -128,9 +128,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.1.6"
+version = "1.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2aba8f4e9906c7ce3c73463f62a7f0c65183ada1a2d47e397cc8810827f9694f"
+checksum = "504bdec147f2cc13c8b57ed9401fd8a147cc66b67ad5cb241394244f2c947549"
 dependencies = [
  "jobserver",
  "libc",
@@ -430,8 +430,8 @@ dependencies = [
 
 [[package]]
 name = "mmtk"
-version = "0.26.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=9a49d6a938f0c3143750e8415622dfe679b3ddb8#9a49d6a938f0c3143750e8415622dfe679b3ddb8"
+version = "0.27.0"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=160b7702fccda133c9407234821ad35103623179#160b7702fccda133c9407234821ad35103623179"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -456,6 +456,7 @@ dependencies = [
  "portable-atomic",
  "probe",
  "regex",
+ "rustversion",
  "spin",
  "static_assertions",
  "strum",
@@ -465,8 +466,8 @@ dependencies = [
 
 [[package]]
 name = "mmtk-macros"
-version = "0.26.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=9a49d6a938f0c3143750e8415622dfe679b3ddb8#9a49d6a938f0c3143750e8415622dfe679b3ddb8"
+version = "0.27.0"
+source = "git+https://github.com/mmtk/mmtk-core.git?rev=160b7702fccda133c9407234821ad35103623179#160b7702fccda133c9407234821ad35103623179"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -606,9 +607,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.10.5"
+version = "1.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b91213439dad192326a0d7c6ee3955910425f441d7038e0d6933b0aec5c4517f"
+checksum = "4219d74c6b67a3654a9fbebc4b419e22126d13d2f3c4a07ee0cb61ff79a79619"
 dependencies = [
  "aho-corasick",
  "memchr",

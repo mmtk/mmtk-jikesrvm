@@ -1,3 +1,12 @@
+0.27.0 (2024-08-09)
+===
+
+## What's Changed
+* Update to MMTK core PR #1159 by @qinsoon in https://github.com/mmtk/mmtk-jikesrvm/pull/174
+* Update to MMTk core PR #1176 by @qinsoon in https://github.com/mmtk/mmtk-jikesrvm/pull/175
+
+**Full Changelog**: https://github.com/mmtk/mmtk-jikesrvm/compare/v0.26.0...v0.27.0
+
 0.26.0 (2024-07-01)
 ===
 
