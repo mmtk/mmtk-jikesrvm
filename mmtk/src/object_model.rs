@@ -278,11 +278,6 @@ static HASH_TRANSITION2: AtomicUsize = AtomicUsize::new(0);
 pub struct VMObjectModel {}
 
 impl VMObjectModel {
-    #[inline(always)]
-    pub fn load_tib(object: ObjectReference) -> TIB {
-        JikesObj::from(object).load_tib()
-    }
-
     #[allow(dead_code)]
     pub(crate) fn get_align_when_copied(object: ObjectReference) -> usize {
         trace!("ObjectModel.get_align_when_copied");
@@ -319,8 +314,8 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         copy_context: &mut GCWorkerCopyContext<JikesRVM>,
     ) -> ObjectReference {
         trace!("ObjectModel.copy");
-        let tib = Self::load_tib(from);
-        let rvm_type = JikesObj::from(from).load_rvm_type();
+        let tib = JikesObj::from(from).load_tib();
+        let rvm_type = tib.load_rvm_type();
 
         trace!("Is it a class?");
         if rvm_type.is_class() {
