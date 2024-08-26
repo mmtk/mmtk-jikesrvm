@@ -315,11 +315,11 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         let copy = from != to;
 
         let bytes = if copy {
-            let bytes = Self::bytes_required_when_copied(from, rvm_type);
+            let bytes = JikesObj::from(from).bytes_required_when_copied(rvm_type);
             Self::move_object(from, MoveTarget::ToObject(to), bytes, rvm_type);
             bytes
         } else {
-            Self::bytes_used(from, rvm_type)
+            JikesObj::from(from).bytes_used(rvm_type)
         };
 
         let start = Self::ref_to_object_start(to);
@@ -346,13 +346,13 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         trace!("ObjectModel.get_current_size");
         let rvm_type = JikesObj::from(object).load_rvm_type();
 
-        Self::bytes_used(object, rvm_type)
+        JikesObj::from(object).bytes_used(rvm_type)
     }
 
     fn get_size_when_copied(object: ObjectReference) -> usize {
         let rvm_type = JikesObj::from(object).load_rvm_type();
 
-        Self::bytes_required_when_copied(object, rvm_type)
+        JikesObj::from(object).bytes_required_when_copied(rvm_type)
     }
 
     fn get_align_when_copied(object: ObjectReference) -> usize {
@@ -420,7 +420,7 @@ impl VMObjectModel {
         copy_context: &mut GCWorkerCopyContext<JikesRVM>,
     ) -> ObjectReference {
         trace!("VMObjectModel.copy_scalar");
-        let bytes = Self::bytes_required_when_copied_class(from, rvm_type);
+        let bytes = JikesObj::from(from).bytes_required_when_copied_class(rvm_type);
         let align = Self::get_alignment_class(rvm_type);
         let offset = Self::get_offset_for_alignment_class(from, rvm_type);
         let region = copy_context.alloc_copy(from, bytes, align, offset, copy);
@@ -439,7 +439,7 @@ impl VMObjectModel {
         copy_context: &mut GCWorkerCopyContext<JikesRVM>,
     ) -> ObjectReference {
         trace!("VMObjectModel.copy_array");
-        let bytes = Self::bytes_required_when_copied_array(from, rvm_type);
+        let bytes = JikesObj::from(from).bytes_required_when_copied_array(rvm_type);
         let align = Self::get_alignment_array(rvm_type);
         let offset = Self::get_offset_for_alignment_array(from, rvm_type);
         let region = copy_context.alloc_copy(from, bytes, align, offset, copy);
@@ -448,30 +448,6 @@ impl VMObjectModel {
         copy_context.post_copy(to_obj, bytes, copy);
         // XXX: Do not sync icache/dcache because we do not support PowerPC
         to_obj
-    }
-
-    #[inline(always)]
-    fn bytes_required_when_copied(object: ObjectReference, rvm_type: RVMType) -> usize {
-        trace!("VMObjectModel.bytes_required_when_copied");
-        JikesObj::from(object).bytes_required_when_copied(rvm_type)
-    }
-
-    #[inline(always)]
-    fn bytes_required_when_copied_class(object: ObjectReference, rvm_type: RVMType) -> usize {
-        trace!("VMObjectModel.bytes_required_when_copied_class");
-        JikesObj::from(object).bytes_required_when_copied_class(rvm_type)
-    }
-
-    #[inline(always)]
-    fn bytes_required_when_copied_array(object: ObjectReference, rvm_type: RVMType) -> usize {
-        trace!("VMObjectModel.bytes_required_when_copied_array");
-        JikesObj::from(object).bytes_required_when_copied_array(rvm_type)
-    }
-
-    #[inline(always)]
-    fn bytes_used(object: ObjectReference, rvm_type: RVMType) -> usize {
-        trace!("VMObjectModel.bytes_used");
-        JikesObj::from(object).bytes_used(rvm_type)
     }
 
     #[inline(always)]
