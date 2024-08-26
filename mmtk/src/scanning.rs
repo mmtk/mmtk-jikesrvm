@@ -2,6 +2,7 @@ use std::arch::asm;
 use std::mem::size_of;
 use std::slice;
 
+use crate::object_model::JikesObj;
 use mmtk::vm::ObjectTracer;
 use mmtk::vm::ObjectTracerContext;
 // use crate::scan_boot_image::ScanBootImageRoots;
@@ -102,7 +103,7 @@ impl Scanning<JikesRVM> for VMScanning {
         }
         trace!("Getting reference array");
         let elt0_ptr: usize = {
-            let rvm_type = VMObjectModel::load_rvm_type(object);
+            let rvm_type = JikesObj::from(object).load_rvm_type();
             rvm_type.reference_offsets()
         };
         trace!("elt0_ptr: {}", elt0_ptr);

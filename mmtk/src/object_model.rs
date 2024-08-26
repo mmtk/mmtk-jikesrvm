@@ -279,11 +279,6 @@ pub struct VMObjectModel {}
 
 impl VMObjectModel {
     #[inline(always)]
-    pub fn load_rvm_type(object: ObjectReference) -> RVMType {
-        JikesObj::from(object).load_rvm_type()
-    }
-
-    #[inline(always)]
     pub fn load_tib(object: ObjectReference) -> TIB {
         JikesObj::from(object).load_tib()
     }
@@ -325,7 +320,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
     ) -> ObjectReference {
         trace!("ObjectModel.copy");
         let tib = Self::load_tib(from);
-        let rvm_type = Self::load_rvm_type(from);
+        let rvm_type = JikesObj::from(from).load_rvm_type();
 
         trace!("Is it a class?");
         if rvm_type.is_class() {
@@ -340,7 +335,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
     #[inline(always)]
     fn copy_to(from: ObjectReference, to: ObjectReference, region: Address) -> Address {
         trace!("ObjectModel.copy_to");
-        let rvm_type = Self::load_rvm_type(from);
+        let rvm_type = JikesObj::from(from).load_rvm_type();
 
         let copy = from != to;
 
@@ -374,19 +369,19 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 
     fn get_current_size(object: ObjectReference) -> usize {
         trace!("ObjectModel.get_current_size");
-        let rvm_type = Self::load_rvm_type(object);
+        let rvm_type = JikesObj::from(object).load_rvm_type();
 
         Self::bytes_used(object, rvm_type)
     }
 
     fn get_size_when_copied(object: ObjectReference) -> usize {
-        let rvm_type = Self::load_rvm_type(object);
+        let rvm_type = JikesObj::from(object).load_rvm_type();
 
         Self::bytes_required_when_copied(object, rvm_type)
     }
 
     fn get_align_when_copied(object: ObjectReference) -> usize {
-        let rvm_type = Self::load_rvm_type(object);
+        let rvm_type = JikesObj::from(object).load_rvm_type();
 
         if rvm_type.is_class() {
             Self::get_alignment_class(rvm_type)
@@ -396,7 +391,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
     }
 
     fn get_align_offset_when_copied(object: ObjectReference) -> usize {
-        let rvm_type = Self::load_rvm_type(object);
+        let rvm_type = JikesObj::from(object).load_rvm_type();
 
         if rvm_type.is_class() {
             Self::get_offset_for_alignment_class(object, rvm_type)
