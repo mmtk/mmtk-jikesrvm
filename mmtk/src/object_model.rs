@@ -100,7 +100,7 @@ impl JikesObj {
 
     #[inline(always)]
     fn bytes_required_when_copied_class(&self, rvm_type: RVMType) -> usize {
-        let mut size = unsafe { (rvm_type.0 + INSTANCE_SIZE_FIELD_OFFSET).load::<usize>() };
+        let mut size = rvm_type.instance_size();
         trace!("bytes_required_when_copied_class: instance size={}", size);
 
         if ADDRESS_BASED_HASHING {
@@ -119,14 +119,8 @@ impl JikesObj {
         trace!("VMObjectModel.bytes_required_when_copied_array");
         let mut size = {
             let num_elements = self.get_array_length();
-            unsafe {
-                let log_element_size = (rvm_type.0 + LOG_ELEMENT_SIZE_FIELD_OFFSET).load::<usize>();
-                // println!(
-                //     "log_element_size(0x{:x}, 0x{:x}) -> 0x{:x} << 0x{:x}",
-                //     object, rvm_type, num_elements, log_element_size
-                // );
-                ARRAY_HEADER_SIZE + (num_elements << log_element_size)
-            }
+            let log_element_size = rvm_type.log_element_size();
+            ARRAY_HEADER_SIZE + (num_elements << log_element_size)
         };
 
         if ADDRESS_BASED_HASHING {
@@ -142,32 +136,30 @@ impl JikesObj {
     #[inline(always)]
     fn bytes_used(&self, rvm_type: RVMType) -> usize {
         trace!("VMObjectModel.bytes_used");
-        unsafe {
-            let is_class = rvm_type.is_class();
-            let mut size = if is_class {
-                (rvm_type.0 + INSTANCE_SIZE_FIELD_OFFSET).load::<usize>()
-            } else {
-                let num_elements = self.get_array_length();
-                ARRAY_HEADER_SIZE
-                    + (num_elements << (rvm_type.0 + LOG_ELEMENT_SIZE_FIELD_OFFSET).load::<usize>())
-            };
+        let is_class = rvm_type.is_class();
+        let mut size = if is_class {
+            rvm_type.instance_size()
+        } else {
+            let num_elements = self.get_array_length();
+            let log_element_size = rvm_type.log_element_size();
+            ARRAY_HEADER_SIZE + (num_elements << log_element_size)
+        };
 
-            // Easier to read if we do not collapse if here.
-            #[allow(clippy::collapsible_if)]
-            if MOVES_OBJECTS {
-                if ADDRESS_BASED_HASHING {
-                    let hash_state = self.get_status() & HASH_STATE_MASK;
-                    if hash_state == HASH_STATE_HASHED_AND_MOVED {
-                        size += HASHCODE_BYTES;
-                    }
+        // Easier to read if we do not collapse if here.
+        #[allow(clippy::collapsible_if)]
+        if MOVES_OBJECTS {
+            if ADDRESS_BASED_HASHING {
+                let hash_state = self.get_status() & HASH_STATE_MASK;
+                if hash_state == HASH_STATE_HASHED_AND_MOVED {
+                    size += HASHCODE_BYTES;
                 }
             }
+        }
 
-            if is_class {
-                size
-            } else {
-                conversions::raw_align_up(size, BYTES_IN_INT)
-            }
+        if is_class {
+            size
+        } else {
+            conversions::raw_align_up(size, BYTES_IN_INT)
         }
     }
 
@@ -244,6 +236,16 @@ impl RVMType {
     #[inline(always)]
     pub(crate) fn reference_offsets(&self) -> usize {
         unsafe { (self.0 + REFERENCE_OFFSETS_FIELD_OFFSET).load::<usize>() }
+    }
+
+    #[inline(always)]
+    fn instance_size(&self) -> usize {
+        unsafe { (self.0 + INSTANCE_SIZE_FIELD_OFFSET).load::<usize>() }
+    }
+
+    #[inline(always)]
+    fn log_element_size(&self) -> usize {
+        unsafe { (self.0 + LOG_ELEMENT_SIZE_FIELD_OFFSET).load::<usize>() }
     }
 }
 
