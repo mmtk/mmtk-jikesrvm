@@ -278,18 +278,6 @@ static HASH_TRANSITION2: AtomicUsize = AtomicUsize::new(0);
 pub struct VMObjectModel {}
 
 impl VMObjectModel {
-    #[allow(dead_code)]
-    pub(crate) fn get_align_when_copied(object: ObjectReference) -> usize {
-        trace!("ObjectModel.get_align_when_copied");
-        JikesObj::from(object).get_align_when_copied()
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn get_align_offset_when_copied(object: ObjectReference) -> usize {
-        trace!("ObjectModel.get_align_offset_when_copied");
-        JikesObj::from(object).get_align_offset_when_copied()
-    }
-
     #[inline(always)]
     pub(crate) fn get_array_length(object: ObjectReference) -> usize {
         trace!("ObjectModel.get_array_length");
