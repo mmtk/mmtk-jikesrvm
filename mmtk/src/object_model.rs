@@ -240,6 +240,11 @@ impl RVMType {
             unsafe { (self.0 + RVM_CLASS_ALIGNMENT_OFFSET).load::<usize>() }
         }
     }
+
+    #[inline(always)]
+    pub(crate) fn reference_offsets(&self) -> usize {
+        unsafe { (self.0 + REFERENCE_OFFSETS_FIELD_OFFSET).load::<usize>() }
+    }
 }
 
 /// Used as a parameter of `move_object` to specify where to move an object to.
@@ -274,13 +279,13 @@ pub struct VMObjectModel {}
 
 impl VMObjectModel {
     #[inline(always)]
-    pub fn load_rvm_type(object: ObjectReference) -> Address {
-        JikesObj::from(object).load_rvm_type().0
+    pub fn load_rvm_type(object: ObjectReference) -> RVMType {
+        JikesObj::from(object).load_rvm_type()
     }
 
     #[inline(always)]
-    pub fn load_tib(object: ObjectReference) -> Address {
-        JikesObj::from(object).load_tib().0
+    pub fn load_tib(object: ObjectReference) -> TIB {
+        JikesObj::from(object).load_tib()
     }
 
     #[allow(dead_code)]
@@ -323,7 +328,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         let rvm_type = Self::load_rvm_type(from);
 
         trace!("Is it a class?");
-        if Self::is_class(rvm_type) {
+        if rvm_type.is_class() {
             trace!("... yes");
             Self::copy_scalar(from, tib, rvm_type, copy, copy_context)
         } else {
@@ -383,7 +388,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
     fn get_align_when_copied(object: ObjectReference) -> usize {
         let rvm_type = Self::load_rvm_type(object);
 
-        if Self::is_class(rvm_type) {
+        if rvm_type.is_class() {
             Self::get_alignment_class(rvm_type)
         } else {
             Self::get_alignment_array(rvm_type)
@@ -393,7 +398,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
     fn get_align_offset_when_copied(object: ObjectReference) -> usize {
         let rvm_type = Self::load_rvm_type(object);
 
-        if Self::is_class(rvm_type) {
+        if rvm_type.is_class() {
             Self::get_offset_for_alignment_class(object, rvm_type)
         } else {
             Self::get_offset_for_alignment_array(object, rvm_type)
@@ -436,15 +441,11 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 }
 
 impl VMObjectModel {
-    fn is_class(rvm_type: Address) -> bool {
-        RVMType(rvm_type).is_class()
-    }
-
     #[inline(always)]
     fn copy_scalar(
         from: ObjectReference,
-        _tib: Address,
-        rvm_type: Address,
+        _tib: TIB,
+        rvm_type: RVMType,
         copy: CopySemantics,
         copy_context: &mut GCWorkerCopyContext<JikesRVM>,
     ) -> ObjectReference {
@@ -462,8 +463,8 @@ impl VMObjectModel {
     #[inline(always)]
     fn copy_array(
         from: ObjectReference,
-        _tib: Address,
-        rvm_type: Address,
+        _tib: TIB,
+        rvm_type: RVMType,
         copy: CopySemantics,
         copy_context: &mut GCWorkerCopyContext<JikesRVM>,
     ) -> ObjectReference {
@@ -480,27 +481,27 @@ impl VMObjectModel {
     }
 
     #[inline(always)]
-    fn bytes_required_when_copied(object: ObjectReference, rvm_type: Address) -> usize {
+    fn bytes_required_when_copied(object: ObjectReference, rvm_type: RVMType) -> usize {
         trace!("VMObjectModel.bytes_required_when_copied");
-        JikesObj::from(object).bytes_required_when_copied(RVMType(rvm_type))
+        JikesObj::from(object).bytes_required_when_copied(rvm_type)
     }
 
     #[inline(always)]
-    fn bytes_required_when_copied_class(object: ObjectReference, rvm_type: Address) -> usize {
+    fn bytes_required_when_copied_class(object: ObjectReference, rvm_type: RVMType) -> usize {
         trace!("VMObjectModel.bytes_required_when_copied_class");
-        JikesObj::from(object).bytes_required_when_copied_class(RVMType(rvm_type))
+        JikesObj::from(object).bytes_required_when_copied_class(rvm_type)
     }
 
     #[inline(always)]
-    fn bytes_required_when_copied_array(object: ObjectReference, rvm_type: Address) -> usize {
+    fn bytes_required_when_copied_array(object: ObjectReference, rvm_type: RVMType) -> usize {
         trace!("VMObjectModel.bytes_required_when_copied_array");
-        JikesObj::from(object).bytes_required_when_copied_array(RVMType(rvm_type))
+        JikesObj::from(object).bytes_required_when_copied_array(rvm_type)
     }
 
     #[inline(always)]
-    fn bytes_used(object: ObjectReference, rvm_type: Address) -> usize {
+    fn bytes_used(object: ObjectReference, rvm_type: RVMType) -> usize {
         trace!("VMObjectModel.bytes_used");
-        JikesObj::from(object).bytes_used(RVMType(rvm_type))
+        JikesObj::from(object).bytes_used(rvm_type)
     }
 
     #[inline(always)]
@@ -508,7 +509,7 @@ impl VMObjectModel {
         from_obj: ObjectReference,
         mut to: MoveTarget,
         num_bytes: usize,
-        _rvm_type: Address,
+        _rvm_type: RVMType,
     ) -> ObjectReference {
         trace!("VMObjectModel.move_object");
 
@@ -604,25 +605,25 @@ impl VMObjectModel {
     }
 
     #[inline(always)]
-    fn get_alignment_array(rvm_type: Address) -> usize {
+    fn get_alignment_array(rvm_type: RVMType) -> usize {
         trace!("VMObjectModel.get_alignment_array");
-        RVMType(rvm_type).get_alignment_array()
+        rvm_type.get_alignment_array()
     }
 
     #[inline(always)]
-    fn get_alignment_class(rvm_type: Address) -> usize {
+    fn get_alignment_class(rvm_type: RVMType) -> usize {
         trace!("VMObjectModel.get_alignment_class");
-        RVMType(rvm_type).get_alignment_class()
+        rvm_type.get_alignment_class()
     }
 
     #[inline(always)]
-    fn get_offset_for_alignment_array(object: ObjectReference, _rvm_type: Address) -> usize {
+    fn get_offset_for_alignment_array(object: ObjectReference, _rvm_type: RVMType) -> usize {
         trace!("VMObjectModel.get_offset_for_alignment_array");
         JikesObj::from(object).get_offset_for_alignment_array()
     }
 
     #[inline(always)]
-    fn get_offset_for_alignment_class(object: ObjectReference, _rvm_type: Address) -> usize {
+    fn get_offset_for_alignment_class(object: ObjectReference, _rvm_type: RVMType) -> usize {
         trace!("VMObjectModel.get_offset_for_alignment_class");
         JikesObj::from(object).get_offset_for_alignment_class()
     }

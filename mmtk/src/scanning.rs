@@ -101,9 +101,9 @@ impl Scanning<JikesRVM> for VMScanning {
             }
         }
         trace!("Getting reference array");
-        let elt0_ptr: usize = unsafe {
+        let elt0_ptr: usize = {
             let rvm_type = VMObjectModel::load_rvm_type(object);
-            (rvm_type + REFERENCE_OFFSETS_FIELD_OFFSET).load::<usize>()
+            rvm_type.reference_offsets()
         };
         trace!("elt0_ptr: {}", elt0_ptr);
         // In a primitive array this field points to a zero-length array.
