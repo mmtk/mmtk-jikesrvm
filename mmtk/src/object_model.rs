@@ -359,9 +359,9 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         let rvm_type = JikesObj::from(object).load_rvm_type();
 
         if rvm_type.is_class() {
-            Self::get_alignment_class(rvm_type)
+            rvm_type.get_alignment_class()
         } else {
-            Self::get_alignment_array(rvm_type)
+            rvm_type.get_alignment_array()
         }
     }
 
@@ -369,9 +369,9 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         let rvm_type = JikesObj::from(object).load_rvm_type();
 
         if rvm_type.is_class() {
-            Self::get_offset_for_alignment_class(object, rvm_type)
+            JikesObj::from(object).get_offset_for_alignment_class()
         } else {
-            Self::get_offset_for_alignment_array(object, rvm_type)
+            JikesObj::from(object).get_offset_for_alignment_array()
         }
     }
 
@@ -421,8 +421,8 @@ impl VMObjectModel {
     ) -> ObjectReference {
         trace!("VMObjectModel.copy_scalar");
         let bytes = JikesObj::from(from).bytes_required_when_copied_class(rvm_type);
-        let align = Self::get_alignment_class(rvm_type);
-        let offset = Self::get_offset_for_alignment_class(from, rvm_type);
+        let align = rvm_type.get_alignment_class();
+        let offset = JikesObj::from(from).get_offset_for_alignment_class();
         let region = copy_context.alloc_copy(from, bytes, align, offset, copy);
 
         let to_obj = Self::move_object(from, MoveTarget::ToAddress(region), bytes, rvm_type);
@@ -440,8 +440,8 @@ impl VMObjectModel {
     ) -> ObjectReference {
         trace!("VMObjectModel.copy_array");
         let bytes = JikesObj::from(from).bytes_required_when_copied_array(rvm_type);
-        let align = Self::get_alignment_array(rvm_type);
-        let offset = Self::get_offset_for_alignment_array(from, rvm_type);
+        let align = rvm_type.get_alignment_array();
+        let offset = JikesObj::from(from).get_offset_for_alignment_array();
         let region = copy_context.alloc_copy(from, bytes, align, offset, copy);
 
         let to_obj = Self::move_object(from, MoveTarget::ToAddress(region), bytes, rvm_type);
@@ -548,29 +548,5 @@ impl VMObjectModel {
         } else {
             memcpy(dst.to_mut_ptr(), src.to_mut_ptr(), cnt);
         }
-    }
-
-    #[inline(always)]
-    fn get_alignment_array(rvm_type: RVMType) -> usize {
-        trace!("VMObjectModel.get_alignment_array");
-        rvm_type.get_alignment_array()
-    }
-
-    #[inline(always)]
-    fn get_alignment_class(rvm_type: RVMType) -> usize {
-        trace!("VMObjectModel.get_alignment_class");
-        rvm_type.get_alignment_class()
-    }
-
-    #[inline(always)]
-    fn get_offset_for_alignment_array(object: ObjectReference, _rvm_type: RVMType) -> usize {
-        trace!("VMObjectModel.get_offset_for_alignment_array");
-        JikesObj::from(object).get_offset_for_alignment_array()
-    }
-
-    #[inline(always)]
-    fn get_offset_for_alignment_class(object: ObjectReference, _rvm_type: RVMType) -> usize {
-        trace!("VMObjectModel.get_offset_for_alignment_class");
-        JikesObj::from(object).get_offset_for_alignment_class()
     }
 }
