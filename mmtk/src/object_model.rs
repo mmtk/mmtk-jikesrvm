@@ -277,14 +277,6 @@ static HASH_TRANSITION2: AtomicUsize = AtomicUsize::new(0);
 #[derive(Default)]
 pub struct VMObjectModel {}
 
-impl VMObjectModel {
-    #[inline(always)]
-    pub(crate) fn get_array_length(object: ObjectReference) -> usize {
-        trace!("ObjectModel.get_array_length");
-        JikesObj::from(object).get_array_length()
-    }
-}
-
 impl ObjectModel<JikesRVM> for VMObjectModel {
     const GLOBAL_LOG_BIT_SPEC: VMGlobalLogBitSpec = vm_metadata::LOGGING_SIDE_METADATA_SPEC;
 

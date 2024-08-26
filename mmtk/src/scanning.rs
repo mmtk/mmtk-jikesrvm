@@ -24,7 +24,6 @@ use mmtk::vm::Scanning;
 use mmtk::vm::SlotVisitor;
 use mmtk::MMTK;
 use mmtk::*;
-use object_model::VMObjectModel;
 use std::mem;
 use JikesRVM;
 use JTOC_BASE;
@@ -112,7 +111,7 @@ impl Scanning<JikesRVM> for VMScanning {
         // In a class with pointers, it contains the offsets of reference-containing instance fields
         if elt0_ptr == 0 {
             // object is a REFARRAY
-            let length = VMObjectModel::get_array_length(object);
+            let length = JikesObj::from(object).get_array_length();
             for i in 0..length {
                 slot_visitor.visit_slot(object.to_raw_address() + (i << LOG_BYTES_IN_ADDRESS));
             }
