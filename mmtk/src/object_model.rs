@@ -240,6 +240,8 @@ impl RVMType {
         unsafe { (self.0 + IS_CLASS_TYPE_FIELD_OFFSET).load::<bool>() }
     }
 
+    #[allow(dead_code)]
+    #[inline(always)]
     fn is_array_type(&self) -> bool {
         unsafe { (self.0 + IS_ARRAY_TYPE_FIELD_OFFSET).load::<bool>() }
     }
@@ -319,7 +321,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
     #[inline(always)]
     fn copy(
         from: ObjectReference,
-        copy: CopySemantics,
+        semantics: CopySemantics,
         copy_context: &mut GCWorkerCopyContext<JikesRVM>,
     ) -> ObjectReference {
         trace!("ObjectModel.copy");
@@ -329,10 +331,10 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         trace!("Is it a class?");
         if rvm_type.is_class() {
             trace!("... yes");
-            Self::copy_scalar(from, tib, rvm_type, copy, copy_context)
+            Self::copy_scalar(from, tib, rvm_type, semantics, copy_context)
         } else {
             trace!("... no");
-            Self::copy_array(from, tib, rvm_type, copy, copy_context)
+            Self::copy_array(from, tib, rvm_type, semantics, copy_context)
         }
     }
 
@@ -420,17 +422,17 @@ impl VMObjectModel {
         from: ObjectReference,
         _tib: TIB,
         rvm_type: RVMType,
-        copy: CopySemantics,
+        semantics: CopySemantics,
         copy_context: &mut GCWorkerCopyContext<JikesRVM>,
     ) -> ObjectReference {
         trace!("VMObjectModel.copy_scalar");
         let bytes = JikesObj::from(from).bytes_required_when_copied_class(rvm_type);
         let align = rvm_type.get_alignment_class();
         let offset = JikesObj::from(from).get_offset_for_alignment_class();
-        let region = copy_context.alloc_copy(from, bytes, align, offset, copy);
+        let addr = copy_context.alloc_copy(from, bytes, align, offset, semantics);
 
-        let to_obj = Self::move_object(from, MoveTarget::ToAddress(region), bytes, rvm_type);
-        copy_context.post_copy(to_obj, bytes, copy);
+        let to_obj = Self::move_object(from, MoveTarget::ToAddress(addr), bytes, rvm_type);
+        copy_context.post_copy(to_obj, bytes, semantics);
         to_obj
     }
 
@@ -439,17 +441,17 @@ impl VMObjectModel {
         from: ObjectReference,
         _tib: TIB,
         rvm_type: RVMType,
-        copy: CopySemantics,
+        semantics: CopySemantics,
         copy_context: &mut GCWorkerCopyContext<JikesRVM>,
     ) -> ObjectReference {
         trace!("VMObjectModel.copy_array");
         let bytes = JikesObj::from(from).bytes_required_when_copied_array(rvm_type);
         let align = rvm_type.get_alignment_array();
         let offset = JikesObj::from(from).get_offset_for_alignment_array();
-        let region = copy_context.alloc_copy(from, bytes, align, offset, copy);
+        let addr = copy_context.alloc_copy(from, bytes, align, offset, semantics);
 
-        let to_obj = Self::move_object(from, MoveTarget::ToAddress(region), bytes, rvm_type);
-        copy_context.post_copy(to_obj, bytes, copy);
+        let to_obj = Self::move_object(from, MoveTarget::ToAddress(addr), bytes, rvm_type);
+        copy_context.post_copy(to_obj, bytes, semantics);
         // XXX: Do not sync icache/dcache because we do not support PowerPC
         to_obj
     }
