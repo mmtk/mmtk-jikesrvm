@@ -37,6 +37,37 @@ impl From<JikesObj> for Option<ObjectReference> {
 }
 
 impl JikesObj {
+    /// Query the hashcode overhead of the current object.
+    ///
+    /// *   If `WHEN_COPIED` is true, return the overhead after copying;
+    ///     otherwise return the current overhead.
+    /// *   If `FRONT` is true, return the overhead at the start of the object;
+    ///     otherwise return the overhead regardless of the location of the hash field.
+    #[inline(always)]
+    fn hashcode_overhead<const WHEN_COPIED: bool, const FRONT: bool>(&self) -> usize {
+        if !MOVES_OBJECTS || !ADDRESS_BASED_HASHING || FRONT && DYNAMIC_HASH_OFFSET {
+            // If the GC never moves object, just use the address as hashcode.
+            // If not using address-based hashing, JikesRVM uses a 10-bit in-header hash field.
+            // DYNAMIC_HASH_OFFSET puts hash field in the end.
+            return 0;
+        }
+
+        let hash_state = self.get_status() & HASH_STATE_MASK;
+        let has_hashcode = if WHEN_COPIED {
+            // As long as it is hashed, it will have a hash field after moved.
+            hash_state != HASH_STATE_UNHASHED
+        } else {
+            // An object has a hash field if and only if it is hashed and moved.
+            hash_state == HASH_STATE_HASHED_AND_MOVED
+        };
+
+        if has_hashcode {
+            HASHCODE_BYTES
+        } else {
+            0
+        }
+    }
+
     #[inline(always)]
     pub fn load_tib(&self) -> TIB {
         TIB(unsafe { (self.0 + TIB_OFFSET).load::<Address>() })
@@ -94,19 +125,8 @@ impl JikesObj {
 
     #[inline(always)]
     pub fn object_start(&self) -> Address {
-        // Easier to read if we do not collapse if here.
-        #[allow(clippy::collapsible_if)]
-        if MOVES_OBJECTS {
-            if ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
-                let hash_state = self.get_status() & HASH_STATE_MASK;
-                if hash_state == HASH_STATE_HASHED_AND_MOVED {
-                    return self
-                        .0
-                        .offset(-(OBJECT_REF_OFFSET + HASHCODE_BYTES as isize));
-                }
-            }
-        }
-        self.0.offset(-OBJECT_REF_OFFSET)
+        let start_to_objref = OBJECT_REF_OFFSET + self.hashcode_overhead::<false, true>() as isize;
+        self.0.offset(-start_to_objref)
     }
 
     #[inline(always)]
@@ -130,12 +150,7 @@ impl JikesObj {
         let mut size = rvm_type.instance_size();
         trace!("bytes_required_when_copied_class: instance size={}", size);
 
-        if ADDRESS_BASED_HASHING {
-            let hash_state = self.get_status() & HASH_STATE_MASK;
-            if hash_state != HASH_STATE_UNHASHED {
-                size += HASHCODE_BYTES;
-            }
-        }
+        size += self.hashcode_overhead::<true, false>();
 
         trace!("bytes_required_when_copied_class: returned size={}", size);
         size
@@ -150,12 +165,7 @@ impl JikesObj {
             ARRAY_HEADER_SIZE + (num_elements << log_element_size)
         };
 
-        if ADDRESS_BASED_HASHING {
-            let hash_state = self.get_status() & HASH_STATE_MASK;
-            if hash_state != HASH_STATE_UNHASHED {
-                size += HASHCODE_BYTES;
-            }
-        }
+        size += self.hashcode_overhead::<true, false>();
 
         conversions::raw_align_up(size, BYTES_IN_INT)
     }
@@ -172,16 +182,7 @@ impl JikesObj {
             ARRAY_HEADER_SIZE + (num_elements << log_element_size)
         };
 
-        // Easier to read if we do not collapse if here.
-        #[allow(clippy::collapsible_if)]
-        if MOVES_OBJECTS {
-            if ADDRESS_BASED_HASHING {
-                let hash_state = self.get_status() & HASH_STATE_MASK;
-                if hash_state == HASH_STATE_HASHED_AND_MOVED {
-                    size += HASHCODE_BYTES;
-                }
-            }
-        }
+        size += self.hashcode_overhead::<false, false>();
 
         if is_class {
             size
@@ -193,31 +194,13 @@ impl JikesObj {
     #[inline(always)]
     fn get_offset_for_alignment_array(&self) -> usize {
         trace!("VMObjectModel.get_offset_for_alignment_array");
-        let mut offset = OBJECT_REF_OFFSET as usize;
-
-        if ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
-            let hash_state = self.get_status() & HASH_STATE_MASK;
-            if hash_state != HASH_STATE_UNHASHED {
-                offset += HASHCODE_BYTES;
-            }
-        }
-
-        offset
+        ARRAY_HEADER_SIZE + self.hashcode_overhead::<true, true>()
     }
 
     #[inline(always)]
     fn get_offset_for_alignment_class(&self) -> usize {
         trace!("VMObjectModel.get_offset_for_alignment_class");
-        let mut offset = SCALAR_HEADER_SIZE;
-
-        if ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
-            let hash_state = self.get_status() & HASH_STATE_MASK;
-            if hash_state != HASH_STATE_UNHASHED {
-                offset += HASHCODE_BYTES
-            }
-        }
-
-        offset
+        SCALAR_HEADER_SIZE + self.hashcode_overhead::<true, true>()
     }
 }
 
@@ -361,16 +344,12 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 
     fn get_reference_when_copied_to(from: ObjectReference, to: Address) -> ObjectReference {
         trace!("ObjectModel.get_reference_when_copied_to");
-        let mut res = to;
-        if ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
-            let hash_state = JikesObj::from(from).get_status() & HASH_STATE_MASK;
-            if hash_state != HASH_STATE_UNHASHED {
-                res += HASHCODE_BYTES;
-            }
-        }
+        debug_assert!(!to.is_zero());
+
+        let res = to + OBJECT_REF_OFFSET + JikesObj::from(from).hashcode_overhead::<true, true>();
 
         debug_assert!(!res.is_zero());
-        unsafe { ObjectReference::from_raw_address_unchecked(res + OBJECT_REF_OFFSET) }
+        unsafe { ObjectReference::from_raw_address_unchecked(res) }
     }
 
     fn get_current_size(object: ObjectReference) -> usize {
