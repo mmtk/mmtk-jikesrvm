@@ -1,4 +1,5 @@
 use libc::*;
+use std::convert::TryFrom;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::unboxed_size_constants::*;
@@ -30,11 +31,26 @@ impl From<ObjectReference> for JikesObj {
     }
 }
 
-impl From<JikesObj> for Option<ObjectReference> {
-    fn from(value: JikesObj) -> Self {
-        ObjectReference::from_raw_address(value.0)
+impl TryFrom<JikesObj> for ObjectReference {
+    type Error = NullRefError;
+
+    fn try_from(value: JikesObj) -> Result<Self, Self::Error> {
+        ObjectReference::from_raw_address(value.0).ok_or(NullRefError)
     }
 }
+
+/// Error when trying to convert a null `JikesObj` to MMTk-level `ObjectReference` which cannot be
+/// null.
+#[derive(Debug)]
+pub struct NullRefError;
+
+impl std::fmt::Display for NullRefError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Attempt to convert null JikesObj to ObjectReference")
+    }
+}
+
+impl std::error::Error for NullRefError {}
 
 impl JikesObj {
     /// Query the hashcode overhead of the current object.
@@ -66,6 +82,11 @@ impl JikesObj {
         } else {
             0
         }
+    }
+
+    #[inline(always)]
+    pub fn to_address(&self) -> Address {
+        self.0
     }
 
     #[inline(always)]
@@ -265,9 +286,9 @@ impl RVMType {
 enum MoveTarget {
     /// Move an object to the address returned from `alloc_copy`.
     ToAddress(Address),
-    /// Move an object to an `ObjectReference` pointing to an object previously computed from
+    /// Move an object to an `JikesObj` pointing to an object previously computed from
     /// `get_reference_when_copied_to`.
-    ToObject(ObjectReference),
+    ToObject(JikesObj),
 }
 
 /** Should we gather stats on hash code state transitions for address-based hashing? */
@@ -308,26 +329,33 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         copy_context: &mut GCWorkerCopyContext<JikesRVM>,
     ) -> ObjectReference {
         trace!("ObjectModel.copy");
-        let tib = JikesObj::from(from).load_tib();
+        let jikes_from = JikesObj::from(from);
+        let tib = jikes_from.load_tib();
         let rvm_type = tib.load_rvm_type();
 
         trace!("Is it a class?");
         let (bytes, align, offset) = if rvm_type.is_class() {
             trace!("... yes");
-            let bytes = JikesObj::from(from).bytes_required_when_copied_class(rvm_type);
+            let bytes = jikes_from.bytes_required_when_copied_class(rvm_type);
             let align = rvm_type.get_alignment_class();
-            let offset = JikesObj::from(from).get_offset_for_alignment_class();
+            let offset = jikes_from.get_offset_for_alignment_class();
             (bytes, align, offset)
         } else {
             trace!("... no");
-            let bytes = JikesObj::from(from).bytes_required_when_copied_array(rvm_type);
+            let bytes = jikes_from.bytes_required_when_copied_array(rvm_type);
             let align = rvm_type.get_alignment_array();
-            let offset = JikesObj::from(from).get_offset_for_alignment_array();
+            let offset = jikes_from.get_offset_for_alignment_array();
             (bytes, align, offset)
         };
 
         let addr = copy_context.alloc_copy(from, bytes, align, offset, semantics);
-        let to_obj = Self::move_object(from, MoveTarget::ToAddress(addr), bytes, rvm_type);
+        debug_assert!(!addr.is_zero());
+
+        let jikes_to_obj =
+            Self::move_object(jikes_from, MoveTarget::ToAddress(addr), bytes, rvm_type);
+        // jikes_to_obj must not be null because we gave it a non-zero `addr`.
+        let to_obj = ObjectReference::try_from(jikes_to_obj).unwrap();
+
         copy_context.post_copy(to_obj, bytes, semantics);
         to_obj
     }
@@ -335,16 +363,18 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
     #[inline(always)]
     fn copy_to(from: ObjectReference, to: ObjectReference, region: Address) -> Address {
         trace!("ObjectModel.copy_to");
-        let rvm_type = JikesObj::from(from).load_rvm_type();
+        let jikes_from = JikesObj::from(from);
+        let rvm_type = jikes_from.load_rvm_type();
 
         let copy = from != to;
 
         let bytes = if copy {
-            let bytes = JikesObj::from(from).bytes_required_when_copied(rvm_type);
-            Self::move_object(from, MoveTarget::ToObject(to), bytes, rvm_type);
+            let jikes_to = JikesObj::from(to);
+            let bytes = jikes_from.bytes_required_when_copied(rvm_type);
+            Self::move_object(jikes_from, MoveTarget::ToObject(jikes_to), bytes, rvm_type);
             bytes
         } else {
-            JikesObj::from(from).bytes_used(rvm_type)
+            jikes_from.bytes_used(rvm_type)
         };
 
         let start = Self::ref_to_object_start(to);
@@ -357,10 +387,13 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         trace!("ObjectModel.get_reference_when_copied_to");
         debug_assert!(!to.is_zero());
 
-        let res = to + OBJECT_REF_OFFSET + JikesObj::from(from).hashcode_overhead::<true, true>();
-
-        debug_assert!(!res.is_zero());
-        unsafe { ObjectReference::from_raw_address_unchecked(res) }
+        let res_addr =
+            to + OBJECT_REF_OFFSET + JikesObj::from(from).hashcode_overhead::<true, true>();
+        debug_assert!(!res_addr.is_zero());
+        let res_jikes = JikesObj(res_addr);
+        // res cannot be null as long as res_addr is not zero.
+        let res = ObjectReference::try_from(res_jikes).unwrap();
+        res
     }
 
     fn get_current_size(object: ObjectReference) -> usize {
@@ -409,11 +442,11 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 impl VMObjectModel {
     #[inline(always)]
     fn move_object(
-        from_obj: ObjectReference,
+        from_obj: JikesObj,
         mut to: MoveTarget,
         num_bytes: usize,
         _rvm_type: RVMType,
-    ) -> ObjectReference {
+    ) -> JikesObj {
         trace!("VMObjectModel.move_object");
 
         // Default values
@@ -444,21 +477,23 @@ impl VMObjectModel {
 
         let (to_address, to_obj) = match to {
             MoveTarget::ToAddress(addr) => {
-                let obj =
-                    unsafe { ObjectReference::from_raw_address_unchecked(addr + obj_ref_offset) };
+                let obj = JikesObj(addr + obj_ref_offset);
                 (addr, obj)
             }
             MoveTarget::ToObject(obj) => {
-                let addr = obj.to_raw_address() + (-obj_ref_offset);
-                debug_assert!(obj.to_raw_address() == addr + obj_ref_offset);
+                let addr = obj.to_address() + (-obj_ref_offset);
+                debug_assert!(obj.to_address() == addr + obj_ref_offset);
                 (addr, obj)
             }
         };
 
         // Low memory word of source object
-        let from_address = from_obj.to_raw_address() + (-obj_ref_offset);
+        let from_address = from_obj.to_address() + (-obj_ref_offset);
 
-        // Do the copy
+        // Do the copy// The hashcode is the first word, so we copy to object one word higher
+        if let MoveTarget::ToAddress(ref mut addr) = to {
+            *addr += HASHCODE_BYTES;
+        }
         unsafe {
             Self::aligned_32_copy(to_address, from_address, copy_bytes);
         }
@@ -466,15 +501,15 @@ impl VMObjectModel {
         // Do we need to copy the hash code?
         if hash_state == HASH_STATE_HASHED {
             unsafe {
-                let hash_code = from_obj.to_raw_address().as_usize() >> LOG_BYTES_IN_ADDRESS;
+                let hash_code = from_obj.to_address().as_usize() >> LOG_BYTES_IN_ADDRESS;
                 if DYNAMIC_HASH_OFFSET {
-                    (to_obj.to_raw_address()
+                    (to_obj.to_address()
                         + num_bytes
                         + (-OBJECT_REF_OFFSET)
                         + (-(HASHCODE_BYTES as isize)))
                         .store::<usize>(hash_code);
                 } else {
-                    (to_obj.to_raw_address() + HASHCODE_OFFSET)
+                    (to_obj.to_address() + HASHCODE_OFFSET)
                         .store::<usize>((hash_code << 1) | ALIGNMENT_MASK);
                 }
                 JikesObj::from(to_obj).set_status(status_word | HASH_STATE_HASHED_AND_MOVED);
