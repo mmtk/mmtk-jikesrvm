@@ -39,12 +39,13 @@ const DUMP_REF: bool = false;
 pub(crate) const SLOTS_BUFFER_CAPACITY: usize = 4096;
 
 extern "C" fn report_slots_and_renew_buffer<F: RootsWorkFactory<JikesRVMSlot>>(
-    ptr: *mut Address,
+    ptr: *mut JikesRVMSlot,
     length: usize,
     factory: *mut F,
 ) -> *mut Address {
     if !ptr.is_null() {
-        let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, SLOTS_BUFFER_CAPACITY) };
+        let buf =
+            unsafe { Vec::<JikesRVMSlot>::from_raw_parts(ptr, length, SLOTS_BUFFER_CAPACITY) };
         let factory: &mut F = unsafe { &mut *factory };
         factory.create_process_roots_work(buf);
     }
@@ -113,7 +114,9 @@ impl Scanning<JikesRVM> for VMScanning {
             // object is a REFARRAY
             let length = JikesObj::from(object).get_array_length();
             for i in 0..length {
-                slot_visitor.visit_slot(object.to_raw_address() + (i << LOG_BYTES_IN_ADDRESS));
+                slot_visitor.visit_slot(JikesRVMSlot::from_address(
+                    object.to_raw_address() + (i << LOG_BYTES_IN_ADDRESS),
+                ));
             }
         } else {
             let len_ptr: usize = elt0_ptr - size_of::<isize>();
@@ -121,7 +124,9 @@ impl Scanning<JikesRVM> for VMScanning {
             let offsets = unsafe { slice::from_raw_parts(elt0_ptr as *const isize, len as usize) };
 
             for offset in offsets.iter() {
-                slot_visitor.visit_slot(object.to_raw_address() + *offset);
+                slot_visitor.visit_slot(JikesRVMSlot::from_address(
+                    object.to_raw_address() + *offset,
+                ));
             }
         }
     }
@@ -279,7 +284,7 @@ impl VMScanning {
         tls: VMWorkerThread,
         subwork_id: usize,
         total_subwork: usize,
-        mut callback: impl FnMut(Address),
+        mut callback: impl FnMut(JikesRVMSlot),
     ) {
         unsafe {
             // let cc = VMActivePlan::collector(tls);
@@ -306,7 +311,7 @@ impl VMScanning {
                 let function_address_slot = jni_functions + (i << LOG_BYTES_IN_ADDRESS);
                 if jtoc_call!(IMPLEMENTED_IN_JAVA_METHOD_OFFSET, tls, i) != 0 {
                     trace!("function implemented in java {:?}", function_address_slot);
-                    callback(function_address_slot);
+                    callback(JikesRVMSlot::from_address(function_address_slot));
                 } else {
                     // Function implemented as a C function, must not be
                     // scanned.
@@ -316,7 +321,7 @@ impl VMScanning {
             let linkage_triplets = (JTOC_BASE + LINKAGE_TRIPLETS_FIELD_OFFSET).load::<Address>();
             if !linkage_triplets.is_zero() {
                 for i in start..end {
-                    callback(linkage_triplets + i * 4);
+                    callback(JikesRVMSlot::from_address(linkage_triplets + i * 4));
                 }
             }
 
@@ -336,7 +341,9 @@ impl VMScanning {
             trace!("end: {:?}", end);
 
             for i in start..end {
-                callback(jni_global_refs + (i << LOG_BYTES_IN_ADDRESS));
+                callback(JikesRVMSlot::from_address(
+                    jni_global_refs + (i << LOG_BYTES_IN_ADDRESS),
+                ));
             }
         }
     }

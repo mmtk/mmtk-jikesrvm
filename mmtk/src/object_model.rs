@@ -22,7 +22,11 @@ use memory_manager_constants::*;
 use tib_layout_constants::*;
 use JikesRVM;
 
+/// This type represents a JikesRVM-level `ObjectReference`.
+///
+/// Currently, it has the same value as the MMTk-level `mmtk::util::address::ObjectReference`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(transparent)]
 pub struct JikesObj(Address);
 
 impl From<ObjectReference> for JikesObj {
@@ -82,6 +86,11 @@ impl JikesObj {
         } else {
             0
         }
+    }
+
+    #[inline(always)]
+    pub fn from_address(addr: Address) -> Self {
+        JikesObj(addr)
     }
 
     #[inline(always)]

@@ -73,7 +73,7 @@ fn process_chunk(
     image_start: Address,
     _map_start: Address,
     map_end: Address,
-    mut report_slot: impl FnMut(Address),
+    mut report_slot: impl FnMut(JikesRVMSlot),
 ) {
     let mut value: usize;
     let mut offset: usize = 0;
@@ -106,7 +106,7 @@ fn process_chunk(
                 if cfg!(feature = "debug") {
                     ROOTS.fetch_add(1, Ordering::Relaxed);
                 }
-                report_slot(slot);
+                report_slot(JikesRVMSlot::from_address(slot));
             }
             if runlength != 0 {
                 for _ in 0..runlength {
@@ -121,7 +121,7 @@ fn process_chunk(
                             ROOTS.fetch_add(1, Ordering::Relaxed);
                         }
                         // TODO: check_reference(slot) ?
-                        report_slot(slot);
+                        report_slot(JikesRVMSlot::from_address(slot));
                     }
                 }
             }

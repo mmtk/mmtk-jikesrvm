@@ -49,7 +49,7 @@ pub fn scan_statics(
         while slot < end {
             let slot_offset = slot * 4;
             // TODO: check_reference?
-            slot_list.push(slots + slot_offset);
+            slot_list.push(JikesRVMSlot::from_address(slots + slot_offset));
             if slot_list.len() >= SLOTS_BUFFER_CAPACITY {
                 factory.create_process_roots_work(slot_list);
                 slot_list = Vec::with_capacity(SLOTS_BUFFER_CAPACITY);
