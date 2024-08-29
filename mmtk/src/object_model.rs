@@ -244,6 +244,18 @@ impl JikesObj {
         trace!("VMObjectModel.get_offset_for_alignment_class");
         SCALAR_HEADER_SIZE + self.hashcode_overhead::<true, true>()
     }
+
+    #[inline(always)]
+    pub fn get_referent(&self) -> JikesObj {
+        unsafe { (self.0 + REFERENCE_REFERENT_FIELD_OFFSET).load::<JikesObj>() }
+    }
+
+    #[inline(always)]
+    pub fn set_referent(&self, referent: JikesObj) {
+        unsafe {
+            (self.0 + REFERENCE_REFERENT_FIELD_OFFSET).store(referent);
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

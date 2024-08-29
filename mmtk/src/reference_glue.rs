@@ -1,5 +1,4 @@
 use mmtk::util::opaque_pointer::*;
-use mmtk::util::Address;
 use mmtk::util::ObjectReference;
 use mmtk::vm::ReferenceGlue;
 
@@ -10,6 +9,9 @@ use JikesRVM;
 
 #[cfg(not(feature = "binding_side_ref_proc"))]
 use std::arch::asm;
+use std::convert::TryInto;
+
+use crate::object_model::JikesObj;
 
 pub struct VMReferenceGlue {}
 
@@ -19,22 +21,17 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
     fn set_referent(reff: ObjectReference, referent: ObjectReference) {
         if cfg!(feature = "binding_side_ref_proc") {
             panic!();
-        } else {
-            unsafe {
-                (reff.to_raw_address() + REFERENCE_REFERENT_FIELD_OFFSET).store(referent);
-            }
         }
+
+        JikesObj::from(reff).set_referent(JikesObj::from(referent))
     }
 
-    fn get_referent(object: ObjectReference) -> Option<ObjectReference> {
+    fn get_referent(reff: ObjectReference) -> Option<ObjectReference> {
         if cfg!(feature = "binding_side_ref_proc") {
             panic!();
-        } else {
-            let addr = unsafe {
-                (object.to_raw_address() + REFERENCE_REFERENT_FIELD_OFFSET).load::<Address>()
-            };
-            ObjectReference::from_raw_address(addr)
         }
+
+        JikesObj::from(reff).get_referent().try_into().ok()
     }
 
     fn enqueue_references(references: &[ObjectReference], tls: VMWorkerThread) {
@@ -42,11 +39,12 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
             panic!();
         } else {
             for reff in references {
+                let jikes_reff = JikesObj::from(*reff);
                 unsafe {
                     jtoc_call!(
                         ENQUEUE_REFERENCE_METHOD_OFFSET,
                         tls,
-                        std::mem::transmute::<_, usize>(*reff)
+                        std::mem::transmute::<_, usize>(jikes_reff)
                     );
                 }
             }
@@ -57,10 +55,7 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
         if cfg!(feature = "binding_side_ref_proc") {
             panic!();
         } else {
-            unsafe {
-                (new_reference.to_raw_address() + REFERENCE_REFERENT_FIELD_OFFSET)
-                    .store(Address::ZERO);
-            }
+            JikesObj::from(new_reference).set_referent(JikesObj::NULL)
         }
     }
 }
