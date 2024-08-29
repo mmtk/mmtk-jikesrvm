@@ -57,6 +57,8 @@ impl std::fmt::Display for NullRefError {
 impl std::error::Error for NullRefError {}
 
 impl JikesObj {
+    pub const NULL: Self = Self(Address::ZERO);
+
     /// Query the hashcode overhead of the current object.
     ///
     /// *   If `WHEN_COPIED` is true, return the overhead after copying;
@@ -96,6 +98,16 @@ impl JikesObj {
     #[inline(always)]
     pub fn to_address(&self) -> Address {
         self.0
+    }
+
+    #[inline(always)]
+    pub fn from_objref_nullable(value: Option<ObjectReference>) -> Self {
+        value.map_or(Self::NULL, Self::from)
+    }
+
+    #[inline(always)]
+    pub fn is_null(&self) -> bool {
+        self.0.is_zero()
     }
 
     #[inline(always)]
