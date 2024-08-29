@@ -8,10 +8,6 @@ use mmtk::memory_manager;
 use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
-
-#[cfg(not(feature = "binding_side_ref_proc"))]
-use mmtk::vm::{ReferenceGlue, VMBinding};
-
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use std::convert::TryFrom;
@@ -203,21 +199,12 @@ pub extern "C" fn modify_check(_jikes_obj: JikesObj) {
     // MMTk core no longe provides this method. We just use an empty impl.
 }
 
-fn set_or_clear_referent(reff: ObjectReference, opt_referent: Option<ObjectReference>) {
-    if let Some(referent) = opt_referent {
-        <JikesRVM as VMBinding>::VMReferenceGlue::set_referent(reff, referent);
-    } else {
-        <JikesRVM as VMBinding>::VMReferenceGlue::clear_referent(reff);
-    }
-}
-
 #[cfg(not(feature = "binding_side_ref_proc"))]
 #[no_mangle]
 pub extern "C" fn add_weak_candidate(jikes_reff: JikesObj, jikes_referent: JikesObj) {
     debug_assert!(!jikes_reff.is_null());
+    jikes_reff.set_referent(jikes_referent);
     let reff = ObjectReference::try_from(jikes_reff).unwrap();
-    let opt_referent = ObjectReference::try_from(jikes_referent).ok();
-    set_or_clear_referent(reff, opt_referent);
     memory_manager::add_weak_candidate(&SINGLETON, reff)
 }
 
@@ -225,9 +212,8 @@ pub extern "C" fn add_weak_candidate(jikes_reff: JikesObj, jikes_referent: Jikes
 #[no_mangle]
 pub extern "C" fn add_soft_candidate(jikes_reff: JikesObj, jikes_referent: JikesObj) {
     debug_assert!(!jikes_reff.is_null());
+    jikes_reff.set_referent(jikes_referent);
     let reff = ObjectReference::try_from(jikes_reff).unwrap();
-    let opt_referent = ObjectReference::try_from(jikes_referent).ok();
-    set_or_clear_referent(reff, opt_referent);
     memory_manager::add_soft_candidate(&SINGLETON, reff)
 }
 
@@ -235,9 +221,8 @@ pub extern "C" fn add_soft_candidate(jikes_reff: JikesObj, jikes_referent: Jikes
 #[no_mangle]
 pub extern "C" fn add_phantom_candidate(jikes_reff: JikesObj, jikes_referent: JikesObj) {
     debug_assert!(!jikes_reff.is_null());
+    jikes_reff.set_referent(jikes_referent);
     let reff = ObjectReference::try_from(jikes_reff).unwrap();
-    let opt_referent = ObjectReference::try_from(jikes_referent).ok();
-    set_or_clear_referent(reff, opt_referent);
     memory_manager::add_phantom_candidate(&SINGLETON, reff)
 }
 
