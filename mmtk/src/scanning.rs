@@ -1,4 +1,5 @@
 use std::arch::asm;
+use std::convert::TryInto;
 use std::mem::size_of;
 use std::slice;
 
@@ -62,10 +63,12 @@ extern "C" fn report_slots_and_renew_buffer<F: RootsWorkFactory<JikesRVMSlot>>(
 
 extern "C" fn trace_object_callback_for_jikesrvm<T: ObjectTracer>(
     tracer_ptr: *mut libc::c_void,
-    object: ObjectReference,
-) -> ObjectReference {
+    object: JikesObj,
+) -> JikesObj {
+    debug_assert!(!tracer_ptr.is_null());
+    debug_assert!(!object.is_null());
     let tracer: &mut T = unsafe { &mut *(tracer_ptr as *mut T) };
-    tracer.trace_object(object)
+    tracer.trace_object(object.try_into().unwrap()).into()
 }
 
 impl Scanning<JikesRVM> for VMScanning {
@@ -95,15 +98,16 @@ impl Scanning<JikesRVM> for VMScanning {
         object: ObjectReference,
         slot_visitor: &mut EV,
     ) {
+        let jikes_obj = JikesObj::from(object);
         if DUMP_REF {
-            let obj_ptr = object.to_raw_address().as_usize();
+            let obj_ptr = jikes_obj.to_address().as_usize();
             unsafe {
                 jtoc_call!(DUMP_REF_METHOD_OFFSET, tls, obj_ptr);
             }
         }
         trace!("Getting reference array");
         let elt0_ptr: usize = {
-            let rvm_type = JikesObj::from(object).load_rvm_type();
+            let rvm_type = jikes_obj.load_rvm_type();
             rvm_type.reference_offsets()
         };
         trace!("elt0_ptr: {}", elt0_ptr);
@@ -112,10 +116,10 @@ impl Scanning<JikesRVM> for VMScanning {
         // In a class with pointers, it contains the offsets of reference-containing instance fields
         if elt0_ptr == 0 {
             // object is a REFARRAY
-            let length = JikesObj::from(object).get_array_length();
+            let length = jikes_obj.get_array_length();
             for i in 0..length {
                 slot_visitor.visit_slot(JikesRVMSlot::from_address(
-                    object.to_raw_address() + (i << LOG_BYTES_IN_ADDRESS),
+                    jikes_obj.to_address() + (i << LOG_BYTES_IN_ADDRESS),
                 ));
             }
         } else {
@@ -124,9 +128,8 @@ impl Scanning<JikesRVM> for VMScanning {
             let offsets = unsafe { slice::from_raw_parts(elt0_ptr as *const isize, len as usize) };
 
             for offset in offsets.iter() {
-                slot_visitor.visit_slot(JikesRVMSlot::from_address(
-                    object.to_raw_address() + *offset,
-                ));
+                slot_visitor
+                    .visit_slot(JikesRVMSlot::from_address(jikes_obj.to_address() + *offset));
             }
         }
     }
