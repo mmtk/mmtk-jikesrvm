@@ -490,10 +490,9 @@ impl VMObjectModel {
     #[inline(always)]
     unsafe fn aligned_32_copy(dst: Address, src: Address, copy_bytes: usize) {
         trace!("VMObjectModel.aligned_32_copy");
-        //debug_assert!(copy_bytes >= 0);
         debug_assert!(copy_bytes & (BYTES_IN_INT - 1) == 0);
         debug_assert!(src.is_aligned_to(BYTES_IN_INT));
-        debug_assert!(src.is_aligned_to(BYTES_IN_INT));
+        debug_assert!(dst.is_aligned_to(BYTES_IN_INT));
         debug_assert!(src + copy_bytes <= dst || src >= dst + BYTES_IN_INT);
 
         let cnt = copy_bytes;
