@@ -1,5 +1,5 @@
 use libc::*;
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::unboxed_size_constants::*;
@@ -420,13 +420,12 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         trace!("ObjectModel.get_reference_when_copied_to");
         debug_assert!(!to.is_zero());
 
-        let res_addr =
-            to + OBJECT_REF_OFFSET + JikesObj::from(from).hashcode_overhead::<true, true>();
+        let jikes_from = JikesObj::from(from);
+        let res_addr = to + OBJECT_REF_OFFSET + jikes_from.hashcode_overhead::<true, true>();
         debug_assert!(!res_addr.is_zero());
-        let res_jikes = JikesObj(res_addr);
-        // res cannot be null as long as res_addr is not zero.
-        let res = ObjectReference::try_from(res_jikes).unwrap();
-        res
+        let jikes_res = JikesObj(res_addr);
+        // `jikes_res` cannot be null as long as `to` is not zero.
+        jikes_res.try_into().unwrap()
     }
 
     fn get_current_size(object: ObjectReference) -> usize {
@@ -490,7 +489,7 @@ impl VMObjectModel {
 
         if ADDRESS_BASED_HASHING {
             // Read the hash state (used below)
-            status_word = JikesObj::from(from_obj).get_status();
+            status_word = from_obj.get_status();
             hash_state = status_word & HASH_STATE_MASK;
             if hash_state == HASH_STATE_HASHED {
                 // We do not copy the hashcode, but we do allocate it
@@ -545,7 +544,7 @@ impl VMObjectModel {
                     (to_obj.to_address() + HASHCODE_OFFSET)
                         .store::<usize>((hash_code << 1) | ALIGNMENT_MASK);
                 }
-                JikesObj::from(to_obj).set_status(status_word | HASH_STATE_HASHED_AND_MOVED);
+                to_obj.set_status(status_word | HASH_STATE_HASHED_AND_MOVED);
                 if HASH_STATS {
                     HASH_TRANSITION2.fetch_add(1, Ordering::Relaxed);
                 }
