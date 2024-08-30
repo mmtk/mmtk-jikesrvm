@@ -14,7 +14,6 @@ use mmtk::MMTKBuilder;
 use mmtk::MMTK;
 
 use collection::BOOT_THREAD;
-use entrypoint::*;
 use object_model::JikesObj;
 
 mod entrypoint;
@@ -30,6 +29,7 @@ pub mod heap_layout_constants;
 pub mod java_header;
 pub mod java_header_constants;
 pub mod java_size_constants;
+pub mod jtoc_calls;
 pub mod memory_manager_constants;
 pub mod misc_header_constants;
 pub mod object_model;
@@ -100,17 +100,8 @@ impl VMBinding for JikesRVM {
 impl JikesRVM {
     #[inline(always)]
     pub fn mm_entrypoint_test(input1: usize, input2: usize, input3: usize, input4: usize) -> usize {
-        use std::arch::asm;
-        unsafe {
-            jtoc_call!(
-                MM_ENTRYPOINT_TEST_METHOD_OFFSET,
-                BOOT_THREAD,
-                input1,
-                input2,
-                input3,
-                input4
-            )
-        }
+        let boot_thread = unsafe { BOOT_THREAD };
+        jtoc_calls::mm_entrypoint_test(boot_thread, input1, input2, input3, input4)
     }
 }
 

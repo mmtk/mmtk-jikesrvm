@@ -1,8 +1,8 @@
-use std::arch::asm;
 use std::convert::TryInto;
 use std::mem::size_of;
 use std::slice;
 
+use crate::jtoc_calls;
 use crate::object_model::JikesObj;
 use mmtk::vm::ObjectTracer;
 use mmtk::vm::ObjectTracerContext;
@@ -42,12 +42,12 @@ pub(crate) const SLOTS_BUFFER_CAPACITY: usize = 4096;
 extern "C" fn report_slots_and_renew_buffer<F: RootsWorkFactory<JikesRVMSlot>>(
     ptr: *mut JikesRVMSlot,
     length: usize,
-    factory: *mut F,
+    factory: *mut libc::c_void,
 ) -> *mut Address {
     if !ptr.is_null() {
         let buf =
             unsafe { Vec::<JikesRVMSlot>::from_raw_parts(ptr, length, SLOTS_BUFFER_CAPACITY) };
-        let factory: &mut F = unsafe { &mut *factory };
+        let factory: &mut F = unsafe { &mut *(factory as *mut F) };
         factory.create_process_roots_work(buf);
     }
     let (ptr, _, capacity) = {
@@ -101,9 +101,7 @@ impl Scanning<JikesRVM> for VMScanning {
         let jikes_obj = JikesObj::from(object);
         if DUMP_REF {
             let obj_ptr = jikes_obj.to_address().as_usize();
-            unsafe {
-                jtoc_call!(DUMP_REF_METHOD_OFFSET, tls, obj_ptr);
-            }
+            jtoc_calls::dump_ref(tls, obj_ptr);
         }
         trace!("Getting reference array");
         let elt0_ptr: usize = {
@@ -136,9 +134,7 @@ impl Scanning<JikesRVM> for VMScanning {
 
     fn notify_initial_thread_scan_complete(partial_scan: bool, tls: VMWorkerThread) {
         if !partial_scan {
-            unsafe {
-                jtoc_call!(SNIP_OBSOLETE_COMPILED_METHODS_METHOD_OFFSET, tls);
-            }
+            jtoc_calls::snip_obsolete_compiled_methods(tls);
         }
 
         unsafe {
@@ -214,14 +210,13 @@ where
         .generational()
         .map_or(false, |plan| plan.is_current_gc_nursery());
 
-    tracer_context.with_tracer(worker, |tracer| unsafe {
-        jtoc_call!(
-            DO_REFERENCE_PROCESSING_HELPER_FORWARD_METHOD_OFFSET,
+    tracer_context.with_tracer(worker, |tracer| {
+        jtoc_calls::do_reference_processing_helper_forward(
             tls,
             trace_object_callback_for_jikesrvm::<C::TracerType>,
             tracer as *mut _ as *mut libc::c_void,
-            is_nursery as i32
-        );
+            is_nursery,
+        )
     });
 }
 
@@ -238,16 +233,14 @@ where
 
     let need_retain = SINGLETON.is_emergency_collection();
 
-    tracer_context.with_tracer(worker, |tracer| unsafe {
-        let scan_result = jtoc_call!(
-            DO_REFERENCE_PROCESSING_HELPER_SCAN_METHOD_OFFSET,
+    tracer_context.with_tracer(worker, |tracer| {
+        jtoc_calls::do_reference_processing_helper_scan(
             tls,
             trace_object_callback_for_jikesrvm::<C::TracerType>,
             tracer as *mut _ as *mut libc::c_void,
-            is_nursery as i32,
-            need_retain as i32
-        );
-        scan_result == 0
+            is_nursery,
+            need_retain,
+        )
     })
 }
 
@@ -266,19 +259,14 @@ impl VMScanning {
             if (thread + IS_COLLECTOR_FIELD_OFFSET).load::<bool>() {
                 return;
             }
-            let thread_usize = thread.as_usize();
-            debug!(
-                "Calling JikesRVM to compute thread roots, thread_usize={:x}",
-                thread_usize
-            );
-            jtoc_call!(
-                SCAN_THREAD_METHOD_OFFSET,
+            debug!("Calling JikesRVM to compute thread roots, thread={thread}");
+            jtoc_calls::scan_thread(
                 tls,
-                thread_usize,
+                mutator,
                 report_slots_and_renew_buffer::<F>,
                 factory as *mut F as *mut libc::c_void,
-                process_code_locations as i32,
-                new_roots_sufficient as i32
+                process_code_locations,
+                new_roots_sufficient,
             );
             debug!("Returned from JikesRVM thread roots");
         }

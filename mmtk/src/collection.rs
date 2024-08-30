@@ -8,7 +8,7 @@ use mmtk::Mutator;
 use JikesRVM;
 use JTOC_BASE;
 
-use std::arch::asm;
+use crate::jtoc_calls;
 
 pub static mut BOOT_THREAD: OpaquePointer = OpaquePointer::UNINITIALIZED;
 
@@ -22,20 +22,11 @@ impl Collection<JikesRVM> for VMCollection {
     where
         F: FnMut(&'static mut Mutator<JikesRVM>),
     {
-        unsafe {
-            jtoc_call!(BLOCK_ALL_MUTATORS_FOR_GC_METHOD_OFFSET, tls);
-        }
+        jtoc_calls::block_all_mutators_for_gc(tls);
 
         for mutator in crate::active_plan::VMActivePlan::mutators() {
             // Prepare mutator
-            unsafe {
-                jtoc_call!(
-                    PREPARE_MUTATOR_METHOD_OFFSET,
-                    // convert to primitive types, so they can be used in asm!
-                    std::mem::transmute::<_, usize>(tls),
-                    std::mem::transmute::<_, usize>(mutator.mutator_tls)
-                );
-            }
+            jtoc_calls::prepare_mutator(tls, mutator.mutator_tls);
             // Tell MMTk the thread is ready for stack scanning
             mutator_visitor(mutator);
         }
@@ -43,37 +34,27 @@ impl Collection<JikesRVM> for VMCollection {
 
     #[inline(always)]
     fn resume_mutators(tls: VMWorkerThread) {
-        unsafe {
-            jtoc_call!(UNBLOCK_ALL_MUTATORS_FOR_GC_METHOD_OFFSET, tls);
-        }
+        jtoc_calls::unblock_all_mutators_for_gc(tls);
     }
 
     #[inline(always)]
     fn block_for_gc(tls: VMMutatorThread) {
-        unsafe {
-            jtoc_call!(BLOCK_FOR_GC_METHOD_OFFSET, tls);
-        }
+        jtoc_calls::block_for_gc(tls);
     }
 
     fn spawn_gc_thread(tls: VMThread, ctx: GCThreadContext<JikesRVM>) {
         let ctx_ptr = match ctx {
             GCThreadContext::Worker(c) => Box::into_raw(c),
         };
-        unsafe {
-            jtoc_call!(SPAWN_COLLECTOR_THREAD_METHOD_OFFSET, tls, ctx_ptr);
-        }
+        jtoc_calls::spawn_collector_thread(tls, ctx_ptr);
     }
 
     fn out_of_memory(tls: VMThread, _err_kind: AllocationError) {
-        unsafe {
-            jtoc_call!(OUT_OF_MEMORY_METHOD_OFFSET, tls);
-        }
+        jtoc_calls::out_of_memory(tls);
     }
 
     fn schedule_finalization(tls: VMWorkerThread) {
-        unsafe {
-            jtoc_call!(SCHEDULE_FINALIZER_METHOD_OFFSET, tls);
-        }
+        jtoc_calls::schedule_finalization(tls);
     }
 }
 

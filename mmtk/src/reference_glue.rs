@@ -2,15 +2,11 @@ use mmtk::util::opaque_pointer::*;
 use mmtk::util::ObjectReference;
 use mmtk::vm::ReferenceGlue;
 
-#[cfg(not(feature = "binding_side_ref_proc"))]
-use entrypoint::*;
-
 use JikesRVM;
 
-#[cfg(not(feature = "binding_side_ref_proc"))]
-use std::arch::asm;
 use std::convert::TryInto;
 
+use crate::jtoc_calls;
 use crate::object_model::JikesObj;
 
 pub struct VMReferenceGlue {}
@@ -40,13 +36,7 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
         } else {
             for reff in references {
                 let jikes_reff = JikesObj::from(*reff);
-                unsafe {
-                    jtoc_call!(
-                        ENQUEUE_REFERENCE_METHOD_OFFSET,
-                        tls,
-                        std::mem::transmute::<_, usize>(jikes_reff)
-                    );
-                }
+                jtoc_calls::enqueue_reference(tls, jikes_reff);
             }
         }
     }
