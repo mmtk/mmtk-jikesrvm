@@ -109,8 +109,8 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
   private GCMapIterator iterator;
   @Untraced
   private boolean processCodeLocations;
-  private Address report_slots;
-  private Address report_slots_extra_data;
+  private Address reportSlots;
+  private Address reportSlotsExtraData;
   @Untraced
   private RVMThread thread;
   private Address ip, fp, prevFp, initialIPLoc, topFrame;
@@ -135,15 +135,15 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
    * Scan a thread, placing the addresses of pointers into supplied buffers.
    *
    * @param thread The thread to be scanned
-   * @param report_slots The native call-back function to use for reporting locations.
-   * @param report_slots_extra_data Extra data passed to the report_slots call-back.
+   * @param reportSlots The native call-back function to use for reporting locations.
+   * @param reportSlotsExtraData Extra data passed to the reportSlots call-back.
    * @param processCodeLocations Should code locations be processed?
    * @param newRootsSufficient Is a partial stack scan sufficient, or must we do a full scan?
    */
   @Entrypoint
   public static void scanThread(RVMThread thread,
-                                Address report_slots,
-                                Address report_slots_extra_data,
+                                Address reportSlots,
+                                Address reportSlotsExtraData,
                                 boolean processCodeLocations,
                                 boolean newRootsSufficient) {
     if (DEFAULT_VERBOSITY >= 1) {
@@ -158,7 +158,7 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
     Address fp = regs.getInnermostFramePointer();
     regs.clear();
     regs.setInnermost(ip,fp);
-    scanThread(thread, report_slots, report_slots_extra_data, processCodeLocations, gprs, Address.zero(), newRootsSufficient);
+    scanThread(thread, reportSlots, reportSlotsExtraData, processCodeLocations, gprs, Address.zero(), newRootsSufficient);
   }
 
   /**
@@ -167,8 +167,8 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
    * structure.
    *
    * @param thread The thread to be scanned
-   * @param report_slots The native call-back function to use for reporting locations.
-   * @param report_slots_extra_data Extra data passed to the report_slots call-back.
+   * @param reportSlots The native call-back function to use for reporting locations.
+   * @param reportSlotsExtraData Extra data passed to the reportSlots call-back.
    * @param processCodeLocations Should code locations be processed?
    * @param gprs The general purpose registers associated with the
    * stack being scanned (normally extracted from the thread).
@@ -177,8 +177,8 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
    * @param newRootsSufficent Is a partial stack scan sufficient, or must we do a full scan?
    */
   private static void scanThread(RVMThread thread,
-                                 Address report_slots,
-                                 Address report_slots_extra_data,
+                                 Address reportSlots,
+                                 Address reportSlotsExtraData,
                                  boolean processCodeLocations,
                                  Address gprs,
                                  Address topFrame,
@@ -211,7 +211,7 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
     }
 
     /* scan the stack */
-    scanner.startScan(report_slots, report_slots_extra_data, processCodeLocations, thread, gprs, ip, fp, initialIPLoc, topFrame, sentinelFp);
+    scanner.startScan(reportSlots, reportSlotsExtraData, processCodeLocations, thread, gprs, ip, fp, initialIPLoc, topFrame, sentinelFp);
   }
 
   @Inline
@@ -229,7 +229,7 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
 
   private void flush() {
     if (!slots.isZero() && !size.isZero()) {
-      slots = sysCall.sysDynamicCall3(report_slots, slots.toWord(), size, report_slots_extra_data.toWord());
+      slots = sysCall.sysDynamicCall3(reportSlots, slots.toWord(), size, reportSlotsExtraData.toWord());
       size = Word.zero();
     }
   }
@@ -244,8 +244,8 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
    * The various state associated with stack scanning is captured by
    * instance variables of this type, which are initialized here.
    *
-   * @param report_slots The native call-back function to use for reporting locations.
-   * @param report_slots_extra_data Extra data passed to the report_slots call-back.
+   * @param reportSlots The native call-back function to use for reporting locations.
+   * @param reportSlotsExtraData Extra data passed to the reportSlots call-back.
    * @param processCodeLocations whether to process parts of the thread
    *  that could point to code (e.g. exception registers).
    * @param thread Thread for the thread whose stack is being scanned
@@ -261,16 +261,16 @@ import static org.jikesrvm.runtime.UnboxedSizeConstants.LOG_BYTES_IN_WORD;
    * if this is to be inferred from the thread (normally the case).
    * @param sentinelFp The frame pointer at which the stack scan should stop.
    */
-  private void startScan(Address report_slots,
-                         Address report_slots_extra_data,
+  private void startScan(Address reportSlots,
+                         Address reportSlotsExtraData,
                          boolean processCodeLocations,
                          RVMThread thread, Address gprs, Address ip,
                          Address fp, Address initialIPLoc, Address topFrame,
                          Address sentinelFp) {
-    this.report_slots = report_slots;
-    this.report_slots_extra_data = report_slots_extra_data;
+    this.reportSlots = reportSlots;
+    this.reportSlotsExtraData = reportSlotsExtraData;
     this.size = Word.zero();
-    this.slots = sysCall.sysDynamicCall3(report_slots, Word.zero(), Word.zero(), report_slots_extra_data.toWord());
+    this.slots = sysCall.sysDynamicCall3(reportSlots, Word.zero(), Word.zero(), reportSlotsExtraData.toWord());
 
     this.processCodeLocations = processCodeLocations;
     this.thread = thread;
