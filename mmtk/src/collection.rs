@@ -54,7 +54,7 @@ impl Collection<JikesRVM> for VMCollection {
     }
 
     fn schedule_finalization(tls: VMWorkerThread) {
-        jtoc_calls::schedule_finalization(tls);
+        jtoc_calls::schedule_finalizer(tls);
     }
 }
 

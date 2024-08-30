@@ -42,9 +42,9 @@ pub fn block_for_gc(tls: VMMutatorThread) {
     }
 }
 
-pub fn spawn_collector_thread(tls: VMThread, ctx_ptr: *mut GCWorker<JikesRVM>) {
+pub fn spawn_collector_thread(tls: VMThread, worker_instance: *mut GCWorker<JikesRVM>) {
     unsafe {
-        jtoc_call!(SPAWN_COLLECTOR_THREAD_METHOD_OFFSET, tls, ctx_ptr);
+        jtoc_call!(SPAWN_COLLECTOR_THREAD_METHOD_OFFSET, tls, worker_instance);
     }
 }
 
@@ -54,41 +54,26 @@ pub fn out_of_memory(tls: VMThread) {
     }
 }
 
-pub fn schedule_finalization(tls: VMWorkerThread) {
+pub fn schedule_finalizer(tls: VMWorkerThread) {
     unsafe {
         jtoc_call!(SCHEDULE_FINALIZER_METHOD_OFFSET, tls);
     }
 }
 
-pub fn mm_entrypoint_test(
-    boot_thread: OpaquePointer,
-    input1: usize,
-    input2: usize,
-    input3: usize,
-    input4: usize,
-) -> usize {
-    unsafe {
-        jtoc_call!(
-            MM_ENTRYPOINT_TEST_METHOD_OFFSET,
-            boot_thread,
-            input1,
-            input2,
-            input3,
-            input4
-        )
-    }
+pub fn mm_entrypoint_test(tls: OpaquePointer, a: usize, b: usize, c: usize, d: usize) -> usize {
+    unsafe { jtoc_call!(MM_ENTRYPOINT_TEST_METHOD_OFFSET, tls, a, b, c, d) }
 }
 
 pub fn enqueue_reference(tls: VMWorkerThread, reff: JikesObj) {
+    let reff = reff.to_jtoc_call_arg();
     unsafe {
-        let reff_usize = std::mem::transmute::<_, usize>(reff);
-        jtoc_call!(ENQUEUE_REFERENCE_METHOD_OFFSET, tls, reff_usize);
+        jtoc_call!(ENQUEUE_REFERENCE_METHOD_OFFSET, tls, reff);
     }
 }
 
-pub fn scan_boot_image(tls: OpaquePointer, addr: *const usize) {
+pub fn scan_boot_image(tls: OpaquePointer, root: *const usize) {
     unsafe {
-        jtoc_call!(SCAN_BOOT_IMAGE_METHOD_OFFSET, tls, addr);
+        jtoc_call!(SCAN_BOOT_IMAGE_METHOD_OFFSET, tls, root);
     }
 }
 
@@ -96,9 +81,10 @@ pub fn get_number_of_reference_slots(tls: VMWorkerThread) -> usize {
     unsafe { jtoc_call!(GET_NUMBER_OF_REFERENCE_SLOTS_METHOD_OFFSET, tls) }
 }
 
-pub fn dump_ref(tls: VMWorkerThread, obj_ptr: usize) {
+pub fn dump_ref(tls: VMWorkerThread, reff: JikesObj) {
+    let reff = reff.to_jtoc_call_arg();
     unsafe {
-        jtoc_call!(DUMP_REF_METHOD_OFFSET, tls, obj_ptr);
+        jtoc_call!(DUMP_REF_METHOD_OFFSET, tls, reff);
     }
 }
 
@@ -110,8 +96,8 @@ pub fn snip_obsolete_compiled_methods(tls: VMWorkerThread) {
 
 pub fn do_reference_processing_helper_forward(
     tls: VMWorkerThread,
-    callback: extern "C" fn(*mut libc::c_void, JikesObj) -> JikesObj,
-    callback_data: *mut libc::c_void,
+    trace_object_callback: extern "C" fn(*mut libc::c_void, JikesObj) -> JikesObj,
+    tracer: *mut libc::c_void,
     is_nursery: bool,
 ) {
     let is_nursery = is_nursery.to_jtoc_call_arg();
@@ -119,8 +105,8 @@ pub fn do_reference_processing_helper_forward(
         jtoc_call!(
             DO_REFERENCE_PROCESSING_HELPER_FORWARD_METHOD_OFFSET,
             tls,
-            callback,
-            callback_data,
+            trace_object_callback,
+            tracer,
             is_nursery
         );
     }
@@ -128,8 +114,8 @@ pub fn do_reference_processing_helper_forward(
 
 pub fn do_reference_processing_helper_scan(
     tls: VMWorkerThread,
-    callback: extern "C" fn(*mut libc::c_void, JikesObj) -> JikesObj,
-    callback_data: *mut libc::c_void,
+    trace_object_callback: extern "C" fn(*mut libc::c_void, JikesObj) -> JikesObj,
+    tracer: *mut libc::c_void,
     is_nursery: bool,
     need_retain: bool,
 ) -> bool {
@@ -139,8 +125,8 @@ pub fn do_reference_processing_helper_scan(
         jtoc_call!(
             DO_REFERENCE_PROCESSING_HELPER_SCAN_METHOD_OFFSET,
             tls,
-            callback,
-            callback_data,
+            trace_object_callback,
+            tracer,
             is_nursery,
             need_retain
         )
@@ -172,7 +158,8 @@ pub fn scan_thread(
     }
 }
 
-pub fn implemented_in_java(tls: VMWorkerThread, i: usize) -> bool {
-    let result = unsafe { jtoc_call!(IMPLEMENTED_IN_JAVA_METHOD_OFFSET, tls, i) };
+pub fn implemented_in_java(tls: VMWorkerThread, function_table_index: usize) -> bool {
+    let result =
+        unsafe { jtoc_call!(IMPLEMENTED_IN_JAVA_METHOD_OFFSET, tls, function_table_index) };
     bool::from_asm_result(result)
 }

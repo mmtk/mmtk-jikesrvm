@@ -1,5 +1,7 @@
 use mmtk::util::{Address, OpaquePointer, VMMutatorThread, VMThread, VMWorkerThread};
 
+use crate::object_model::JikesObj;
+
 #[cfg(target_arch = "x86")]
 #[macro_export]
 macro_rules! jtoc_call {
@@ -246,11 +248,20 @@ impl FromAsmResult for bool {
     }
 }
 
-/// Address type is just `usize`.
+/// `Address` is backed by `usize`.
 impl ToAsmArg for Address {
     type ResultType = usize;
 
     fn to_jtoc_call_arg(self) -> Self::ResultType {
         self.as_usize()
+    }
+}
+
+/// `JikesObj` is backed by `Address` which is ultimately `usize`, too.
+impl ToAsmArg for JikesObj {
+    type ResultType = usize;
+
+    fn to_jtoc_call_arg(self) -> Self::ResultType {
+        self.to_address().as_usize()
     }
 }

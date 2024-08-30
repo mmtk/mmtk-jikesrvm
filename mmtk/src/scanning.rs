@@ -100,8 +100,7 @@ impl Scanning<JikesRVM> for VMScanning {
     ) {
         let jikes_obj = JikesObj::from(object);
         if DUMP_REF {
-            let obj_ptr = jikes_obj.to_address().as_usize();
-            jtoc_calls::dump_ref(tls, obj_ptr);
+            jtoc_calls::dump_ref(tls, jikes_obj);
         }
         trace!("Getting reference array");
         let elt0_ptr: usize = {
