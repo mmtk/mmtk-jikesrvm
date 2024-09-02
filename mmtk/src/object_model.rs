@@ -173,13 +173,11 @@ impl JikesObj {
 
     #[inline(always)]
     pub(crate) fn get_array_length(&self) -> usize {
-        trace!("ObjectModel.get_array_length");
         unsafe { (self.0 + ARRAY_LENGTH_OFFSET).load::<usize>() }
     }
 
     #[inline(always)]
     fn bytes_required_when_copied(&self, rvm_type: RVMType) -> usize {
-        trace!("VMObjectModel.bytes_required_when_copied");
         if rvm_type.is_class() {
             self.bytes_required_when_copied_class(rvm_type)
         } else {
@@ -189,18 +187,12 @@ impl JikesObj {
 
     #[inline(always)]
     fn bytes_required_when_copied_class(&self, rvm_type: RVMType) -> usize {
-        let mut size = rvm_type.instance_size();
-        trace!("bytes_required_when_copied_class: instance size={}", size);
-
-        size += self.hashcode_overhead::<true, false>();
-
-        trace!("bytes_required_when_copied_class: returned size={}", size);
-        size
+        let size = rvm_type.instance_size();
+        size + self.hashcode_overhead::<true, false>()
     }
 
     #[inline(always)]
     fn bytes_required_when_copied_array(&self, rvm_type: RVMType) -> usize {
-        trace!("VMObjectModel.bytes_required_when_copied_array");
         let mut size = {
             let num_elements = self.get_array_length();
             let log_element_size = rvm_type.log_element_size();
@@ -214,7 +206,6 @@ impl JikesObj {
 
     #[inline(always)]
     fn bytes_used(&self, rvm_type: RVMType) -> usize {
-        trace!("VMObjectModel.bytes_used");
         let is_class = rvm_type.is_class();
         let mut size = if is_class {
             rvm_type.instance_size()
@@ -235,13 +226,11 @@ impl JikesObj {
 
     #[inline(always)]
     fn get_offset_for_alignment_array(&self) -> usize {
-        trace!("VMObjectModel.get_offset_for_alignment_array");
         ARRAY_HEADER_SIZE + self.hashcode_overhead::<true, true>()
     }
 
     #[inline(always)]
     fn get_offset_for_alignment_class(&self) -> usize {
-        trace!("VMObjectModel.get_offset_for_alignment_class");
         SCALAR_HEADER_SIZE + self.hashcode_overhead::<true, true>()
     }
 
@@ -285,13 +274,11 @@ impl RVMType {
 
     #[inline(always)]
     fn get_alignment_array(&self) -> usize {
-        trace!("VMObjectModel.get_alignment_array");
         unsafe { (self.0 + RVM_ARRAY_ALIGNMENT_OFFSET).load::<usize>() }
     }
 
     #[inline(always)]
     fn get_alignment_class(&self) -> usize {
-        trace!("VMObjectModel.get_alignment_class");
         if BYTES_IN_ADDRESS == BYTES_IN_DOUBLE {
             BYTES_IN_ADDRESS
         } else {
@@ -366,15 +353,12 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         let tib = jikes_from.load_tib();
         let rvm_type = tib.load_rvm_type();
 
-        trace!("Is it a class?");
         let (bytes, align, offset) = if rvm_type.is_class() {
-            trace!("... yes");
             let bytes = jikes_from.bytes_required_when_copied_class(rvm_type);
             let align = rvm_type.get_alignment_class();
             let offset = jikes_from.get_offset_for_alignment_class();
             (bytes, align, offset)
         } else {
-            trace!("... no");
             let bytes = jikes_from.bytes_required_when_copied_array(rvm_type);
             let align = rvm_type.get_alignment_array();
             let offset = jikes_from.get_offset_for_alignment_array();
@@ -434,6 +418,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
     }
 
     fn get_size_when_copied(object: ObjectReference) -> usize {
+        trace!("ObjectModel.get_size_when_copied");
         JikesObj::from(object).get_size_when_copied()
     }
 
@@ -453,7 +438,7 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 
     #[inline(always)]
     fn ref_to_object_start(object: ObjectReference) -> Address {
-        trace!("ObjectModel.object_start_ref");
+        trace!("ObjectModel.ref_to_object_start");
         JikesObj::from(object).object_start()
     }
 
@@ -481,8 +466,6 @@ impl VMObjectModel {
         num_bytes: usize,
         _rvm_type: RVMType,
     ) -> JikesObj {
-        trace!("VMObjectModel.move_object");
-
         // Default values
         let mut copy_bytes = num_bytes;
         let mut obj_ref_offset = OBJECT_REF_OFFSET;
@@ -558,7 +541,6 @@ impl VMObjectModel {
 
     #[inline(always)]
     unsafe fn aligned_32_copy(dst: Address, src: Address, copy_bytes: usize) {
-        trace!("VMObjectModel.aligned_32_copy");
         debug_assert!(copy_bytes & (BYTES_IN_INT - 1) == 0);
         debug_assert!(src.is_aligned_to(BYTES_IN_INT));
         debug_assert!(dst.is_aligned_to(BYTES_IN_INT));
