@@ -62,37 +62,6 @@ impl std::error::Error for NullRefError {}
 impl JikesObj {
     pub const NULL: Self = Self(Address::ZERO);
 
-    /// Query the hashcode overhead of the current object.
-    ///
-    /// *   If `WHEN_COPIED` is true, return the overhead after copying;
-    ///     otherwise return the current overhead.
-    /// *   If `FRONT` is true, return the overhead at the start of the object;
-    ///     otherwise return the overhead regardless of the location of the hash field.
-    #[inline(always)]
-    fn hashcode_overhead<const WHEN_COPIED: bool, const FRONT: bool>(&self) -> usize {
-        if !MOVES_OBJECTS || !ADDRESS_BASED_HASHING || FRONT && DYNAMIC_HASH_OFFSET {
-            // If the GC never moves object, just use the address as hashcode.
-            // If not using address-based hashing, JikesRVM uses a 10-bit in-header hash field.
-            // DYNAMIC_HASH_OFFSET puts hash field in the end.
-            return 0;
-        }
-
-        let hash_state = self.get_status() & HASH_STATE_MASK;
-        let has_hashcode = if WHEN_COPIED {
-            // As long as it is hashed, it will have a hash field after moved.
-            hash_state != HASH_STATE_UNHASHED
-        } else {
-            // An object has a hash field if and only if it is hashed and moved.
-            hash_state == HASH_STATE_HASHED_AND_MOVED
-        };
-
-        if has_hashcode {
-            HASHCODE_BYTES
-        } else {
-            0
-        }
-    }
-
     #[inline(always)]
     pub fn from_address(addr: Address) -> Self {
         JikesObj(addr)
@@ -249,6 +218,37 @@ impl JikesObj {
     pub fn set_referent(&self, referent: JikesObj) {
         unsafe {
             (self.0 + REFERENCE_REFERENT_FIELD_OFFSET).store(referent);
+        }
+    }
+
+    /// Query the hashcode overhead of the current object.
+    ///
+    /// *   If `WHEN_COPIED` is true, return the overhead after copying;
+    ///     otherwise return the current overhead.
+    /// *   If `FRONT` is true, return the overhead at the start of the object;
+    ///     otherwise return the overhead regardless of the location of the hash field.
+    #[inline(always)]
+    fn hashcode_overhead<const WHEN_COPIED: bool, const FRONT: bool>(&self) -> usize {
+        if !MOVES_OBJECTS || !ADDRESS_BASED_HASHING || FRONT && DYNAMIC_HASH_OFFSET {
+            // If the GC never moves object, just use the address as hashcode.
+            // If not using address-based hashing, JikesRVM uses a 10-bit in-header hash field.
+            // DYNAMIC_HASH_OFFSET puts hash field in the end.
+            return 0;
+        }
+
+        let hash_state = self.get_status() & HASH_STATE_MASK;
+        let has_hashcode = if WHEN_COPIED {
+            // As long as it is hashed, it will have a hash field after moved.
+            hash_state != HASH_STATE_UNHASHED
+        } else {
+            // An object has a hash field if and only if it is hashed and moved.
+            hash_state == HASH_STATE_HASHED_AND_MOVED
+        };
+
+        if has_hashcode {
+            HASHCODE_BYTES
+        } else {
+            0
         }
     }
 }
