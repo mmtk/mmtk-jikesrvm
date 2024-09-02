@@ -24,7 +24,10 @@ use JikesRVM;
 
 /// This type represents a JikesRVM-level `ObjectReference`.
 ///
-/// Currently, it has the same value as the MMTk-level `mmtk::util::address::ObjectReference`.
+/// Currently, it has the same value as the MMTk-level `mmtk::util::address::ObjectReference`, but
+/// can be null (has the value of 0).  Therefore, an MMTk-level `ObjectReference` can always safely
+/// converted to a `JikesObj`, but safely converting a `JikesObj` to an MMTk-level `ObjectReference`
+/// will involve a null check.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct JikesObj(Address);
@@ -128,6 +131,9 @@ impl JikesObj {
 
     #[inline(always)]
     fn set_status(&self, value: usize) {
+        // Using non-atomic store.  We set the status word when copying an object to the to-space,
+        // and it happens before all subsequent accesses on the same object in the current or other
+        // GC worker threads.  So there will not be races.
         unsafe { (self.0 + STATUS_OFFSET).store::<usize>(value) }
     }
 
@@ -323,12 +329,6 @@ static HASH_TRANSITION1: AtomicUsize = AtomicUsize::new(0);
 #[allow(dead_code)]
 static HASH_TRANSITION2: AtomicUsize = AtomicUsize::new(0);
 
-// FIXME [ZC]: There are places we use Address::load<> instead of atomics operations
-// where the memory location is indeed accessed by multiple threads (collector/mutator).
-// Compiler optimizations and compiler/hardware reordering will affect the correctness of the
-// emitted code.
-// This is perhaps more serious with Rust release build or on machines with weaker memory models.
-
 #[derive(Default)]
 pub struct VMObjectModel {}
 
@@ -519,6 +519,9 @@ impl VMObjectModel {
         if hash_state == HASH_STATE_HASHED {
             unsafe {
                 let hash_code = from_obj.to_address().as_usize() >> LOG_BYTES_IN_ADDRESS;
+                // Using non-atomic store.  We only read the hash code when copying an object.  But
+                // since the object has just been copied, it won't be loaded until the next GC.  So
+                // there will not be races.
                 if DYNAMIC_HASH_OFFSET {
                     (to_obj.to_address()
                         + num_bytes
