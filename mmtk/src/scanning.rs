@@ -2,7 +2,7 @@ use std::convert::TryInto;
 use std::mem::size_of;
 use std::slice;
 
-use crate::jtoc_calls;
+use crate::jikesrvm_calls;
 use crate::object_model::JikesObj;
 use mmtk::vm::ObjectTracer;
 use mmtk::vm::ObjectTracerContext;
@@ -100,7 +100,7 @@ impl Scanning<JikesRVM> for VMScanning {
     ) {
         let jikes_obj = JikesObj::from(object);
         if DUMP_REF {
-            jtoc_calls::dump_ref(tls, jikes_obj);
+            jikesrvm_calls::dump_ref(tls, jikes_obj);
         }
         trace!("Getting reference array");
         let elt0_ptr: usize = {
@@ -133,7 +133,7 @@ impl Scanning<JikesRVM> for VMScanning {
 
     fn notify_initial_thread_scan_complete(partial_scan: bool, tls: VMWorkerThread) {
         if !partial_scan {
-            jtoc_calls::snip_obsolete_compiled_methods(tls);
+            jikesrvm_calls::snip_obsolete_compiled_methods(tls);
         }
 
         unsafe {
@@ -210,7 +210,7 @@ where
         .map_or(false, |plan| plan.is_current_gc_nursery());
 
     tracer_context.with_tracer(worker, |tracer| {
-        jtoc_calls::do_reference_processing_helper_forward(
+        jikesrvm_calls::do_reference_processing_helper_forward(
             tls,
             trace_object_callback_for_jikesrvm::<C::TracerType>,
             tracer as *mut _ as *mut libc::c_void,
@@ -233,7 +233,7 @@ where
     let need_retain = SINGLETON.is_emergency_collection();
 
     tracer_context.with_tracer(worker, |tracer| {
-        jtoc_calls::do_reference_processing_helper_scan(
+        jikesrvm_calls::do_reference_processing_helper_scan(
             tls,
             trace_object_callback_for_jikesrvm::<C::TracerType>,
             tracer as *mut _ as *mut libc::c_void,
@@ -259,7 +259,7 @@ impl VMScanning {
                 return;
             }
             debug!("Calling JikesRVM to compute thread roots, thread={thread}");
-            jtoc_calls::scan_thread(
+            jikesrvm_calls::scan_thread(
                 tls,
                 mutator,
                 report_slots_and_renew_buffer::<F>,
@@ -299,7 +299,7 @@ impl VMScanning {
 
             for i in start..end {
                 let function_address_slot = jni_functions + (i << LOG_BYTES_IN_ADDRESS);
-                if jtoc_call!(IMPLEMENTED_IN_JAVA_METHOD_OFFSET, tls, i) != 0 {
+                if jikesrvm_calls::implemented_in_java(tls, i) {
                     trace!("function implemented in java {:?}", function_address_slot);
                     callback(JikesRVMSlot::from_address(function_address_slot));
                 } else {

@@ -6,7 +6,7 @@ use JikesRVM;
 
 use std::convert::TryInto;
 
-use crate::jtoc_calls;
+use crate::jikesrvm_calls;
 use crate::object_model::JikesObj;
 
 pub struct VMReferenceGlue {}
@@ -36,7 +36,7 @@ impl ReferenceGlue<JikesRVM> for VMReferenceGlue {
         } else {
             for reff in references {
                 let jikes_reff = JikesObj::from(*reff);
-                jtoc_calls::enqueue_reference(tls, jikes_reff);
+                jikesrvm_calls::enqueue_reference(tls, jikes_reff);
             }
         }
     }

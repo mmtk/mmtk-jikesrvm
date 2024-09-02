@@ -1,4 +1,4 @@
-use crate::jtoc_calls;
+use crate::jikesrvm_calls;
 use crate::scanning::SLOTS_BUFFER_CAPACITY;
 use crate::JikesRVM;
 use crate::JikesRVMSlot;
@@ -26,7 +26,7 @@ pub fn scan_statics(
         // let cc = VMActivePlan::collector(tls);
 
         let number_of_collectors: usize = total_subwork;
-        let number_of_references: usize = jtoc_calls::get_number_of_reference_slots(tls);
+        let number_of_references: usize = jikesrvm_calls::get_number_of_reference_slots(tls);
         let chunk_size: usize = (number_of_references / number_of_collectors) & CHUNK_SIZE_MASK;
         let thread_ordinal = subwork_id;
 

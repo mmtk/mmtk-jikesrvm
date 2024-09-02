@@ -1,3 +1,10 @@
+//! This module contains macros for calling into JikesRVM.  It also contains traits for helping
+//! checking argument types and converting Rust types to/from the the representations expected by
+//! JikesRVM and/or suitable for use in `asm!`.
+//!
+//! This module is private to the parent module because all calls to JikesRVM are encapsulated by
+//! wrapper functions defined there.
+
 use mmtk::util::{Address, OpaquePointer, VMMutatorThread, VMThread, VMWorkerThread};
 
 use crate::object_model::JikesObj;
@@ -40,7 +47,7 @@ macro_rules! jikesrvm_call {
         let mut ret: usize;
 
         // Cast $tls from opaque pointer to a primitive type so we can use it in asm!
-        let rvm_thread = $crate::jtoc_call::ToRvmThreadArg::to_rvm_thread_arg($tls);
+        let rvm_thread = $crate::jikesrvm_calls::helpers::ToRvmThreadArg::to_rvm_thread_arg($tls);
         debug_assert_ne!(rvm_thread, 0);
 
         $(

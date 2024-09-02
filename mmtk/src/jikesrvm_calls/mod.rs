@@ -1,6 +1,10 @@
-//! This module contains wrappers for concrete JTOC calls.  This ensures those functions are always
-//! called with the right parameter types, especially with respect to the difference between the
-//! MMTk-level `ObjectReference` and `JikesObj` which is the JikesRVM-level `ObjectReference`.
+//! This module contains wrappers for concrete calls into JikesRVM.  This ensures those functions
+//! are always called with the right parameter types, especially with respect to the difference
+//! between the MMTk-level `ObjectReference` and `JikesObj` which is the JikesRVM-level
+//! `ObjectReference`.
+
+#[macro_use]
+pub mod helpers;
 
 // Keep an eye on the imports.  This module should not use `mmtk::util::address::ObjectReference`.
 use mmtk::{
@@ -8,12 +12,8 @@ use mmtk::{
     util::{Address, OpaquePointer, VMMutatorThread, VMThread, VMWorkerThread},
 };
 
-use crate::{
-    entrypoint::*,
-    jtoc_call::{FromAsmResult, ToAsmArg},
-    object_model::JikesObj,
-    JikesRVM, JikesRVMSlot,
-};
+use self::helpers::{FromAsmResult, ToAsmArg};
+use crate::{entrypoint::*, object_model::JikesObj, JikesRVM, JikesRVMSlot};
 
 pub fn block_all_mutators_for_gc(tls: VMWorkerThread) {
     unsafe {

@@ -8,7 +8,7 @@ use mmtk::Mutator;
 use JikesRVM;
 use JTOC_BASE;
 
-use crate::jtoc_calls;
+use crate::jikesrvm_calls;
 
 pub static mut BOOT_THREAD: OpaquePointer = OpaquePointer::UNINITIALIZED;
 
@@ -22,11 +22,11 @@ impl Collection<JikesRVM> for VMCollection {
     where
         F: FnMut(&'static mut Mutator<JikesRVM>),
     {
-        jtoc_calls::block_all_mutators_for_gc(tls);
+        jikesrvm_calls::block_all_mutators_for_gc(tls);
 
         for mutator in crate::active_plan::VMActivePlan::mutators() {
             // Prepare mutator
-            jtoc_calls::prepare_mutator(tls, mutator.mutator_tls);
+            jikesrvm_calls::prepare_mutator(tls, mutator.mutator_tls);
             // Tell MMTk the thread is ready for stack scanning
             mutator_visitor(mutator);
         }
@@ -34,27 +34,27 @@ impl Collection<JikesRVM> for VMCollection {
 
     #[inline(always)]
     fn resume_mutators(tls: VMWorkerThread) {
-        jtoc_calls::unblock_all_mutators_for_gc(tls);
+        jikesrvm_calls::unblock_all_mutators_for_gc(tls);
     }
 
     #[inline(always)]
     fn block_for_gc(tls: VMMutatorThread) {
-        jtoc_calls::block_for_gc(tls);
+        jikesrvm_calls::block_for_gc(tls);
     }
 
     fn spawn_gc_thread(tls: VMThread, ctx: GCThreadContext<JikesRVM>) {
         let ctx_ptr = match ctx {
             GCThreadContext::Worker(c) => Box::into_raw(c),
         };
-        jtoc_calls::spawn_collector_thread(tls, ctx_ptr);
+        jikesrvm_calls::spawn_collector_thread(tls, ctx_ptr);
     }
 
     fn out_of_memory(tls: VMThread, _err_kind: AllocationError) {
-        jtoc_calls::out_of_memory(tls);
+        jikesrvm_calls::out_of_memory(tls);
     }
 
     fn schedule_finalization(tls: VMWorkerThread) {
-        jtoc_calls::schedule_finalizer(tls);
+        jikesrvm_calls::schedule_finalizer(tls);
     }
 }
 
