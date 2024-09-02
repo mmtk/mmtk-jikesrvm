@@ -5,7 +5,7 @@ use crate::object_model::JikesObj;
 #[cfg(target_arch = "x86")]
 #[macro_export]
 macro_rules! jtoc_call {
-    ($offset:ident, $tls:expr $(, $arg:ident)*) => ({
+    ($offset:ident, $tls:ident $(, $arg:ident)*) => ({
         use JTOC_BASE;
         let call_addr = (JTOC_BASE + $offset).load::<fn()>();
         jikesrvm_call!(call_addr, $tls $(, $arg)*)
@@ -15,7 +15,7 @@ macro_rules! jtoc_call {
 #[cfg(target_arch = "x86")]
 #[macro_export]
 macro_rules! jikesrvm_instance_call {
-    ($obj:expr, $offset:expr, $tls:expr $(, $arg:ident)*) => ({
+    ($obj:ident, $offset:ident, $tls:ident $(, $arg:ident)*) => ({
         use java_header::TIB_OFFSET;
         let tib = ($obj + TIB_OFFSET).load::<Address>();
         let call_addr = (tib + $offset).load::<fn()>();
@@ -26,14 +26,18 @@ macro_rules! jikesrvm_instance_call {
 #[cfg(target_arch = "x86")]
 #[macro_export]
 macro_rules! jikesrvm_call {
-    // Note: `$arg` must be identifiers (i.e. they must have already been evaluated before calling this macro).
-    // Otherwise the instructions for evaluating arguments will be intermingled with the `push {}` instructions.
-    ($call_addr:expr, $tls:expr $(, $arg:ident)*) => ({
+    // Note: `$arg` must be identifiers (i.e. they must have already been evaluated before calling
+    // this macro). Otherwise the instructions for evaluating arguments will be intermingled with
+    // the `push {}` instructions.
+    //
+    // `$call_addr` is ident because it is always the `call_addr` local variable defined in the
+    // `jtoc_call!` or `jikesrvm_instance_call` macros.
+    //
+    // `$tls` is ident because we only call the `jtoc_call!` macro in the `jtoc_calls` module, and
+    // the `tls` is always the first parameter of the wrapper functions.
+    ($call_addr:ident, $tls:ident $(, $arg:ident)*) => ({
         // ret is mut, as asm! will write to it.
         let mut ret: usize;
-
-        // Evaluate the call address.
-        let call_addr = $call_addr;
 
         // Cast $tls from opaque pointer to a primitive type so we can use it in asm!
         let rvm_thread = $crate::jtoc_call::ToRvmThreadArg::to_rvm_thread_arg($tls);
@@ -46,7 +50,7 @@ macro_rules! jikesrvm_call {
             );
         )*
 
-        jikesrvm_call_helper!(ret, rvm_thread, call_addr $(, $arg)*);
+        jikesrvm_call_helper!(ret, rvm_thread, $call_addr $(, $arg)*);
 
         ret
     });
