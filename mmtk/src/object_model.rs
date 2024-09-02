@@ -459,7 +459,9 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 
     #[inline(always)]
     fn ref_to_header(object: ObjectReference) -> Address {
-        object.to_raw_address()
+        trace!("ObjectModel.ref_to_header");
+        // Note: All in-header metadata offsets are relative to JikesObj.
+        JikesObj::from(object).to_address()
     }
 
     const OBJECT_REF_OFFSET_LOWER_BOUND: isize = OBJECT_REF_OFFSET;
