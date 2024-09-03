@@ -46,10 +46,10 @@ pub struct JikesRVM;
 
 /// The type of slots in JikesRVM.
 ///
-/// Each slot holds a `JikesObj` value, which is equal to the JikesRVM-level `ObjectReference`. The
-/// Java parts of the binding may insert `Address` values into native arrays of `JikesRVMSlot`
-/// passed from Rust code, so this type has `repr(transparent)` to make sure it has the same layout
-/// as `Address`
+/// Each slot holds a `JikesObj` value.  Conversion between `JikesObj` and the MMTk-level
+/// `ObjectReference` happens when loading from or storing to a slot. The Java parts of the binding
+/// may use raw memory access to insert `Address` into Rust arrays of `JikesRVMSlot`, so this type
+/// has `repr(transparent)` to make sure it has the same layout as `Address`
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct JikesRVMSlot(Address);

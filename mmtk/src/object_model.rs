@@ -2,6 +2,7 @@ use libc::*;
 use std::convert::{TryFrom, TryInto};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use crate::java_header_constants::JAVA_HEADER_OFFSET;
 use crate::unboxed_size_constants::*;
 use crate::vm_metadata;
 use mmtk::util::alloc::fill_alignment_gap;
@@ -24,17 +25,18 @@ use JikesRVM;
 
 /// This type represents a JikesRVM-level `ObjectReference`.
 ///
-/// Currently, it has the same value as the MMTk-level `mmtk::util::address::ObjectReference`, but
-/// can be null (has the value of 0).  Therefore, an MMTk-level `ObjectReference` can always safely
-/// converted to a `JikesObj`, but safely converting a `JikesObj` to an MMTk-level `ObjectReference`
-/// will involve a null check.
+/// A `JikesObj` has the same value as the JikesRVM-level `ObjectReference`, while an MMTk-level
+/// `ObjectReference` points at the JavaHeader of an object.  Converting between the two types
+/// involves adding/subtracting an offset.  Because JikesRVM-level `ObjectReference` (and therefore
+/// `JikesObj`) can be null, safely converting a `JikesObj` to an MMTk-level `ObjectReference` will
+/// involve a null check.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct JikesObj(Address);
 
 impl From<ObjectReference> for JikesObj {
     fn from(value: ObjectReference) -> Self {
-        Self(value.to_raw_address())
+        Self(value.to_raw_address().offset(-JAVA_HEADER_OFFSET))
     }
 }
 
@@ -42,7 +44,14 @@ impl TryFrom<JikesObj> for ObjectReference {
     type Error = NullRefError;
 
     fn try_from(value: JikesObj) -> Result<Self, Self::Error> {
-        ObjectReference::from_raw_address(value.0).ok_or(NullRefError)
+        if value.is_null() {
+            Err(NullRefError)
+        } else {
+            let objref_addr = value.0.offset(JAVA_HEADER_OFFSET);
+            debug_assert!(!objref_addr.is_zero());
+            let result = unsafe { ObjectReference::from_raw_address_unchecked(objref_addr) };
+            Ok(result)
+        }
     }
 }
 
@@ -449,9 +458,12 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
         JikesObj::from(object).to_address()
     }
 
-    const OBJECT_REF_OFFSET_LOWER_BOUND: isize = OBJECT_REF_OFFSET;
+    /// This is the offset from the start to the JavaHeader when the object does not have the hash
+    /// code in the front.  Its value is zero for now.
+    const OBJECT_REF_OFFSET_LOWER_BOUND: isize = OBJECT_REF_OFFSET + JAVA_HEADER_OFFSET;
 
-    const IN_OBJECT_ADDRESS_OFFSET: isize = TIB_OFFSET;
+    /// MMTk-level `ObjectReference` points at the JavaHeader which is always inside the object.
+    const IN_OBJECT_ADDRESS_OFFSET: isize = 0;
 
     fn dump_object(_object: ObjectReference) {
         unimplemented!()
