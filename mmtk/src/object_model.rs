@@ -1,4 +1,5 @@
 use libc::*;
+use std::convert::{TryFrom, TryInto};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::unboxed_size_constants::*;
@@ -21,13 +22,299 @@ use memory_manager_constants::*;
 use tib_layout_constants::*;
 use JikesRVM;
 
+/// This type represents a JikesRVM-level `ObjectReference`.
+///
+/// Currently, it has the same value as the MMTk-level `mmtk::util::address::ObjectReference`, but
+/// can be null (has the value of 0).  Therefore, an MMTk-level `ObjectReference` can always safely
+/// converted to a `JikesObj`, but safely converting a `JikesObj` to an MMTk-level `ObjectReference`
+/// will involve a null check.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct JikesObj(Address);
+
+impl From<ObjectReference> for JikesObj {
+    fn from(value: ObjectReference) -> Self {
+        Self(value.to_raw_address())
+    }
+}
+
+impl TryFrom<JikesObj> for ObjectReference {
+    type Error = NullRefError;
+
+    fn try_from(value: JikesObj) -> Result<Self, Self::Error> {
+        ObjectReference::from_raw_address(value.0).ok_or(NullRefError)
+    }
+}
+
+/// Error when trying to convert a null `JikesObj` to MMTk-level `ObjectReference` which cannot be
+/// null.
+#[derive(Debug)]
+pub struct NullRefError;
+
+impl std::fmt::Display for NullRefError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Attempt to convert null JikesObj to ObjectReference")
+    }
+}
+
+impl std::error::Error for NullRefError {}
+
+impl JikesObj {
+    pub const NULL: Self = Self(Address::ZERO);
+
+    #[inline(always)]
+    pub fn from_address(addr: Address) -> Self {
+        JikesObj(addr)
+    }
+
+    #[inline(always)]
+    pub fn to_address(&self) -> Address {
+        self.0
+    }
+
+    #[inline(always)]
+    pub fn from_objref_nullable(value: Option<ObjectReference>) -> Self {
+        value.map_or(Self::NULL, Self::from)
+    }
+
+    #[inline(always)]
+    pub fn is_null(&self) -> bool {
+        self.0.is_zero()
+    }
+
+    #[inline(always)]
+    pub fn load_tib(&self) -> TIB {
+        TIB(unsafe { (self.0 + TIB_OFFSET).load::<Address>() })
+    }
+
+    #[inline(always)]
+    pub fn load_rvm_type(&self) -> RVMType {
+        let tib = self.load_tib();
+        tib.load_rvm_type()
+    }
+
+    #[inline(always)]
+    fn get_status(&self) -> usize {
+        unsafe { (self.0 + STATUS_OFFSET).load::<usize>() }
+    }
+
+    #[inline(always)]
+    fn set_status(&self, value: usize) {
+        // Using non-atomic store.  We set the status word when copying an object to the to-space,
+        // and it happens before all subsequent accesses on the same object in the current or other
+        // GC worker threads.  So there will not be races.
+        unsafe { (self.0 + STATUS_OFFSET).store::<usize>(value) }
+    }
+
+    #[inline(always)]
+    pub fn get_current_size(&self) -> usize {
+        let rvm_type = self.load_rvm_type();
+        self.bytes_used(rvm_type)
+    }
+
+    #[inline(always)]
+    fn get_size_when_copied(&self) -> usize {
+        let rvm_type = self.load_rvm_type();
+        self.bytes_required_when_copied(rvm_type)
+    }
+
+    #[inline(always)]
+    pub fn get_align_when_copied(&self) -> usize {
+        let rvm_type = self.load_rvm_type();
+
+        if rvm_type.is_class() {
+            rvm_type.get_alignment_class()
+        } else {
+            rvm_type.get_alignment_array()
+        }
+    }
+
+    #[inline(always)]
+    pub fn get_align_offset_when_copied(&self) -> usize {
+        let rvm_type = self.load_rvm_type();
+
+        if rvm_type.is_class() {
+            self.get_offset_for_alignment_class()
+        } else {
+            self.get_offset_for_alignment_array()
+        }
+    }
+
+    #[inline(always)]
+    pub fn object_start(&self) -> Address {
+        let start_to_objref = OBJECT_REF_OFFSET + self.hashcode_overhead::<false, true>() as isize;
+        self.0.offset(-start_to_objref)
+    }
+
+    #[inline(always)]
+    pub(crate) fn get_array_length(&self) -> usize {
+        unsafe { (self.0 + ARRAY_LENGTH_OFFSET).load::<usize>() }
+    }
+
+    #[inline(always)]
+    fn bytes_required_when_copied(&self, rvm_type: RVMType) -> usize {
+        if rvm_type.is_class() {
+            self.bytes_required_when_copied_class(rvm_type)
+        } else {
+            self.bytes_required_when_copied_array(rvm_type)
+        }
+    }
+
+    #[inline(always)]
+    fn bytes_required_when_copied_class(&self, rvm_type: RVMType) -> usize {
+        let size = rvm_type.instance_size();
+        size + self.hashcode_overhead::<true, false>()
+    }
+
+    #[inline(always)]
+    fn bytes_required_when_copied_array(&self, rvm_type: RVMType) -> usize {
+        let mut size = {
+            let num_elements = self.get_array_length();
+            let log_element_size = rvm_type.log_element_size();
+            ARRAY_HEADER_SIZE + (num_elements << log_element_size)
+        };
+
+        size += self.hashcode_overhead::<true, false>();
+
+        conversions::raw_align_up(size, BYTES_IN_INT)
+    }
+
+    #[inline(always)]
+    fn bytes_used(&self, rvm_type: RVMType) -> usize {
+        let is_class = rvm_type.is_class();
+        let mut size = if is_class {
+            rvm_type.instance_size()
+        } else {
+            let num_elements = self.get_array_length();
+            let log_element_size = rvm_type.log_element_size();
+            ARRAY_HEADER_SIZE + (num_elements << log_element_size)
+        };
+
+        size += self.hashcode_overhead::<false, false>();
+
+        if is_class {
+            size
+        } else {
+            conversions::raw_align_up(size, BYTES_IN_INT)
+        }
+    }
+
+    #[inline(always)]
+    fn get_offset_for_alignment_array(&self) -> usize {
+        ARRAY_HEADER_SIZE + self.hashcode_overhead::<true, true>()
+    }
+
+    #[inline(always)]
+    fn get_offset_for_alignment_class(&self) -> usize {
+        SCALAR_HEADER_SIZE + self.hashcode_overhead::<true, true>()
+    }
+
+    #[inline(always)]
+    pub fn get_referent(&self) -> JikesObj {
+        unsafe { (self.0 + REFERENCE_REFERENT_FIELD_OFFSET).load::<JikesObj>() }
+    }
+
+    #[inline(always)]
+    pub fn set_referent(&self, referent: JikesObj) {
+        unsafe {
+            (self.0 + REFERENCE_REFERENT_FIELD_OFFSET).store(referent);
+        }
+    }
+
+    /// Query the hashcode overhead of the current object.
+    ///
+    /// *   If `WHEN_COPIED` is true, return the overhead after copying;
+    ///     otherwise return the current overhead.
+    /// *   If `FRONT` is true, return the overhead at the start of the object;
+    ///     otherwise return the overhead regardless of the location of the hash field.
+    #[inline(always)]
+    fn hashcode_overhead<const WHEN_COPIED: bool, const FRONT: bool>(&self) -> usize {
+        if !MOVES_OBJECTS || !ADDRESS_BASED_HASHING || FRONT && DYNAMIC_HASH_OFFSET {
+            // If the GC never moves object, just use the address as hashcode.
+            // If not using address-based hashing, JikesRVM uses a 10-bit in-header hash field.
+            // DYNAMIC_HASH_OFFSET puts hash field in the end.
+            return 0;
+        }
+
+        let hash_state = self.get_status() & HASH_STATE_MASK;
+        let has_hashcode = if WHEN_COPIED {
+            // As long as it is hashed, it will have a hash field after moved.
+            hash_state != HASH_STATE_UNHASHED
+        } else {
+            // An object has a hash field if and only if it is hashed and moved.
+            hash_state == HASH_STATE_HASHED_AND_MOVED
+        };
+
+        if has_hashcode {
+            HASHCODE_BYTES
+        } else {
+            0
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TIB(Address);
+
+impl TIB {
+    #[inline(always)]
+    pub fn load_rvm_type(&self) -> RVMType {
+        RVMType(unsafe { (self.0 + TIB_TYPE_INDEX * BYTES_IN_ADDRESS).load::<Address>() })
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RVMType(Address);
+
+impl RVMType {
+    #[inline(always)]
+    fn is_class(&self) -> bool {
+        unsafe { (self.0 + IS_CLASS_TYPE_FIELD_OFFSET).load::<bool>() }
+    }
+
+    #[allow(dead_code)]
+    #[inline(always)]
+    fn is_array_type(&self) -> bool {
+        unsafe { (self.0 + IS_ARRAY_TYPE_FIELD_OFFSET).load::<bool>() }
+    }
+
+    #[inline(always)]
+    fn get_alignment_array(&self) -> usize {
+        unsafe { (self.0 + RVM_ARRAY_ALIGNMENT_OFFSET).load::<usize>() }
+    }
+
+    #[inline(always)]
+    fn get_alignment_class(&self) -> usize {
+        if BYTES_IN_ADDRESS == BYTES_IN_DOUBLE {
+            BYTES_IN_ADDRESS
+        } else {
+            unsafe { (self.0 + RVM_CLASS_ALIGNMENT_OFFSET).load::<usize>() }
+        }
+    }
+
+    #[inline(always)]
+    pub(crate) fn reference_offsets(&self) -> usize {
+        unsafe { (self.0 + REFERENCE_OFFSETS_FIELD_OFFSET).load::<usize>() }
+    }
+
+    #[inline(always)]
+    fn instance_size(&self) -> usize {
+        unsafe { (self.0 + INSTANCE_SIZE_FIELD_OFFSET).load::<usize>() }
+    }
+
+    #[inline(always)]
+    fn log_element_size(&self) -> usize {
+        unsafe { (self.0 + LOG_ELEMENT_SIZE_FIELD_OFFSET).load::<usize>() }
+    }
+}
+
 /// Used as a parameter of `move_object` to specify where to move an object to.
 enum MoveTarget {
     /// Move an object to the address returned from `alloc_copy`.
     ToAddress(Address),
-    /// Move an object to an `ObjectReference` pointing to an object previously computed from
+    /// Move an object to an `JikesObj` pointing to an object previously computed from
     /// `get_reference_when_copied_to`.
-    ToObject(ObjectReference),
+    ToObject(JikesObj),
 }
 
 /** Should we gather stats on hash code state transitions for address-based hashing? */
@@ -42,64 +329,8 @@ static HASH_TRANSITION1: AtomicUsize = AtomicUsize::new(0);
 #[allow(dead_code)]
 static HASH_TRANSITION2: AtomicUsize = AtomicUsize::new(0);
 
-// FIXME [ZC]: There are places we use Address::load<> instead of atomics operations
-// where the memory location is indeed accessed by multiple threads (collector/mutator).
-// Compiler optimizations and compiler/hardware reordering will affect the correctness of the
-// emitted code.
-// This is perhaps more serious with Rust release build or on machines with weaker memory models.
-
 #[derive(Default)]
 pub struct VMObjectModel {}
-
-impl VMObjectModel {
-    #[inline(always)]
-    pub fn load_rvm_type(object: ObjectReference) -> Address {
-        unsafe {
-            let tib = (object.to_raw_address() + TIB_OFFSET).load::<Address>();
-            (tib + TIB_TYPE_INDEX * BYTES_IN_ADDRESS).load::<Address>()
-        }
-    }
-
-    #[inline(always)]
-    pub fn load_tib(object: ObjectReference) -> Address {
-        unsafe { (object.to_raw_address() + TIB_OFFSET).load::<Address>() }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn get_align_when_copied(object: ObjectReference) -> usize {
-        trace!("ObjectModel.get_align_when_copied");
-        let rvm_type = Self::load_rvm_type(object);
-
-        if unsafe { (rvm_type + IS_ARRAY_TYPE_FIELD_OFFSET).load::<bool>() } {
-            Self::get_alignment_array(rvm_type)
-        } else {
-            Self::get_alignment_class(rvm_type)
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn get_align_offset_when_copied(object: ObjectReference) -> usize {
-        trace!("ObjectModel.get_align_offset_when_copied");
-        let rvm_type = Self::load_rvm_type(object);
-
-        if unsafe { (rvm_type + IS_ARRAY_TYPE_FIELD_OFFSET).load::<bool>() } {
-            Self::get_offset_for_alignment_array(object, rvm_type)
-        } else {
-            Self::get_offset_for_alignment_class(object, rvm_type)
-        }
-    }
-
-    #[inline(always)]
-    pub(crate) fn get_array_length(object: ObjectReference) -> usize {
-        trace!("ObjectModel.get_array_length");
-        let len_addr = object.to_raw_address() + Self::get_array_length_offset();
-        unsafe { len_addr.load::<usize>() }
-    }
-
-    pub(crate) fn get_array_length_offset() -> isize {
-        ARRAY_LENGTH_OFFSET
-    }
-}
 
 impl ObjectModel<JikesRVM> for VMObjectModel {
     const GLOBAL_LOG_BIT_SPEC: VMGlobalLogBitSpec = vm_metadata::LOGGING_SIDE_METADATA_SPEC;
@@ -114,39 +345,56 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
     #[inline(always)]
     fn copy(
         from: ObjectReference,
-        copy: CopySemantics,
+        semantics: CopySemantics,
         copy_context: &mut GCWorkerCopyContext<JikesRVM>,
     ) -> ObjectReference {
         trace!("ObjectModel.copy");
-        let tib = Self::load_tib(from);
-        let rvm_type = Self::load_rvm_type(from);
+        let jikes_from = JikesObj::from(from);
+        let tib = jikes_from.load_tib();
+        let rvm_type = tib.load_rvm_type();
 
-        trace!("Is it a class?");
-        if Self::is_class(rvm_type) {
-            trace!("... yes");
-            Self::copy_scalar(from, tib, rvm_type, copy, copy_context)
+        let (bytes, align, offset) = if rvm_type.is_class() {
+            let bytes = jikes_from.bytes_required_when_copied_class(rvm_type);
+            let align = rvm_type.get_alignment_class();
+            let offset = jikes_from.get_offset_for_alignment_class();
+            (bytes, align, offset)
         } else {
-            trace!("... no");
-            Self::copy_array(from, tib, rvm_type, copy, copy_context)
-        }
+            let bytes = jikes_from.bytes_required_when_copied_array(rvm_type);
+            let align = rvm_type.get_alignment_array();
+            let offset = jikes_from.get_offset_for_alignment_array();
+            (bytes, align, offset)
+        };
+
+        let addr = copy_context.alloc_copy(from, bytes, align, offset, semantics);
+        debug_assert!(!addr.is_zero());
+
+        let jikes_to_obj =
+            Self::move_object(jikes_from, MoveTarget::ToAddress(addr), bytes, rvm_type);
+        // jikes_to_obj must not be null because we gave it a non-zero `addr`.
+        let to_obj = ObjectReference::try_from(jikes_to_obj).unwrap();
+
+        copy_context.post_copy(to_obj, bytes, semantics);
+        to_obj
     }
 
     #[inline(always)]
     fn copy_to(from: ObjectReference, to: ObjectReference, region: Address) -> Address {
         trace!("ObjectModel.copy_to");
-        let rvm_type = Self::load_rvm_type(from);
+        let jikes_from = JikesObj::from(from);
+        let rvm_type = jikes_from.load_rvm_type();
 
         let copy = from != to;
 
         let bytes = if copy {
-            let bytes = Self::bytes_required_when_copied(from, rvm_type);
-            Self::move_object(from, MoveTarget::ToObject(to), bytes, rvm_type);
+            let jikes_to = JikesObj::from(to);
+            let bytes = jikes_from.bytes_required_when_copied(rvm_type);
+            Self::move_object(jikes_from, MoveTarget::ToObject(jikes_to), bytes, rvm_type);
             bytes
         } else {
-            Self::bytes_used(from, rvm_type)
+            jikes_from.bytes_used(rvm_type)
         };
 
-        let start = Self::object_start_ref(to);
+        let start = Self::ref_to_object_start(to);
         fill_alignment_gap::<JikesRVM>(region, start);
 
         start + bytes
@@ -154,52 +402,34 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 
     fn get_reference_when_copied_to(from: ObjectReference, to: Address) -> ObjectReference {
         trace!("ObjectModel.get_reference_when_copied_to");
-        let mut res = to;
-        if ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
-            unsafe {
-                let hash_state =
-                    (from.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK;
-                if hash_state != HASH_STATE_UNHASHED {
-                    res += HASHCODE_BYTES;
-                }
-            }
-        }
+        debug_assert!(!to.is_zero());
 
-        debug_assert!(!res.is_zero());
-        unsafe { ObjectReference::from_raw_address_unchecked(res + OBJECT_REF_OFFSET) }
+        let jikes_from = JikesObj::from(from);
+        let res_addr = to + OBJECT_REF_OFFSET + jikes_from.hashcode_overhead::<true, true>();
+        debug_assert!(!res_addr.is_zero());
+        let jikes_res = JikesObj(res_addr);
+        // `jikes_res` cannot be null as long as `to` is not zero.
+        jikes_res.try_into().unwrap()
     }
 
     fn get_current_size(object: ObjectReference) -> usize {
         trace!("ObjectModel.get_current_size");
-        let rvm_type = Self::load_rvm_type(object);
-
-        Self::bytes_used(object, rvm_type)
+        JikesObj::from(object).get_current_size()
     }
 
     fn get_size_when_copied(object: ObjectReference) -> usize {
-        let rvm_type = Self::load_rvm_type(object);
-
-        Self::bytes_required_when_copied(object, rvm_type)
+        trace!("ObjectModel.get_size_when_copied");
+        JikesObj::from(object).get_size_when_copied()
     }
 
     fn get_align_when_copied(object: ObjectReference) -> usize {
-        let rvm_type = Self::load_rvm_type(object);
-
-        if Self::is_class(rvm_type) {
-            Self::get_alignment_class(rvm_type)
-        } else {
-            Self::get_alignment_array(rvm_type)
-        }
+        trace!("ObjectModel.get_align_when_copied");
+        JikesObj::from(object).get_align_when_copied()
     }
 
     fn get_align_offset_when_copied(object: ObjectReference) -> usize {
-        let rvm_type = Self::load_rvm_type(object);
-
-        if Self::is_class(rvm_type) {
-            Self::get_offset_for_alignment_class(object, rvm_type)
-        } else {
-            Self::get_offset_for_alignment_array(object, rvm_type)
-        }
+        trace!("ObjectModel.get_align_offset_when_copied");
+        JikesObj::from(object).get_align_offset_when_copied()
     }
 
     fn get_type_descriptor(_reference: ObjectReference) -> &'static [i8] {
@@ -208,26 +438,15 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 
     #[inline(always)]
     fn ref_to_object_start(object: ObjectReference) -> Address {
-        trace!("ObjectModel.object_start_ref");
-        // Easier to read if we do not collapse if here.
-        #[allow(clippy::collapsible_if)]
-        if MOVES_OBJECTS {
-            if ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
-                let hash_state = unsafe {
-                    (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK
-                };
-                if hash_state == HASH_STATE_HASHED_AND_MOVED {
-                    return object.to_raw_address()
-                        + (-(OBJECT_REF_OFFSET + HASHCODE_BYTES as isize));
-                }
-            }
-        }
-        object.to_raw_address() + (-OBJECT_REF_OFFSET)
+        trace!("ObjectModel.ref_to_object_start");
+        JikesObj::from(object).object_start()
     }
 
     #[inline(always)]
     fn ref_to_header(object: ObjectReference) -> Address {
-        object.to_raw_address()
+        trace!("ObjectModel.ref_to_header");
+        // Note: All in-header metadata offsets are relative to JikesObj.
+        JikesObj::from(object).to_address()
     }
 
     const OBJECT_REF_OFFSET_LOWER_BOUND: isize = OBJECT_REF_OFFSET;
@@ -240,146 +459,13 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 }
 
 impl VMObjectModel {
-    fn is_class(rvm_type: Address) -> bool {
-        unsafe { (rvm_type + IS_CLASS_TYPE_FIELD_OFFSET).load::<bool>() }
-    }
-
-    #[inline(always)]
-    fn copy_scalar(
-        from: ObjectReference,
-        _tib: Address,
-        rvm_type: Address,
-        copy: CopySemantics,
-        copy_context: &mut GCWorkerCopyContext<JikesRVM>,
-    ) -> ObjectReference {
-        trace!("VMObjectModel.copy_scalar");
-        let bytes = Self::bytes_required_when_copied_class(from, rvm_type);
-        let align = Self::get_alignment_class(rvm_type);
-        let offset = Self::get_offset_for_alignment_class(from, rvm_type);
-        let region = copy_context.alloc_copy(from, bytes, align, offset, copy);
-
-        let to_obj = Self::move_object(from, MoveTarget::ToAddress(region), bytes, rvm_type);
-        copy_context.post_copy(to_obj, bytes, copy);
-        to_obj
-    }
-
-    #[inline(always)]
-    fn copy_array(
-        from: ObjectReference,
-        _tib: Address,
-        rvm_type: Address,
-        copy: CopySemantics,
-        copy_context: &mut GCWorkerCopyContext<JikesRVM>,
-    ) -> ObjectReference {
-        trace!("VMObjectModel.copy_array");
-        let bytes = Self::bytes_required_when_copied_array(from, rvm_type);
-        let align = Self::get_alignment_array(rvm_type);
-        let offset = Self::get_offset_for_alignment_array(from, rvm_type);
-        let region = copy_context.alloc_copy(from, bytes, align, offset, copy);
-
-        let to_obj = Self::move_object(from, MoveTarget::ToAddress(region), bytes, rvm_type);
-        copy_context.post_copy(to_obj, bytes, copy);
-        // XXX: Do not sync icache/dcache because we do not support PowerPC
-        to_obj
-    }
-
-    #[inline(always)]
-    fn bytes_required_when_copied(object: ObjectReference, rvm_type: Address) -> usize {
-        trace!("VMObjectModel.bytes_required_when_copied");
-        if Self::is_class(rvm_type) {
-            Self::bytes_required_when_copied_class(object, rvm_type)
-        } else {
-            Self::bytes_required_when_copied_array(object, rvm_type)
-        }
-    }
-
-    #[inline(always)]
-    fn bytes_required_when_copied_class(object: ObjectReference, rvm_type: Address) -> usize {
-        let mut size = unsafe { (rvm_type + INSTANCE_SIZE_FIELD_OFFSET).load::<usize>() };
-        trace!("bytes_required_when_copied_class: instance size={}", size);
-
-        if ADDRESS_BASED_HASHING {
-            let hash_state = unsafe {
-                (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK
-            };
-            if hash_state != HASH_STATE_UNHASHED {
-                size += HASHCODE_BYTES;
-            }
-        }
-
-        trace!("bytes_required_when_copied_class: returned size={}", size);
-        size
-    }
-
-    #[inline(always)]
-    fn bytes_required_when_copied_array(object: ObjectReference, rvm_type: Address) -> usize {
-        trace!("VMObjectModel.bytes_required_when_copied_array");
-        let mut size = {
-            let num_elements = Self::get_array_length(object);
-            unsafe {
-                let log_element_size = (rvm_type + LOG_ELEMENT_SIZE_FIELD_OFFSET).load::<usize>();
-                // println!(
-                //     "log_element_size(0x{:x}, 0x{:x}) -> 0x{:x} << 0x{:x}",
-                //     object, rvm_type, num_elements, log_element_size
-                // );
-                ARRAY_HEADER_SIZE + (num_elements << log_element_size)
-            }
-        };
-
-        if ADDRESS_BASED_HASHING {
-            let hash_state = unsafe {
-                (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK
-            };
-            if hash_state != HASH_STATE_UNHASHED {
-                size += HASHCODE_BYTES;
-            }
-        }
-
-        conversions::raw_align_up(size, BYTES_IN_INT)
-    }
-
-    #[inline(always)]
-    fn bytes_used(object: ObjectReference, rvm_type: Address) -> usize {
-        trace!("VMObjectModel.bytes_used");
-        unsafe {
-            let is_class = Self::is_class(rvm_type);
-            let mut size = if is_class {
-                (rvm_type + INSTANCE_SIZE_FIELD_OFFSET).load::<usize>()
-            } else {
-                let num_elements = Self::get_array_length(object);
-                ARRAY_HEADER_SIZE
-                    + (num_elements << (rvm_type + LOG_ELEMENT_SIZE_FIELD_OFFSET).load::<usize>())
-            };
-
-            // Easier to read if we do not collapse if here.
-            #[allow(clippy::collapsible_if)]
-            if MOVES_OBJECTS {
-                if ADDRESS_BASED_HASHING {
-                    let hash_state =
-                        (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK;
-                    if hash_state == HASH_STATE_HASHED_AND_MOVED {
-                        size += HASHCODE_BYTES;
-                    }
-                }
-            }
-
-            if is_class {
-                size
-            } else {
-                conversions::raw_align_up(size, BYTES_IN_INT)
-            }
-        }
-    }
-
     #[inline(always)]
     fn move_object(
-        from_obj: ObjectReference,
+        from_obj: JikesObj,
         mut to: MoveTarget,
         num_bytes: usize,
-        _rvm_type: Address,
-    ) -> ObjectReference {
-        trace!("VMObjectModel.move_object");
-
+        _rvm_type: RVMType,
+    ) -> JikesObj {
         // Default values
         let mut copy_bytes = num_bytes;
         let mut obj_ref_offset = OBJECT_REF_OFFSET;
@@ -387,44 +473,44 @@ impl VMObjectModel {
         let mut hash_state = HASH_STATE_UNHASHED;
 
         if ADDRESS_BASED_HASHING {
-            unsafe {
-                // Read the hash state (used below)
-                status_word = (from_obj.to_raw_address() + STATUS_OFFSET).load::<usize>();
-                hash_state = status_word & HASH_STATE_MASK;
-                if hash_state == HASH_STATE_HASHED {
-                    // We do not copy the hashcode, but we do allocate it
-                    copy_bytes -= HASHCODE_BYTES;
+            // Read the hash state (used below)
+            status_word = from_obj.get_status();
+            hash_state = status_word & HASH_STATE_MASK;
+            if hash_state == HASH_STATE_HASHED {
+                // We do not copy the hashcode, but we do allocate it
+                copy_bytes -= HASHCODE_BYTES;
 
-                    if !DYNAMIC_HASH_OFFSET {
-                        // The hashcode is the first word, so we copy to object one word higher
-                        if let MoveTarget::ToAddress(ref mut addr) = to {
-                            *addr += HASHCODE_BYTES;
-                        }
+                if !DYNAMIC_HASH_OFFSET {
+                    // The hashcode is the first word, so we copy to object one word higher
+                    if let MoveTarget::ToAddress(ref mut addr) = to {
+                        *addr += HASHCODE_BYTES;
                     }
-                } else if !DYNAMIC_HASH_OFFSET && hash_state == HASH_STATE_HASHED_AND_MOVED {
-                    // Simple operation (no hash state change), but one word larger header
-                    obj_ref_offset += HASHCODE_BYTES as isize;
                 }
+            } else if !DYNAMIC_HASH_OFFSET && hash_state == HASH_STATE_HASHED_AND_MOVED {
+                // Simple operation (no hash state change), but one word larger header
+                obj_ref_offset += HASHCODE_BYTES as isize;
             }
         }
 
         let (to_address, to_obj) = match to {
             MoveTarget::ToAddress(addr) => {
-                let obj =
-                    unsafe { ObjectReference::from_raw_address_unchecked(addr + obj_ref_offset) };
+                let obj = JikesObj(addr + obj_ref_offset);
                 (addr, obj)
             }
             MoveTarget::ToObject(obj) => {
-                let addr = obj.to_raw_address() + (-obj_ref_offset);
-                debug_assert!(obj.to_raw_address() == addr + obj_ref_offset);
+                let addr = obj.to_address() + (-obj_ref_offset);
+                debug_assert!(obj.to_address() == addr + obj_ref_offset);
                 (addr, obj)
             }
         };
 
         // Low memory word of source object
-        let from_address = from_obj.to_raw_address() + (-obj_ref_offset);
+        let from_address = from_obj.to_address() + (-obj_ref_offset);
 
-        // Do the copy
+        // Do the copy// The hashcode is the first word, so we copy to object one word higher
+        if let MoveTarget::ToAddress(ref mut addr) = to {
+            *addr += HASHCODE_BYTES;
+        }
         unsafe {
             Self::aligned_32_copy(to_address, from_address, copy_bytes);
         }
@@ -432,19 +518,21 @@ impl VMObjectModel {
         // Do we need to copy the hash code?
         if hash_state == HASH_STATE_HASHED {
             unsafe {
-                let hash_code = from_obj.to_raw_address().as_usize() >> LOG_BYTES_IN_ADDRESS;
+                let hash_code = from_obj.to_address().as_usize() >> LOG_BYTES_IN_ADDRESS;
+                // Using non-atomic store.  We only read the hash code when copying an object.  But
+                // since the object has just been copied, it won't be loaded until the next GC.  So
+                // there will not be races.
                 if DYNAMIC_HASH_OFFSET {
-                    (to_obj.to_raw_address()
+                    (to_obj.to_address()
                         + num_bytes
                         + (-OBJECT_REF_OFFSET)
                         + (-(HASHCODE_BYTES as isize)))
                         .store::<usize>(hash_code);
                 } else {
-                    (to_obj.to_raw_address() + HASHCODE_OFFSET)
+                    (to_obj.to_address() + HASHCODE_OFFSET)
                         .store::<usize>((hash_code << 1) | ALIGNMENT_MASK);
                 }
-                (to_obj.to_raw_address() + STATUS_OFFSET)
-                    .store::<usize>(status_word | HASH_STATE_HASHED_AND_MOVED);
+                to_obj.set_status(status_word | HASH_STATE_HASHED_AND_MOVED);
                 if HASH_STATS {
                     HASH_TRANSITION2.fetch_add(1, Ordering::Relaxed);
                 }
@@ -456,11 +544,9 @@ impl VMObjectModel {
 
     #[inline(always)]
     unsafe fn aligned_32_copy(dst: Address, src: Address, copy_bytes: usize) {
-        trace!("VMObjectModel.aligned_32_copy");
-        //debug_assert!(copy_bytes >= 0);
         debug_assert!(copy_bytes & (BYTES_IN_INT - 1) == 0);
         debug_assert!(src.is_aligned_to(BYTES_IN_INT));
-        debug_assert!(src.is_aligned_to(BYTES_IN_INT));
+        debug_assert!(dst.is_aligned_to(BYTES_IN_INT));
         debug_assert!(src + copy_bytes <= dst || src >= dst + BYTES_IN_INT);
 
         let cnt = copy_bytes;
@@ -472,74 +558,5 @@ impl VMObjectModel {
         } else {
             memcpy(dst.to_mut_ptr(), src.to_mut_ptr(), cnt);
         }
-    }
-
-    #[inline(always)]
-    fn get_alignment_array(rvm_type: Address) -> usize {
-        trace!("VMObjectModel.get_alignment_array");
-        unsafe { (rvm_type + RVM_ARRAY_ALIGNMENT_OFFSET).load::<usize>() }
-    }
-
-    #[inline(always)]
-    fn get_alignment_class(rvm_type: Address) -> usize {
-        trace!("VMObjectModel.get_alignment_class");
-        if BYTES_IN_ADDRESS == BYTES_IN_DOUBLE {
-            BYTES_IN_ADDRESS
-        } else {
-            unsafe { (rvm_type + RVM_CLASS_ALIGNMENT_OFFSET).load::<usize>() }
-        }
-    }
-
-    #[inline(always)]
-    fn get_offset_for_alignment_array(object: ObjectReference, _rvm_type: Address) -> usize {
-        trace!("VMObjectModel.get_offset_for_alignment_array");
-        let mut offset = OBJECT_REF_OFFSET as usize;
-
-        if ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
-            let hash_state = unsafe {
-                (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK
-            };
-            if hash_state != HASH_STATE_UNHASHED {
-                offset += HASHCODE_BYTES;
-            }
-        }
-
-        offset
-    }
-
-    #[inline(always)]
-    fn get_offset_for_alignment_class(object: ObjectReference, _rvm_type: Address) -> usize {
-        trace!("VMObjectModel.get_offset_for_alignment_class");
-        let mut offset = SCALAR_HEADER_SIZE;
-
-        if ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
-            let hash_state = unsafe {
-                (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK
-            };
-            if hash_state != HASH_STATE_UNHASHED {
-                offset += HASHCODE_BYTES
-            }
-        }
-
-        offset
-    }
-
-    #[inline(always)]
-    fn object_start_ref(object: ObjectReference) -> Address {
-        trace!("ObjectModel.object_start_ref");
-        // Easier to read if we do not collapse if here.
-        #[allow(clippy::collapsible_if)]
-        if MOVES_OBJECTS {
-            if ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET {
-                let hash_state = unsafe {
-                    (object.to_raw_address() + STATUS_OFFSET).load::<usize>() & HASH_STATE_MASK
-                };
-                if hash_state == HASH_STATE_HASHED_AND_MOVED {
-                    return object.to_raw_address()
-                        + (-(OBJECT_REF_OFFSET + HASHCODE_BYTES as isize));
-                }
-            }
-        }
-        object.to_raw_address() + (-OBJECT_REF_OFFSET)
     }
 }

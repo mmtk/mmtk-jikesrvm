@@ -1,7 +1,18 @@
+//! This module contains macros for calling into JikesRVM.  It also contains traits for helping
+//! checking argument types and converting Rust types to/from the the representations expected by
+//! JikesRVM and/or suitable for use in `asm!`.
+//!
+//! This module is private to the parent module because all calls to JikesRVM are encapsulated by
+//! wrapper functions defined there.
+
+use mmtk::util::{Address, OpaquePointer, VMMutatorThread, VMThread, VMWorkerThread};
+
+use crate::object_model::JikesObj;
+
 #[cfg(target_arch = "x86")]
 #[macro_export]
 macro_rules! jtoc_call {
-    ($offset:ident, $tls:expr $(, $arg:expr)*) => ({
+    ($offset:ident, $tls:ident $(, $arg:ident)*) => ({
         use JTOC_BASE;
         let call_addr = (JTOC_BASE + $offset).load::<fn()>();
         jikesrvm_call!(call_addr, $tls $(, $arg)*)
@@ -11,7 +22,7 @@ macro_rules! jtoc_call {
 #[cfg(target_arch = "x86")]
 #[macro_export]
 macro_rules! jikesrvm_instance_call {
-    ($obj:expr, $offset:expr, $tls:expr $(, $arg:expr)*) => ({
+    ($obj:ident, $offset:ident, $tls:ident $(, $arg:ident)*) => ({
         use java_header::TIB_OFFSET;
         let tib = ($obj + TIB_OFFSET).load::<Address>();
         let call_addr = (tib + $offset).load::<fn()>();
@@ -22,28 +33,31 @@ macro_rules! jikesrvm_instance_call {
 #[cfg(target_arch = "x86")]
 #[macro_export]
 macro_rules! jikesrvm_call {
-    ($call_addr:expr, $tls:expr $(, $arg:expr)*) => ({
-        use mmtk::util::Address;
-        debug_assert!(! std::mem::transmute::<_, Address>($tls).is_zero());
-
+    // Note: `$arg` must be identifiers (i.e. they must have already been evaluated before calling
+    // this macro). Otherwise the instructions for evaluating arguments will be intermingled with
+    // the `push {}` instructions.
+    //
+    // `$call_addr` is ident because it is always the `call_addr` local variable defined in the
+    // `jtoc_call!` or `jikesrvm_instance_call` macros.
+    //
+    // `$tls` is ident because we only call the `jtoc_call!` macro in the `jtoc_calls` module, and
+    // the `tls` is always the first parameter of the wrapper functions.
+    ($call_addr:ident, $tls:ident $(, $arg:ident)*) => ({
         // ret is mut, as asm! will write to it.
         let mut ret: usize;
+
         // Cast $tls from opaque pointer to a primitive type so we can use it in asm!
-        // We suppress the lint because we don't know the concrete type of $tls the macro user
-        // passed to the macro.  It can be just a `usize`, or something else that can be transmuted
-        // into `usize`.
-        #[allow(clippy::useless_transmute)]
-        let rvm_thread: usize = std::mem::transmute::<_, usize>($tls);
+        let rvm_thread = $crate::jikesrvm_calls::helpers::ToRvmThreadArg::to_rvm_thread_arg($tls);
+        debug_assert_ne!(rvm_thread, 0);
 
         $(
-            asm!(
+            std::arch::asm!(
                 "push {}",
                 in(reg) $arg,
             );
         )*
 
-        let call_addr = $call_addr;
-        jikesrvm_call_helper!(ret, rvm_thread, call_addr $(, $arg)*);
+        jikesrvm_call_helper!(ret, rvm_thread, $call_addr $(, $arg)*);
 
         ret
     });
@@ -67,7 +81,7 @@ macro_rules! jikesrvm_call_helper {
     // * xmm/ymm: Those are lower parts of zmm. We only need to mark zmm as clobbers.
 
     ($ret:ident, $rvm_thread:ident, $call_addr:ident) => (
-        asm!(
+        std::arch::asm!(
             // Exchange the value of TLS and esi (so esi now holds the TLS, and the TLS temp holds the esi value)
             "xchg {0}, esi",
             // Call $call_addr which is in ebx
@@ -104,7 +118,7 @@ macro_rules! jikesrvm_call_helper {
     );
 
     ($ret:ident, $rvm_thread:ident, $call_addr:ident, $arg1:expr) => (
-        asm!(
+        std::arch::asm!(
             // Exchange the value of TLS and esi (so esi now holds the TLS, and the TLS temp holds the esi value)
             "xchg {0}, esi",
             // Call $call_addr which is in ebx
@@ -141,7 +155,7 @@ macro_rules! jikesrvm_call_helper {
     );
 
     ($ret:ident, $rvm_thread:ident, $call_addr:ident, $arg1:expr, $arg2:expr $(, $arg:expr)*) => (
-        asm!(
+        std::arch::asm!(
             // Exchange the value of TLS and esi (so esi now holds the TLS, and the TLS temp holds the esi value)
             "xchg {0}, esi",
             // Call $call_addr which is in ebx
@@ -177,4 +191,88 @@ macro_rules! jikesrvm_call_helper {
             out("zmm7") _,
         );
     );
+}
+
+/// Types that can be used as the `rvm_thread` argument.
+pub trait ToRvmThreadArg {
+    fn to_rvm_thread_arg(self) -> usize;
+}
+
+impl ToRvmThreadArg for VMMutatorThread {
+    fn to_rvm_thread_arg(self) -> usize {
+        unsafe { std::mem::transmute::<_, usize>(self) }
+    }
+}
+
+impl ToRvmThreadArg for VMWorkerThread {
+    fn to_rvm_thread_arg(self) -> usize {
+        unsafe { std::mem::transmute::<_, usize>(self) }
+    }
+}
+
+impl ToRvmThreadArg for VMThread {
+    fn to_rvm_thread_arg(self) -> usize {
+        unsafe { std::mem::transmute::<_, usize>(self) }
+    }
+}
+
+impl ToRvmThreadArg for OpaquePointer {
+    fn to_rvm_thread_arg(self) -> usize {
+        unsafe { std::mem::transmute::<_, usize>(self) }
+    }
+}
+
+/// Types that can be used as arguments of `jtoc_call!` after conversion.
+pub trait ToAsmArg {
+    type ResultType;
+    const ALLOW_RVM_THREAD_ARG: bool = false;
+    fn to_jtoc_call_arg(self) -> Self::ResultType;
+}
+
+/// Types that can be converted from the result of `jtoc_call!`, that is, `usize`.
+pub trait FromAsmResult {
+    fn from_asm_result(value: usize) -> Self;
+}
+
+/// All the opaque pointer types above can be used as asm args.
+impl<T: ToRvmThreadArg> ToAsmArg for T {
+    type ResultType = usize;
+
+    fn to_jtoc_call_arg(self) -> Self::ResultType {
+        self.to_rvm_thread_arg()
+    }
+}
+
+/// JikesRVM uses a 32-bit register to hold boolean values.
+impl ToAsmArg for bool {
+    type ResultType = i32;
+
+    fn to_jtoc_call_arg(self) -> Self::ResultType {
+        self as i32
+    }
+}
+
+/// Interpret the whole 32-bit register as the result of a boolean return value.
+impl FromAsmResult for bool {
+    fn from_asm_result(value: usize) -> Self {
+        value != 0
+    }
+}
+
+/// `Address` is backed by `usize`.
+impl ToAsmArg for Address {
+    type ResultType = usize;
+
+    fn to_jtoc_call_arg(self) -> Self::ResultType {
+        self.as_usize()
+    }
+}
+
+/// `JikesObj` is backed by `Address` which is ultimately `usize`, too.
+impl ToAsmArg for JikesObj {
+    type ResultType = usize;
+
+    fn to_jtoc_call_arg(self) -> Self::ResultType {
+        self.to_address().as_usize()
+    }
 }

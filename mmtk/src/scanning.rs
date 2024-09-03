@@ -1,7 +1,9 @@
-use std::arch::asm;
+use std::convert::TryFrom;
 use std::mem::size_of;
 use std::slice;
 
+use crate::jikesrvm_calls;
+use crate::object_model::JikesObj;
 use mmtk::vm::ObjectTracer;
 use mmtk::vm::ObjectTracerContext;
 // use crate::scan_boot_image::ScanBootImageRoots;
@@ -23,7 +25,6 @@ use mmtk::vm::Scanning;
 use mmtk::vm::SlotVisitor;
 use mmtk::MMTK;
 use mmtk::*;
-use object_model::VMObjectModel;
 use std::mem;
 use JikesRVM;
 use JTOC_BASE;
@@ -39,13 +40,14 @@ const DUMP_REF: bool = false;
 pub(crate) const SLOTS_BUFFER_CAPACITY: usize = 4096;
 
 extern "C" fn report_slots_and_renew_buffer<F: RootsWorkFactory<JikesRVMSlot>>(
-    ptr: *mut Address,
+    ptr: *mut JikesRVMSlot,
     length: usize,
-    factory: *mut F,
+    factory: *mut libc::c_void,
 ) -> *mut Address {
     if !ptr.is_null() {
-        let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, SLOTS_BUFFER_CAPACITY) };
-        let factory: &mut F = unsafe { &mut *factory };
+        let buf =
+            unsafe { Vec::<JikesRVMSlot>::from_raw_parts(ptr, length, SLOTS_BUFFER_CAPACITY) };
+        let factory: &mut F = unsafe { &mut *(factory as *mut F) };
         factory.create_process_roots_work(buf);
     }
     let (ptr, _, capacity) = {
@@ -61,10 +63,12 @@ extern "C" fn report_slots_and_renew_buffer<F: RootsWorkFactory<JikesRVMSlot>>(
 
 extern "C" fn trace_object_callback_for_jikesrvm<T: ObjectTracer>(
     tracer_ptr: *mut libc::c_void,
-    object: ObjectReference,
-) -> ObjectReference {
+    object: JikesObj,
+) -> JikesObj {
+    debug_assert!(!tracer_ptr.is_null());
     let tracer: &mut T = unsafe { &mut *(tracer_ptr as *mut T) };
-    tracer.trace_object(object)
+    let object = ObjectReference::try_from(object).unwrap();
+    tracer.trace_object(object).into()
 }
 
 impl Scanning<JikesRVM> for VMScanning {
@@ -94,16 +98,14 @@ impl Scanning<JikesRVM> for VMScanning {
         object: ObjectReference,
         slot_visitor: &mut EV,
     ) {
+        let jikes_obj = JikesObj::from(object);
         if DUMP_REF {
-            let obj_ptr = object.to_raw_address().as_usize();
-            unsafe {
-                jtoc_call!(DUMP_REF_METHOD_OFFSET, tls, obj_ptr);
-            }
+            jikesrvm_calls::dump_ref(tls, jikes_obj);
         }
         trace!("Getting reference array");
-        let elt0_ptr: usize = unsafe {
-            let rvm_type = VMObjectModel::load_rvm_type(object);
-            (rvm_type + REFERENCE_OFFSETS_FIELD_OFFSET).load::<usize>()
+        let elt0_ptr: usize = {
+            let rvm_type = jikes_obj.load_rvm_type();
+            rvm_type.reference_offsets()
         };
         trace!("elt0_ptr: {}", elt0_ptr);
         // In a primitive array this field points to a zero-length array.
@@ -111,9 +113,11 @@ impl Scanning<JikesRVM> for VMScanning {
         // In a class with pointers, it contains the offsets of reference-containing instance fields
         if elt0_ptr == 0 {
             // object is a REFARRAY
-            let length = VMObjectModel::get_array_length(object);
+            let length = jikes_obj.get_array_length();
             for i in 0..length {
-                slot_visitor.visit_slot(object.to_raw_address() + (i << LOG_BYTES_IN_ADDRESS));
+                slot_visitor.visit_slot(JikesRVMSlot::from_address(
+                    jikes_obj.to_address() + (i << LOG_BYTES_IN_ADDRESS),
+                ));
             }
         } else {
             let len_ptr: usize = elt0_ptr - size_of::<isize>();
@@ -121,16 +125,15 @@ impl Scanning<JikesRVM> for VMScanning {
             let offsets = unsafe { slice::from_raw_parts(elt0_ptr as *const isize, len as usize) };
 
             for offset in offsets.iter() {
-                slot_visitor.visit_slot(object.to_raw_address() + *offset);
+                slot_visitor
+                    .visit_slot(JikesRVMSlot::from_address(jikes_obj.to_address() + *offset));
             }
         }
     }
 
     fn notify_initial_thread_scan_complete(partial_scan: bool, tls: VMWorkerThread) {
         if !partial_scan {
-            unsafe {
-                jtoc_call!(SNIP_OBSOLETE_COMPILED_METHODS_METHOD_OFFSET, tls);
-            }
+            jikesrvm_calls::snip_obsolete_compiled_methods(tls);
         }
 
         unsafe {
@@ -206,14 +209,13 @@ where
         .generational()
         .map_or(false, |plan| plan.is_current_gc_nursery());
 
-    tracer_context.with_tracer(worker, |tracer| unsafe {
-        jtoc_call!(
-            DO_REFERENCE_PROCESSING_HELPER_FORWARD_METHOD_OFFSET,
+    tracer_context.with_tracer(worker, |tracer| {
+        jikesrvm_calls::do_reference_processing_helper_forward(
             tls,
             trace_object_callback_for_jikesrvm::<C::TracerType>,
             tracer as *mut _ as *mut libc::c_void,
-            is_nursery as i32
-        );
+            is_nursery,
+        )
     });
 }
 
@@ -230,16 +232,14 @@ where
 
     let need_retain = SINGLETON.is_emergency_collection();
 
-    tracer_context.with_tracer(worker, |tracer| unsafe {
-        let scan_result = jtoc_call!(
-            DO_REFERENCE_PROCESSING_HELPER_SCAN_METHOD_OFFSET,
+    tracer_context.with_tracer(worker, |tracer| {
+        jikesrvm_calls::do_reference_processing_helper_scan(
             tls,
             trace_object_callback_for_jikesrvm::<C::TracerType>,
             tracer as *mut _ as *mut libc::c_void,
-            is_nursery as i32,
-            need_retain as i32
-        );
-        scan_result == 0
+            is_nursery,
+            need_retain,
+        )
     })
 }
 
@@ -258,19 +258,14 @@ impl VMScanning {
             if (thread + IS_COLLECTOR_FIELD_OFFSET).load::<bool>() {
                 return;
             }
-            let thread_usize = thread.as_usize();
-            debug!(
-                "Calling JikesRVM to compute thread roots, thread_usize={:x}",
-                thread_usize
-            );
-            jtoc_call!(
-                SCAN_THREAD_METHOD_OFFSET,
+            debug!("Calling JikesRVM to compute thread roots, thread={thread}");
+            jikesrvm_calls::scan_thread(
                 tls,
-                thread_usize,
+                mutator,
                 report_slots_and_renew_buffer::<F>,
                 factory as *mut F as *mut libc::c_void,
-                process_code_locations as i32,
-                new_roots_sufficient as i32
+                process_code_locations,
+                new_roots_sufficient,
             );
             debug!("Returned from JikesRVM thread roots");
         }
@@ -279,7 +274,7 @@ impl VMScanning {
         tls: VMWorkerThread,
         subwork_id: usize,
         total_subwork: usize,
-        mut callback: impl FnMut(Address),
+        mut callback: impl FnMut(JikesRVMSlot),
     ) {
         unsafe {
             // let cc = VMActivePlan::collector(tls);
@@ -304,9 +299,9 @@ impl VMScanning {
 
             for i in start..end {
                 let function_address_slot = jni_functions + (i << LOG_BYTES_IN_ADDRESS);
-                if jtoc_call!(IMPLEMENTED_IN_JAVA_METHOD_OFFSET, tls, i) != 0 {
+                if jikesrvm_calls::implemented_in_java(tls, i) {
                     trace!("function implemented in java {:?}", function_address_slot);
-                    callback(function_address_slot);
+                    callback(JikesRVMSlot::from_address(function_address_slot));
                 } else {
                     // Function implemented as a C function, must not be
                     // scanned.
@@ -316,7 +311,7 @@ impl VMScanning {
             let linkage_triplets = (JTOC_BASE + LINKAGE_TRIPLETS_FIELD_OFFSET).load::<Address>();
             if !linkage_triplets.is_zero() {
                 for i in start..end {
-                    callback(linkage_triplets + i * 4);
+                    callback(JikesRVMSlot::from_address(linkage_triplets + i * 4));
                 }
             }
 
@@ -336,7 +331,9 @@ impl VMScanning {
             trace!("end: {:?}", end);
 
             for i in start..end {
-                callback(jni_global_refs + (i << LOG_BYTES_IN_ADDRESS));
+                callback(JikesRVMSlot::from_address(
+                    jni_global_refs + (i << LOG_BYTES_IN_ADDRESS),
+                ));
             }
         }
     }

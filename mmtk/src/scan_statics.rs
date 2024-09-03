@@ -1,12 +1,11 @@
+use crate::jikesrvm_calls;
 use crate::scanning::SLOTS_BUFFER_CAPACITY;
 use crate::JikesRVM;
 use crate::JikesRVMSlot;
-use entrypoint::*;
 use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::RootsWorkFactory;
 use mmtk::MMTK;
-use std::arch::asm;
 use JTOC_BASE;
 
 #[cfg(target_pointer_width = "32")]
@@ -27,8 +26,7 @@ pub fn scan_statics(
         // let cc = VMActivePlan::collector(tls);
 
         let number_of_collectors: usize = total_subwork;
-        let number_of_references: usize =
-            jtoc_call!(GET_NUMBER_OF_REFERENCE_SLOTS_METHOD_OFFSET, tls);
+        let number_of_references: usize = jikesrvm_calls::get_number_of_reference_slots(tls);
         let chunk_size: usize = (number_of_references / number_of_collectors) & CHUNK_SIZE_MASK;
         let thread_ordinal = subwork_id;
 
@@ -49,7 +47,7 @@ pub fn scan_statics(
         while slot < end {
             let slot_offset = slot * 4;
             // TODO: check_reference?
-            slot_list.push(slots + slot_offset);
+            slot_list.push(JikesRVMSlot::from_address(slots + slot_offset));
             if slot_list.len() >= SLOTS_BUFFER_CAPACITY {
                 factory.create_process_roots_work(slot_list);
                 slot_list = Vec::with_capacity(SLOTS_BUFFER_CAPACITY);

@@ -1,3 +1,4 @@
+use crate::object_model::JikesObj;
 use crate::scanning::SLOTS_BUFFER_CAPACITY;
 use collection::VMCollection;
 use collection::BOOT_THREAD;
@@ -5,15 +6,11 @@ use libc::c_char;
 use libc::c_void;
 use mmtk::memory_manager;
 use mmtk::scheduler::*;
-use mmtk::util::api_util::NullableObjectReference;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
-
-#[cfg(not(feature = "binding_side_ref_proc"))]
-use mmtk::vm::{ReferenceGlue, VMBinding};
-
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
+use std::convert::TryFrom;
 use std::ffi::CStr;
 use std::sync::atomic::Ordering;
 use JikesRVM;
@@ -106,17 +103,19 @@ pub extern "C" fn alloc(
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn post_alloc(
     mutator: *mut Mutator<JikesRVM>,
-    refer: ObjectReference,
-    _type_refer: ObjectReference,
+    refer: JikesObj,
+    _type_refer: JikesObj,
     bytes: usize,
     allocator: AllocationSemantics,
 ) {
+    let refer = ObjectReference::try_from(refer).unwrap();
     memory_manager::post_alloc::<JikesRVM>(unsafe { &mut *mutator }, refer, bytes, allocator)
 }
 
 #[no_mangle]
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
-pub extern "C" fn will_never_move(object: ObjectReference) -> i32 {
+pub extern "C" fn will_never_move(jikes_obj: JikesObj) -> i32 {
+    let object = ObjectReference::try_from(jikes_obj).unwrap();
     !object.is_movable::<JikesRVM>() as i32
 }
 
@@ -168,13 +167,15 @@ pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
 
 #[no_mangle]
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
-pub extern "C" fn is_live_object(object: ObjectReference) -> i32 {
+pub extern "C" fn is_live_object(jikes_obj: JikesObj) -> i32 {
+    let object = ObjectReference::try_from(jikes_obj).unwrap();
     object.is_live::<JikesRVM>() as i32
 }
 
 #[no_mangle]
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
-pub extern "C" fn is_mapped_object(object: ObjectReference) -> i32 {
+pub extern "C" fn is_mapped_object(jikes_obj: JikesObj) -> i32 {
+    let object = ObjectReference::try_from(jikes_obj).unwrap();
     memory_manager::is_in_mmtk_spaces::<JikesRVM>(object) as i32
 }
 
@@ -185,38 +186,44 @@ pub extern "C" fn is_mapped_address(address: Address) -> i32 {
 }
 
 #[no_mangle]
-pub extern "C" fn modify_check(_object: ObjectReference) {
+pub extern "C" fn modify_check(_jikes_obj: JikesObj) {
     // MMTk core no longe provides this method. We just use an empty impl.
 }
 
 #[cfg(not(feature = "binding_side_ref_proc"))]
 #[no_mangle]
-pub extern "C" fn add_weak_candidate(reff: ObjectReference, referent: ObjectReference) {
-    <JikesRVM as VMBinding>::VMReferenceGlue::set_referent(reff, referent);
+pub extern "C" fn add_weak_candidate(jikes_reff: JikesObj, jikes_referent: JikesObj) {
+    jikes_reff.set_referent(jikes_referent);
+    let reff = ObjectReference::try_from(jikes_reff).unwrap();
     memory_manager::add_weak_candidate(&SINGLETON, reff)
 }
 
 #[cfg(not(feature = "binding_side_ref_proc"))]
 #[no_mangle]
-pub extern "C" fn add_soft_candidate(reff: ObjectReference, referent: ObjectReference) {
-    <JikesRVM as VMBinding>::VMReferenceGlue::set_referent(reff, referent);
+pub extern "C" fn add_soft_candidate(jikes_reff: JikesObj, jikes_referent: JikesObj) {
+    jikes_reff.set_referent(jikes_referent);
+    let reff = ObjectReference::try_from(jikes_reff).unwrap();
     memory_manager::add_soft_candidate(&SINGLETON, reff)
 }
 
 #[cfg(not(feature = "binding_side_ref_proc"))]
 #[no_mangle]
-pub extern "C" fn add_phantom_candidate(reff: ObjectReference, referent: ObjectReference) {
-    <JikesRVM as VMBinding>::VMReferenceGlue::set_referent(reff, referent);
+pub extern "C" fn add_phantom_candidate(jikes_reff: JikesObj, jikes_referent: JikesObj) {
+    jikes_reff.set_referent(jikes_referent);
+    let reff = ObjectReference::try_from(jikes_reff).unwrap();
     memory_manager::add_phantom_candidate(&SINGLETON, reff)
 }
 
 #[no_mangle]
-pub extern "C" fn get_forwarded_object(object: ObjectReference) -> NullableObjectReference {
-    object.get_forwarded_object::<JikesRVM>().into()
+pub extern "C" fn get_forwarded_object(jikes_obj: JikesObj) -> JikesObj {
+    let object = ObjectReference::try_from(jikes_obj).unwrap();
+    let result = object.get_forwarded_object::<JikesRVM>();
+    JikesObj::from_objref_nullable(result)
 }
 
 #[no_mangle]
-pub extern "C" fn is_reachable(object: ObjectReference) -> i32 {
+pub extern "C" fn is_reachable(jikes_obj: JikesObj) -> i32 {
+    let object = ObjectReference::try_from(jikes_obj).unwrap();
     object.is_reachable::<JikesRVM>() as i32
 }
 
@@ -278,13 +285,15 @@ pub extern "C" fn last_heap_address() -> Address {
 // finalization
 #[cfg(not(feature = "binding_side_ref_proc"))]
 #[no_mangle]
-pub extern "C" fn add_finalizer(object: ObjectReference) {
+pub extern "C" fn add_finalizer(jikes_obj: JikesObj) {
+    let object = ObjectReference::try_from(jikes_obj).unwrap();
     memory_manager::add_finalizer(&SINGLETON, object);
 }
 
 #[no_mangle]
-pub extern "C" fn get_finalized_object() -> NullableObjectReference {
-    memory_manager::get_finalized_object(&SINGLETON).into()
+pub extern "C" fn get_finalized_object() -> JikesObj {
+    let result = memory_manager::get_finalized_object(&SINGLETON);
+    JikesObj::from_objref_nullable(result)
 }
 
 // Allocation slow path
