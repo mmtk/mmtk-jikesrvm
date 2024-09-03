@@ -11,7 +11,6 @@ use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use std::convert::TryFrom;
-use std::convert::TryInto;
 use std::ffi::CStr;
 use std::sync::atomic::Ordering;
 use JikesRVM;
@@ -109,19 +108,13 @@ pub extern "C" fn post_alloc(
     bytes: usize,
     allocator: AllocationSemantics,
 ) {
-    debug_assert!(!refer.is_null());
-    memory_manager::post_alloc::<JikesRVM>(
-        unsafe { &mut *mutator },
-        refer.try_into().unwrap(),
-        bytes,
-        allocator,
-    )
+    let refer = ObjectReference::try_from(refer).unwrap();
+    memory_manager::post_alloc::<JikesRVM>(unsafe { &mut *mutator }, refer, bytes, allocator)
 }
 
 #[no_mangle]
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
 pub extern "C" fn will_never_move(jikes_obj: JikesObj) -> i32 {
-    debug_assert!(!jikes_obj.is_null());
     let object = ObjectReference::try_from(jikes_obj).unwrap();
     !object.is_movable::<JikesRVM>() as i32
 }
@@ -175,7 +168,6 @@ pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
 #[no_mangle]
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
 pub extern "C" fn is_live_object(jikes_obj: JikesObj) -> i32 {
-    debug_assert!(!jikes_obj.is_null());
     let object = ObjectReference::try_from(jikes_obj).unwrap();
     object.is_live::<JikesRVM>() as i32
 }
@@ -183,7 +175,6 @@ pub extern "C" fn is_live_object(jikes_obj: JikesObj) -> i32 {
 #[no_mangle]
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
 pub extern "C" fn is_mapped_object(jikes_obj: JikesObj) -> i32 {
-    debug_assert!(!jikes_obj.is_null());
     let object = ObjectReference::try_from(jikes_obj).unwrap();
     memory_manager::is_in_mmtk_spaces::<JikesRVM>(object) as i32
 }
@@ -202,7 +193,6 @@ pub extern "C" fn modify_check(_jikes_obj: JikesObj) {
 #[cfg(not(feature = "binding_side_ref_proc"))]
 #[no_mangle]
 pub extern "C" fn add_weak_candidate(jikes_reff: JikesObj, jikes_referent: JikesObj) {
-    debug_assert!(!jikes_reff.is_null());
     jikes_reff.set_referent(jikes_referent);
     let reff = ObjectReference::try_from(jikes_reff).unwrap();
     memory_manager::add_weak_candidate(&SINGLETON, reff)
@@ -211,7 +201,6 @@ pub extern "C" fn add_weak_candidate(jikes_reff: JikesObj, jikes_referent: Jikes
 #[cfg(not(feature = "binding_side_ref_proc"))]
 #[no_mangle]
 pub extern "C" fn add_soft_candidate(jikes_reff: JikesObj, jikes_referent: JikesObj) {
-    debug_assert!(!jikes_reff.is_null());
     jikes_reff.set_referent(jikes_referent);
     let reff = ObjectReference::try_from(jikes_reff).unwrap();
     memory_manager::add_soft_candidate(&SINGLETON, reff)
@@ -220,7 +209,6 @@ pub extern "C" fn add_soft_candidate(jikes_reff: JikesObj, jikes_referent: Jikes
 #[cfg(not(feature = "binding_side_ref_proc"))]
 #[no_mangle]
 pub extern "C" fn add_phantom_candidate(jikes_reff: JikesObj, jikes_referent: JikesObj) {
-    debug_assert!(!jikes_reff.is_null());
     jikes_reff.set_referent(jikes_referent);
     let reff = ObjectReference::try_from(jikes_reff).unwrap();
     memory_manager::add_phantom_candidate(&SINGLETON, reff)
@@ -228,7 +216,6 @@ pub extern "C" fn add_phantom_candidate(jikes_reff: JikesObj, jikes_referent: Ji
 
 #[no_mangle]
 pub extern "C" fn get_forwarded_object(jikes_obj: JikesObj) -> JikesObj {
-    debug_assert!(!jikes_obj.is_null());
     let object = ObjectReference::try_from(jikes_obj).unwrap();
     let result = object.get_forwarded_object::<JikesRVM>();
     JikesObj::from_objref_nullable(result)
@@ -236,7 +223,6 @@ pub extern "C" fn get_forwarded_object(jikes_obj: JikesObj) -> JikesObj {
 
 #[no_mangle]
 pub extern "C" fn is_reachable(jikes_obj: JikesObj) -> i32 {
-    debug_assert!(!jikes_obj.is_null());
     let object = ObjectReference::try_from(jikes_obj).unwrap();
     object.is_reachable::<JikesRVM>() as i32
 }
@@ -300,7 +286,6 @@ pub extern "C" fn last_heap_address() -> Address {
 #[cfg(not(feature = "binding_side_ref_proc"))]
 #[no_mangle]
 pub extern "C" fn add_finalizer(jikes_obj: JikesObj) {
-    debug_assert!(!jikes_obj.is_null());
     let object = ObjectReference::try_from(jikes_obj).unwrap();
     memory_manager::add_finalizer(&SINGLETON, object);
 }

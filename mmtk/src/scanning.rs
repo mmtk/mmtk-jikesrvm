@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::convert::TryFrom;
 use std::mem::size_of;
 use std::slice;
 
@@ -66,9 +66,9 @@ extern "C" fn trace_object_callback_for_jikesrvm<T: ObjectTracer>(
     object: JikesObj,
 ) -> JikesObj {
     debug_assert!(!tracer_ptr.is_null());
-    debug_assert!(!object.is_null());
     let tracer: &mut T = unsafe { &mut *(tracer_ptr as *mut T) };
-    tracer.trace_object(object.try_into().unwrap()).into()
+    let object = ObjectReference::try_from(object).unwrap();
+    tracer.trace_object(object).into()
 }
 
 impl Scanning<JikesRVM> for VMScanning {
