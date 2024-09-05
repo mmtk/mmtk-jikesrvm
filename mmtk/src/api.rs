@@ -116,7 +116,7 @@ pub extern "C" fn post_alloc(
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
 pub extern "C" fn will_never_move(jikes_obj: JikesObj) -> i32 {
     let object = ObjectReference::try_from(jikes_obj).unwrap();
-    !object.is_movable::<JikesRVM>() as i32
+    !object.is_movable() as i32
 }
 
 #[no_mangle]
@@ -169,14 +169,14 @@ pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
 pub extern "C" fn is_live_object(jikes_obj: JikesObj) -> i32 {
     let object = ObjectReference::try_from(jikes_obj).unwrap();
-    object.is_live::<JikesRVM>() as i32
+    object.is_live() as i32
 }
 
 #[no_mangle]
 // For a syscall that returns bool, we have to return a i32 instead. See https://github.com/mmtk/mmtk-jikesrvm/issues/20
 pub extern "C" fn is_mapped_object(jikes_obj: JikesObj) -> i32 {
     let object = ObjectReference::try_from(jikes_obj).unwrap();
-    memory_manager::is_in_mmtk_spaces::<JikesRVM>(object) as i32
+    memory_manager::is_in_mmtk_spaces(object) as i32
 }
 
 #[no_mangle]
@@ -217,14 +217,14 @@ pub extern "C" fn add_phantom_candidate(jikes_reff: JikesObj, jikes_referent: Ji
 #[no_mangle]
 pub extern "C" fn get_forwarded_object(jikes_obj: JikesObj) -> JikesObj {
     let object = ObjectReference::try_from(jikes_obj).unwrap();
-    let result = object.get_forwarded_object::<JikesRVM>();
+    let result = object.get_forwarded_object();
     JikesObj::from_objref_nullable(result)
 }
 
 #[no_mangle]
 pub extern "C" fn is_reachable(jikes_obj: JikesObj) -> i32 {
     let object = ObjectReference::try_from(jikes_obj).unwrap();
-    object.is_reachable::<JikesRVM>() as i32
+    object.is_reachable() as i32
 }
 
 #[no_mangle]

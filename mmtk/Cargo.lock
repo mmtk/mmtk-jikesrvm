@@ -128,9 +128,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.1.15"
+version = "1.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57b6a275aa2903740dc87da01c62040406b8812552e97129a63ea8850a17c6e6"
+checksum = "e9d013ecb737093c0e86b151a7b837993cf9ec6c502946cfb44bedc392421e0b"
 dependencies = [
  "jobserver",
  "libc",
@@ -438,7 +438,7 @@ dependencies = [
 [[package]]
 name = "mmtk"
 version = "0.27.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=b3385b85fe1adf96ce820b0ceae1efdcaafa9120#b3385b85fe1adf96ce820b0ceae1efdcaafa9120"
+source = "git+https://github.com/wks/mmtk-core.git?rev=57a98749ff37093b355d7b2f496b8a67315e158b#57a98749ff37093b355d7b2f496b8a67315e158b"
 dependencies = [
  "atomic",
  "atomic-traits",
@@ -474,7 +474,7 @@ dependencies = [
 [[package]]
 name = "mmtk-macros"
 version = "0.27.0"
-source = "git+https://github.com/mmtk/mmtk-core.git?rev=b3385b85fe1adf96ce820b0ceae1efdcaafa9120#b3385b85fe1adf96ce820b0ceae1efdcaafa9120"
+source = "git+https://github.com/wks/mmtk-core.git?rev=57a98749ff37093b355d7b2f496b8a67315e158b#57a98749ff37093b355d7b2f496b8a67315e158b"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
