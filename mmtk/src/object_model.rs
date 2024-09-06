@@ -462,9 +462,6 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
     /// code in the front.  Its value is zero for now.
     const OBJECT_REF_OFFSET_LOWER_BOUND: isize = OBJECT_REF_OFFSET + JAVA_HEADER_OFFSET;
 
-    /// MMTk-level `ObjectReference` points at the JavaHeader which is always inside the object.
-    const IN_OBJECT_ADDRESS_OFFSET: isize = 0;
-
     fn dump_object(_object: ObjectReference) {
         unimplemented!()
     }
