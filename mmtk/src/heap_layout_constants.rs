@@ -1,5 +1,5 @@
-use boot_image_size::CODE_SIZE_ADJUSTMENT;
-use boot_image_size::DATA_SIZE_ADJUSTMENT;
+use crate::boot_image_size::CODE_SIZE_ADJUSTMENT;
+use crate::boot_image_size::DATA_SIZE_ADJUSTMENT;
 use mmtk::util::Address;
 
 /** The traditional 32-bit heap layout */

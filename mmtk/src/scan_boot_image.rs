@@ -1,9 +1,10 @@
+use crate::entrypoint::*;
+use crate::java_size_constants::*;
 use crate::scanning::SLOTS_BUFFER_CAPACITY;
 use crate::unboxed_size_constants::*;
 use crate::JikesRVM;
 use crate::JikesRVMSlot;
-use entrypoint::*;
-use java_size_constants::*;
+use crate::JTOC_BASE;
 use mmtk::scheduler::*;
 use mmtk::util::conversions;
 use mmtk::util::Address;
@@ -12,7 +13,6 @@ use mmtk::vm::RootsWorkFactory;
 use mmtk::MMTK;
 use std::mem;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use JTOC_BASE;
 
 const FILTER: bool = true;
 

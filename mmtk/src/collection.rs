@@ -1,12 +1,12 @@
-use entrypoint::*;
+use crate::entrypoint::*;
+use crate::JikesRVM;
+use crate::JTOC_BASE;
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::Address;
 use mmtk::vm::ActivePlan;
 use mmtk::vm::{Collection, GCThreadContext};
 use mmtk::Mutator;
-use JikesRVM;
-use JTOC_BASE;
 
 use crate::jikesrvm_calls;
 

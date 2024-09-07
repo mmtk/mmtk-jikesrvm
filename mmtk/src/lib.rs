@@ -1,5 +1,3 @@
-extern crate libc;
-extern crate mmtk;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
@@ -13,8 +11,8 @@ use mmtk::vm::VMBinding;
 use mmtk::MMTKBuilder;
 use mmtk::MMTK;
 
-use collection::BOOT_THREAD;
-use object_model::JikesObj;
+use crate::collection::BOOT_THREAD;
+use crate::object_model::JikesObj;
 
 pub mod active_plan;
 pub mod api;
