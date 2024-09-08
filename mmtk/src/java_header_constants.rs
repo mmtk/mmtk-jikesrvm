@@ -1,8 +1,8 @@
+use crate::java_size_constants::*;
+use crate::memory_manager_constants;
+use crate::memory_manager_constants::*;
+use crate::misc_header_constants::*;
 use crate::unboxed_size_constants::*;
-use java_size_constants::*;
-use memory_manager_constants;
-use memory_manager_constants::*;
-use misc_header_constants::*;
 
 /** Number of bytes in object's TIB pointer */
 pub const TIB_BYTES: usize = BYTES_IN_ADDRESS;

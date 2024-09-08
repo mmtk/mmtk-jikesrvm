@@ -13,8 +13,7 @@ use crate::object_model::JikesObj;
 #[macro_export]
 macro_rules! jtoc_call {
     ($offset:ident, $tls:ident $(, $arg:ident)*) => ({
-        use JTOC_BASE;
-        let call_addr = (JTOC_BASE + $offset).load::<fn()>();
+        let call_addr = ($crate::JTOC_BASE + $offset).load::<fn()>();
         jikesrvm_call!(call_addr, $tls $(, $arg)*)
     });
 }
@@ -23,8 +22,7 @@ macro_rules! jtoc_call {
 #[macro_export]
 macro_rules! jikesrvm_instance_call {
     ($obj:ident, $offset:ident, $tls:ident $(, $arg:ident)*) => ({
-        use java_header::TIB_OFFSET;
-        let tib = ($obj + TIB_OFFSET).load::<Address>();
+        let tib = ($obj + $crate::java_header::TIB_OFFSET).load::<Address>();
         let call_addr = (tib + $offset).load::<fn()>();
         jikesrvm_call!(call_addr, $tls $(, $arg)*)
     });

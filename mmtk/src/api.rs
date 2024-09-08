@@ -1,7 +1,11 @@
+use crate::collection::VMCollection;
+use crate::collection::BOOT_THREAD;
 use crate::object_model::JikesObj;
 use crate::scanning::SLOTS_BUFFER_CAPACITY;
-use collection::VMCollection;
-use collection::BOOT_THREAD;
+use crate::JikesRVM;
+use crate::BUILDER;
+use crate::JTOC_BASE;
+use crate::SINGLETON;
 use libc::c_char;
 use libc::c_void;
 use mmtk::memory_manager;
@@ -13,10 +17,6 @@ use mmtk::Mutator;
 use std::convert::TryFrom;
 use std::ffi::CStr;
 use std::sync::atomic::Ordering;
-use JikesRVM;
-use BUILDER;
-use JTOC_BASE;
-use SINGLETON;
 
 /// # Safety
 /// Caller needs to make sure the ptr is a valid vector pointer.

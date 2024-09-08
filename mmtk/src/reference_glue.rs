@@ -2,7 +2,7 @@ use mmtk::util::opaque_pointer::*;
 use mmtk::util::ObjectReference;
 use mmtk::vm::ReferenceGlue;
 
-use JikesRVM;
+use crate::JikesRVM;
 
 use std::convert::TryInto;
 

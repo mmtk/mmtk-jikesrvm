@@ -7,14 +7,16 @@ use crate::object_model::JikesObj;
 use mmtk::vm::ObjectTracer;
 use mmtk::vm::ObjectTracerContext;
 // use crate::scan_boot_image::ScanBootImageRoots;
+use crate::active_plan::VMActivePlan;
+use crate::entrypoint::*;
+use crate::java_header_constants::*;
+use crate::memory_manager_constants::*;
 use crate::scan_statics::ScanStaticRoots;
 use crate::unboxed_size_constants::LOG_BYTES_IN_ADDRESS;
+use crate::JikesRVM;
 use crate::JikesRVMSlot;
+use crate::JTOC_BASE;
 use crate::SINGLETON;
-use active_plan::VMActivePlan;
-use entrypoint::*;
-use java_header_constants::*;
-use memory_manager_constants::*;
 use mmtk::memory_manager;
 use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
@@ -26,8 +28,6 @@ use mmtk::vm::SlotVisitor;
 use mmtk::MMTK;
 use mmtk::*;
 use std::mem;
-use JikesRVM;
-use JTOC_BASE;
 
 #[derive(Default)]
 pub struct VMScanning {}

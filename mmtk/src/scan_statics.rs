@@ -2,11 +2,11 @@ use crate::jikesrvm_calls;
 use crate::scanning::SLOTS_BUFFER_CAPACITY;
 use crate::JikesRVM;
 use crate::JikesRVMSlot;
+use crate::JTOC_BASE;
 use mmtk::scheduler::*;
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::RootsWorkFactory;
 use mmtk::MMTK;
-use JTOC_BASE;
 
 #[cfg(target_pointer_width = "32")]
 const REF_SLOT_SIZE: usize = 1;

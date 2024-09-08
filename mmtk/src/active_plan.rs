@@ -1,12 +1,12 @@
-use collection::VMCollection;
-use entrypoint::*;
+use crate::collection::VMCollection;
+use crate::entrypoint::*;
+use crate::JikesRVM;
+use crate::JTOC_BASE;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::Address;
 use mmtk::vm::ActivePlan;
 use mmtk::Mutator;
 use std::mem;
-use JikesRVM;
-use JTOC_BASE;
 
 use std::sync::{Mutex, MutexGuard};
 

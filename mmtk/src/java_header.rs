@@ -1,5 +1,5 @@
-use java_header_constants;
-use java_header_constants::*;
+use crate::java_header_constants;
+use crate::java_header_constants::*;
 use std::sync::atomic::AtomicUsize;
 
 pub const SCALAR_HEADER_SIZE: usize = JAVA_HEADER_BYTES + OTHER_HEADER_BYTES;

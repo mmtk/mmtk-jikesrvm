@@ -11,17 +11,17 @@ use mmtk::util::copy::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
 
-use entrypoint::*;
-use java_header::*;
-use java_header_constants::{
+use crate::entrypoint::*;
+use crate::java_header::*;
+use crate::java_header_constants::{
     ADDRESS_BASED_HASHING, ALIGNMENT_MASK, ARRAY_LENGTH_OFFSET, DYNAMIC_HASH_OFFSET,
     HASHCODE_BYTES, HASHCODE_OFFSET, HASH_STATE_HASHED, HASH_STATE_HASHED_AND_MOVED,
     HASH_STATE_MASK, HASH_STATE_UNHASHED,
 };
-use java_size_constants::{BYTES_IN_DOUBLE, BYTES_IN_INT};
-use memory_manager_constants::*;
-use tib_layout_constants::*;
-use JikesRVM;
+use crate::java_size_constants::{BYTES_IN_DOUBLE, BYTES_IN_INT};
+use crate::memory_manager_constants::*;
+use crate::tib_layout_constants::*;
+use crate::JikesRVM;
 
 /// This type represents a JikesRVM-level `ObjectReference`.
 ///
