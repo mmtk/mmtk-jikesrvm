@@ -1,3 +1,14 @@
+0.28.0 (2024-09-27)
+===
+
+## What's Changed
+* Introduce JikesRVM-specific object accessor types by @wks in https://github.com/mmtk/mmtk-jikesrvm/pull/177
+* Use JavaHeader address as ObjectReference by @wks in https://github.com/mmtk/mmtk-jikesrvm/pull/179
+* Require ObjectReference to point inside object by @wks in https://github.com/mmtk/mmtk-jikesrvm/pull/180
+* Migrate to Rust 2021 edition by @wks in https://github.com/mmtk/mmtk-jikesrvm/pull/181
+
+**Full Changelog**: https://github.com/mmtk/mmtk-jikesrvm/compare/v0.27.0...v0.28.0
+
 0.27.0 (2024-08-09)
 ===
 
