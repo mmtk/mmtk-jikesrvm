@@ -15,28 +15,47 @@ jobs:
         run: |
           ./.github/scripts/ci-checkout.sh
           ./.github/scripts/ci-setup.sh
-
       # Run the tests
       - name: Dacapo Tests
         run: ./.github/scripts/ci-test-normal.sh
 
-      # Run these checks after build
-
+  style-check:
+    runs-on: ubuntu-22.04
+    steps:
+      # Checkout repos and submodules
+      - uses: actions/checkout@v2
+      - name: Setup Environments
+        run: |
+          ./.github/scripts/ci-checkout.sh
+          ./.github/scripts/ci-setup.sh
       # Style check
       - name: Style checks
         run: ./.github/scripts/ci-style.sh
 
+  msrv:
+    runs-on: ubuntu-22.04
+    steps:
+      # Checkout repos and submodules
+      - uses: actions/checkout@v2
+      - name: Setup Environments
+        run: |
+          ./.github/scripts/ci-checkout.sh
+          ./.github/scripts/ci-setup.sh
+      # Do a build first to generated the file needed for the Rust crate.
+      - name: Build
+        run: |
+          ./.github/scripts/ci-build.sh RBaseBaseNoGC
       # Verify the MSRV defined in Cargo.toml
       - name: Install MSRV
-        run: cargo install cargo-msrv --locked
+        run: cargo +stable install cargo-msrv --locked
       # Run cargo-msrv (force using i686 toolchain)
       - name: Verify MSRV
         id: verify-msrv
-        run: cargo msrv --path mmtk --target i686-unknown-linux-gnu verify -- cargo check --features semispace --target i686-unknown-linux-gnu
+        run: cargo msrv verify --path mmtk --target i686-unknown-linux-gnu -- cargo check --features semispace --target i686-unknown-linux-gnu
       # If the previous step fails, find MSRV
       - name: Find MSRV
         if: ${{ steps.verify-msrv.outcome == 'failure' }}
-        run: cargo msrv --path mmtk --target i686-unknown-linux-gnu -- cargo check --features semispace --target i686-unknown-linux-gnu
+        run: cargo msrv find --path mmtk --target i686-unknown-linux-gnu -- cargo check --features semispace --target i686-unknown-linux-gnu
 
   test-weak-ref:
     runs-on: ubuntu-22.04
