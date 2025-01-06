@@ -31,7 +31,7 @@ pub fn prepare_mutator(tls: VMWorkerThread, mutator_tls: VMMutatorThread) {
     unsafe {
         // asm! is not smart enough to figure out VMMutatorThread has repr(transparent) and
         // therefore the same representation as a pointer.
-        let mutator_tls_usize = std::mem::transmute::<_, usize>(mutator_tls);
+        let mutator_tls_usize = std::mem::transmute::<VMMutatorThread, usize>(mutator_tls);
         jtoc_call!(PREPARE_MUTATOR_METHOD_OFFSET, tls, mutator_tls_usize);
     }
 }

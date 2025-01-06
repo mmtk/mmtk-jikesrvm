@@ -98,12 +98,12 @@ fn process_chunk(
             /* enqueue the specified slot or slots */
             debug_assert!(conversions::is_address_aligned(Address::from_usize(offset)));
             let mut slot: Address = image_start + offset;
-            if cfg!(feature = "debug") {
+            if cfg!(debug_assertions) {
                 REFS.fetch_add(1, Ordering::Relaxed);
             }
 
             if !FILTER || slot.load::<Address>() > map_end {
-                if cfg!(feature = "debug") {
+                if cfg!(debug_assertions) {
                     ROOTS.fetch_add(1, Ordering::Relaxed);
                 }
                 report_slot(JikesRVMSlot::from_address(slot));
@@ -113,11 +113,11 @@ fn process_chunk(
                     offset += BYTES_IN_ADDRESS;
                     slot = image_start + offset;
                     debug_assert!(conversions::is_address_aligned(slot));
-                    if cfg!(feature = "debug") {
+                    if cfg!(debug_assertions) {
                         REFS.fetch_add(1, Ordering::Relaxed);
                     }
                     if !FILTER || slot.load::<Address>() > map_end {
-                        if cfg!(feature = "debug") {
+                        if cfg!(debug_assertions) {
                             ROOTS.fetch_add(1, Ordering::Relaxed);
                         }
                         // TODO: check_reference(slot) ?
