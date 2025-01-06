@@ -155,12 +155,6 @@ pub extern "C" fn total_bytes() -> usize {
 }
 
 #[no_mangle]
-#[cfg(feature = "sanity")]
-pub extern "C" fn scan_region() {
-    memory_manager::scan_region(&SINGLETON)
-}
-
-#[no_mangle]
 pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
     memory_manager::handle_user_collection_request::<JikesRVM>(&SINGLETON, tls);
 }

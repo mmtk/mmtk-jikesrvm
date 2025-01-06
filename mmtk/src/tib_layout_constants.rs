@@ -53,4 +53,4 @@ pub const TIB_FIRST_VIRTUAL_METHOD_INDEX: usize =
  *  <li>fits into a PowerPC 16bit immediate operand</li>
  *   </ul>
  */
-pub const NEEDS_DYNAMIC_LINK: isize = i16::min_value() as isize + 1;
+pub const NEEDS_DYNAMIC_LINK: isize = i16::MIN as isize + 1;
