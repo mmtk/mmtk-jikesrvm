@@ -1,3 +1,12 @@
+0.31.0 (2025-04-17)
+===
+
+## What's Changed
+* Move to Rust 1.83 by @qinsoon in https://github.com/mmtk/mmtk-jikesrvm/pull/185
+* Update mmtk-core to v0.31.0
+
+**Full Changelog**: https://github.com/mmtk/mmtk-jikesrvm/compare/v0.30.0...v0.31.0
+
 0.30.0 (2024-12-20)
 ===
 
