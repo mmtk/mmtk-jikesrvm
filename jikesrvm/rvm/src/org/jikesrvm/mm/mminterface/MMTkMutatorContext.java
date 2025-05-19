@@ -127,7 +127,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     @Entrypoint
     Address mallocAllocator0Context;
 
-    // 1 x ImmixAllocator
+    // 2 x ImmixAllocator
     @Entrypoint
     Address immixAllocator0Tls;
     @Entrypoint
@@ -152,6 +152,31 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     Address immixAllocator0OptionLineTag;
     @Entrypoint
     Address immixAllocator0OptionLineData;
+
+    @Entrypoint
+    Address immixAllocator1Tls;
+    @Entrypoint
+    Address immixAllocator1Cursor;
+    @Entrypoint
+    Address immixAllocator1Limit;
+    @Entrypoint
+    Address immixAllocator1Space;
+    @Entrypoint
+    Address immixAllocator1Context;
+    @Entrypoint
+    Address immixAllocator1Hot;
+    @Entrypoint
+    Address immixAllocator1Copy;
+    @Entrypoint
+    Address immixAllocator1LargeCursor;
+    @Entrypoint
+    Address immixAllocator1LargeLimit;
+    @Entrypoint
+    Address immixAllocator1RequestForLarge;
+    @Entrypoint
+    Address immixAllocator1OptionLineTag;
+    @Entrypoint
+    Address immixAllocator1OptionLineData;
 
     // 2 x FreeListAllocator
     @Entrypoint
@@ -236,7 +261,7 @@ public abstract class MMTkMutatorContext extends MutatorContext {
     static final int MAX_BUMP_ALLOCATORS = 6;
     static final int MAX_LARGE_OBJECT_ALLOCATORS = 2;
     static final int MAX_MALLOC_ALLOCATORS = 1;
-    static final int MAX_IMMIX_ALLOCATORS = 1;
+    static final int MAX_IMMIX_ALLOCATORS = 2;
     static final int MAX_FREE_LIST_ALLOCATORS = 2;
     static final int MAX_MARK_COMPACT_ALLOCATORS = 1;
     // Bump allocator size
