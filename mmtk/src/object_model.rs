@@ -516,10 +516,7 @@ impl VMObjectModel {
         // Low memory word of source object
         let from_address = from_obj.to_address() + (-obj_ref_offset);
 
-        // Do the copy// The hashcode is the first word, so we copy to object one word higher
-        if let MoveTarget::ToAddress(ref mut addr) = to {
-            *addr += HASHCODE_BYTES;
-        }
+        // Do the copy
         unsafe {
             Self::aligned_32_copy(to_address, from_address, copy_bytes);
         }
