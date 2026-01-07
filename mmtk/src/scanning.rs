@@ -207,7 +207,7 @@ where
     let is_nursery = SINGLETON
         .get_plan()
         .generational()
-        .map_or(false, |plan| plan.is_current_gc_nursery());
+        .is_some_and(|plan| plan.is_current_gc_nursery());
 
     tracer_context.with_tracer(worker, |tracer| {
         jikesrvm_calls::do_reference_processing_helper_forward(
@@ -228,7 +228,7 @@ where
     let is_nursery = SINGLETON
         .get_plan()
         .generational()
-        .map_or(false, |plan| plan.is_current_gc_nursery());
+        .is_some_and(|plan| plan.is_current_gc_nursery());
 
     let need_retain = SINGLETON.is_emergency_collection();
 
