@@ -1,3 +1,13 @@
+0.32.0 (2026-02-04)
+===
+
+## What's Changed
+* Update to MMTk core PR #1308 by @qinsoon in https://github.com/mmtk/mmtk-jikesrvm/pull/187
+* Fix a typo in VMObjectModel::move_object by @wks in https://github.com/mmtk/mmtk-jikesrvm/pull/189
+* Move to Rust 1.92 by @qinsoon in https://github.com/mmtk/mmtk-jikesrvm/pull/190
+
+**Full Changelog**: https://github.com/mmtk/mmtk-jikesrvm/compare/v0.31.0...v0.32.0
+
 0.31.0 (2025-04-17)
 ===
 
