@@ -66,7 +66,10 @@ pub extern "C" fn jikesrvm_gc_init(jtoc: *mut c_void, heap_size: usize) {
         builder.options.vm_space_size.set(0x800_0000);
 
         // set side metadata address
-        builder.options.side_metadata_base_address.set(unsafe { Address::from_usize(0x1000_0000) });
+        builder
+            .options
+            .side_metadata_base_address
+            .set(unsafe { Address::from_usize(0x1000_0000) });
     }
 
     // Make sure that we haven't initialized MMTk (by accident) yet
