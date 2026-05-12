@@ -198,7 +198,7 @@ impl Scanning<JikesRVM> for VMScanning {
     }
 }
 
-fn forward_weak_refs_inner<C>(worker: &mut GCWorker<JikesRVM>, tracer_context: C)
+fn forward_weak_refs_inner<'w, C>(worker: &'w mut GCWorker<JikesRVM>, tracer_context: C)
 where
     C: ObjectTracerContext<JikesRVM>,
 {
@@ -212,14 +212,14 @@ where
     tracer_context.with_tracer(worker, |tracer| {
         jikesrvm_calls::do_reference_processing_helper_forward(
             tls,
-            trace_object_callback_for_jikesrvm::<C::TracerType>,
+            trace_object_callback_for_jikesrvm::<C::TracerType<'w>>,
             tracer as *mut _ as *mut libc::c_void,
             is_nursery,
         )
     });
 }
 
-fn process_weak_refs_inner<C>(worker: &mut GCWorker<JikesRVM>, tracer_context: C) -> bool
+fn process_weak_refs_inner<'w, C>(worker: &mut GCWorker<JikesRVM>, tracer_context: C) -> bool
 where
     C: ObjectTracerContext<JikesRVM>,
 {
@@ -235,7 +235,7 @@ where
     tracer_context.with_tracer(worker, |tracer| {
         jikesrvm_calls::do_reference_processing_helper_scan(
             tls,
-            trace_object_callback_for_jikesrvm::<C::TracerType>,
+            trace_object_callback_for_jikesrvm::<C::TracerType<'w>>,
             tracer as *mut _ as *mut libc::c_void,
             is_nursery,
             need_retain,
