@@ -219,7 +219,7 @@ where
     });
 }
 
-fn process_weak_refs_inner<'w, C>(worker: &mut GCWorker<JikesRVM>, tracer_context: C) -> bool
+fn process_weak_refs_inner<'w, C>(worker: &'w mut GCWorker<JikesRVM>, tracer_context: C) -> bool
 where
     C: ObjectTracerContext<JikesRVM>,
 {
