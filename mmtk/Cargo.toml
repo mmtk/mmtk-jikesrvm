@@ -4,6 +4,7 @@ version = "0.32.0"
 authors = [" <>"]
 rust-version = "1.84.0"
 edition = "2021"
+resolver = "3"
 
 [lib]
 name = "mmtk_jikesrvm"
