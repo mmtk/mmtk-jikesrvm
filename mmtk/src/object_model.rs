@@ -343,6 +343,8 @@ pub struct VMObjectModel {}
 
 impl ObjectModel<JikesRVM> for VMObjectModel {
     const GLOBAL_LOG_BIT_SPEC: VMGlobalLogBitSpec = vm_metadata::LOGGING_SIDE_METADATA_SPEC;
+    const GLOBAL_FIELD_UNLOG_BIT_SPEC: VMGlobalFieldUnlogBitSpec =
+        vm_metadata::FIELD_LOGGING_SIDE_METADATA_SPEC;
 
     const LOCAL_FORWARDING_POINTER_SPEC: VMLocalForwardingPointerSpec =
         vm_metadata::FORWARDING_POINTER_METADATA_SPEC;
@@ -384,6 +386,43 @@ impl ObjectModel<JikesRVM> for VMObjectModel {
 
         copy_context.post_copy(to_obj, bytes, semantics);
         to_obj
+    }
+
+    #[inline(always)]
+    fn try_copy(
+        from: ObjectReference,
+        semantics: CopySemantics,
+        copy_context: &mut GCWorkerCopyContext<JikesRVM>,
+    ) -> Option<ObjectReference> {
+        trace!("ObjectModel.try_copy");
+        let jikes_from = JikesObj::from(from);
+        let tib = jikes_from.load_tib();
+        let rvm_type = tib.load_rvm_type();
+
+        let (bytes, align, offset) = if rvm_type.is_class() {
+            let bytes = jikes_from.bytes_required_when_copied_class(rvm_type);
+            let align = rvm_type.get_alignment_class();
+            let offset = jikes_from.get_offset_for_alignment_class();
+            (bytes, align, offset)
+        } else {
+            let bytes = jikes_from.bytes_required_when_copied_array(rvm_type);
+            let align = rvm_type.get_alignment_array();
+            let offset = jikes_from.get_offset_for_alignment_array();
+            (bytes, align, offset)
+        };
+
+        let addr = copy_context.alloc_copy(from, bytes, align, offset, semantics);
+        if addr.is_zero() {
+            return None;
+        }
+
+        let jikes_to_obj =
+            Self::move_object(jikes_from, MoveTarget::ToAddress(addr), bytes, rvm_type);
+        // jikes_to_obj must not be null because we gave it a non-zero `addr`.
+        let to_obj = ObjectReference::try_from(jikes_to_obj).unwrap();
+
+        copy_context.post_copy(to_obj, bytes, semantics);
+        Some(to_obj)
     }
 
     #[inline(always)]

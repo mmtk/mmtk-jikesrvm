@@ -162,7 +162,7 @@ pub extern "C" fn total_bytes() -> usize {
 
 #[no_mangle]
 pub extern "C" fn handle_user_collection_request(tls: VMMutatorThread) {
-    memory_manager::handle_user_collection_request::<JikesRVM>(&SINGLETON, tls);
+    memory_manager::handle_user_collection_request::<JikesRVM>(&SINGLETON, tls, false);
 }
 
 #[no_mangle]

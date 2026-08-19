@@ -11,6 +11,12 @@ const FORWARDING_BITS_OFFSET: isize = AVAILABLE_BITS_OFFSET << LOG_BITS_IN_BYTE;
 /// 1 bit per object
 pub(crate) const LOGGING_SIDE_METADATA_SPEC: VMGlobalLogBitSpec = VMGlobalLogBitSpec::side_first();
 
+/// Global field-logging bit metadata spec
+/// 1 bit per word. Only plans that need a field-granularity log bit (e.g. LXR) actually
+/// reserve this; none of JikesRVM's current plans use such a plan.
+pub(crate) const FIELD_LOGGING_SIDE_METADATA_SPEC: VMGlobalFieldUnlogBitSpec =
+    VMGlobalFieldUnlogBitSpec::side_after(LOGGING_SIDE_METADATA_SPEC.as_spec());
+
 // Global MetadataSpecs - End
 
 // PolicySpecific MetadataSpecs - Start

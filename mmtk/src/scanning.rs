@@ -93,10 +93,10 @@ impl Scanning<JikesRVM> for VMScanning {
             );
         }
     }
-    fn scan_object<EV: SlotVisitor<JikesRVMSlot>>(
+    fn scan_object(
         tls: VMWorkerThread,
         object: ObjectReference,
-        slot_visitor: &mut EV,
+        slot_visitor: &mut impl SlotVisitor<JikesRVMSlot>,
     ) {
         let jikes_obj = JikesObj::from(object);
         if DUMP_REF {
