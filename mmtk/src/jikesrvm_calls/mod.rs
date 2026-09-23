@@ -13,7 +13,7 @@ use mmtk::{
 };
 
 use self::helpers::{FromAsmResult, ToAsmArg};
-use crate::{entrypoint::*, object_model::JikesObj, JikesRVM, JikesRVMSlot};
+use crate::{JikesRVM, JikesRVMSlot, entrypoint::*, object_model::JikesObj};
 
 pub fn block_all_mutators_for_gc(tls: VMWorkerThread) {
     unsafe {

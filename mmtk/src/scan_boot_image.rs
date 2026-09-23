@@ -1,16 +1,16 @@
+use crate::JTOC_BASE;
+use crate::JikesRVM;
+use crate::JikesRVMSlot;
 use crate::entrypoint::*;
 use crate::java_size_constants::*;
 use crate::scanning::SLOTS_BUFFER_CAPACITY;
 use crate::unboxed_size_constants::*;
-use crate::JikesRVM;
-use crate::JikesRVMSlot;
-use crate::JTOC_BASE;
+use mmtk::MMTK;
 use mmtk::scheduler::*;
-use mmtk::util::conversions;
 use mmtk::util::Address;
 use mmtk::util::OpaquePointer;
+use mmtk::util::conversions;
 use mmtk::vm::RootsWorkFactory;
-use mmtk::MMTK;
 use std::mem;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
