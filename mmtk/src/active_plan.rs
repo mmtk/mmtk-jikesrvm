@@ -1,11 +1,11 @@
+use crate::JTOC_BASE;
+use crate::JikesRVM;
 use crate::collection::VMCollection;
 use crate::entrypoint::*;
-use crate::JikesRVM;
-use crate::JTOC_BASE;
-use mmtk::util::opaque_pointer::*;
-use mmtk::util::Address;
-use mmtk::vm::ActivePlan;
 use mmtk::Mutator;
+use mmtk::util::Address;
+use mmtk::util::opaque_pointer::*;
+use mmtk::vm::ActivePlan;
 use std::mem;
 
 use std::sync::{Mutex, MutexGuard};

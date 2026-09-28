@@ -1,12 +1,12 @@
-use crate::entrypoint::*;
-use crate::JikesRVM;
 use crate::JTOC_BASE;
+use crate::JikesRVM;
+use crate::entrypoint::*;
+use mmtk::Mutator;
+use mmtk::util::Address;
 use mmtk::util::alloc::AllocationError;
 use mmtk::util::opaque_pointer::*;
-use mmtk::util::Address;
 use mmtk::vm::ActivePlan;
 use mmtk::vm::{Collection, GCThreadContext};
-use mmtk::Mutator;
 
 use crate::jikesrvm_calls;
 
@@ -63,14 +63,19 @@ impl VMCollection {
     /// Caller needs to make sure thread_id is valid.
     #[inline(always)]
     pub unsafe fn thread_from_id(thread_id: usize) -> Address {
-        ((JTOC_BASE + THREAD_BY_SLOT_FIELD_OFFSET).load::<Address>() + 4 * thread_id)
-            .load::<Address>()
+        unsafe {
+            ((JTOC_BASE + THREAD_BY_SLOT_FIELD_OFFSET).load::<Address>() + 4 * thread_id)
+                .load::<Address>()
+        }
     }
 
     /// # Safety
     /// Caller needs to make sure thread_index is valid.
     #[inline(always)]
     pub unsafe fn thread_from_index(thread_index: usize) -> Address {
-        ((JTOC_BASE + THREADS_FIELD_OFFSET).load::<Address>() + 4 * thread_index).load::<Address>()
+        unsafe {
+            ((JTOC_BASE + THREADS_FIELD_OFFSET).load::<Address>() + 4 * thread_index)
+                .load::<Address>()
+        }
     }
 }

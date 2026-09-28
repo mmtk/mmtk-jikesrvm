@@ -1,5 +1,5 @@
-use crate::unboxed_size_constants::*;
 use crate::SELECTED_CONSTRAINTS;
+use crate::unboxed_size_constants::*;
 
 /** {@code true} if the selected plan needs support for linearly scanning the heap */
 pub const NEEDS_LINEAR_SCAN: bool = SELECTED_CONSTRAINTS.needs_linear_scan;

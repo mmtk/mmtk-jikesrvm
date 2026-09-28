@@ -3,13 +3,13 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
-use mmtk::plan::PlanConstraints;
-use mmtk::util::address::Address;
-use mmtk::util::ObjectReference;
-use mmtk::vm::slot::Slot;
-use mmtk::vm::VMBinding;
-use mmtk::MMTKBuilder;
 use mmtk::MMTK;
+use mmtk::MMTKBuilder;
+use mmtk::plan::PlanConstraints;
+use mmtk::util::ObjectReference;
+use mmtk::util::address::Address;
+use mmtk::vm::VMBinding;
+use mmtk::vm::slot::Slot;
 
 use crate::collection::BOOT_THREAD;
 use crate::object_model::JikesObj;
@@ -109,9 +109,9 @@ pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::SS_CONSTRAINTS;
 pub const SELECTED_CONSTRAINTS: PlanConstraints = mmtk::plan::MS_CONSTRAINTS;
 
 use std::convert::TryFrom;
+use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
-use std::sync::Mutex;
 
 pub static MMTK_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
